@@ -1,0 +1,1 @@
+/* Virtual functions and arguments by default */
