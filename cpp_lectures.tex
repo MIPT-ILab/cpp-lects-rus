@@ -2473,9 +2473,172 @@ void foo()
 
 При написании кода на C++ следует придерживаться хотя бы одной из этих гарантий и предпочитать RAII. Также исключения не должны генерироваться деструкторами, функциями, освобождающими ресурсы и функциями обмена.
 
-\subsection{Безопасные контейнеры}
+\subsection{Безопасное копирование и присваивание}
 
-Вернемся к шаблонному классу стека и теперь попытаемся сделать его безопасным относительно исключений.
+Вернемся к шаблонному классу стека и теперь попытаемся сделать его безопасным относительно исключений. На первый взгляд интерфейс класса стек может выглядеть как-то вот таким образом:
+
+\begin{lstlisting}
+template <typename T> 
+class Stack
+{
+public:
+  Stack(): m_v(new T[10]), m_vsize(10), m_vused(10) {}
+  ~Stack() { delete [] v; }
+  Stack(const Stack&);
+  Stack& operator= (const Stack&);
+  void Push(const T&);
+  T Pop();
+private:
+  T* m_v;
+  size_t m_vsize;
+  size_t m_vused;
+};
+\end{lstlisting}
+
+Конструктор и деструктор уже тривиально безопасны (если исключения не выходят за \lstinline!delete[]!, но они и не должны за него выходить). Сложнее с копированием и копирующим присваиванием. Проще всего сделать их безопасными, определив шаблон общей вспомогательной функции \lstinline!safe_copy!, копирующей буфер в заданный с перехватом всех возможных исключений и освобождением ресурсов.
+
+\begin{lstlisting}
+template <typename T>
+T *safe_copy(const T* src, size_t srcsize, size_t destsize)
+{
+  size_t idx;
+  T * dest;
+  assert (destsize >= srcsize);
+  dest = new T[destsize];
+  try 
+    {
+       for (idx = 0; idx != srcsize, ++idx)
+         dest[idx] = src[idx];
+    }
+  catch (...)
+    {
+       delete [] dest;
+       throw;
+    }
+  return dest;
+}
+\end{lstlisting}
+
+Внутри этой функции исключения могут быть сгенерированы:
+
+\begin{itemize}
+\item
+В функции \lstinline!new!, переопределённым для \lstinline!T! оператором \lstinline!operator new! или конструктором  \lstinline!T! -- в этом случае никакой памяти выделено не будет и утечки не произойдёт, а исключения покинут  \lstinline!safe_copy!
+\item
+В функции  \lstinline!operator=! или  \lstinline!operator[]! типа  \lstinline!T! при копировании. В этом случае исключения будут перехвачены, ресурсы освобождены и исключения отпущены дальше.
+\end{itemize}
+
+Имея эту функцию, мы уже можем разработать симпатичный конструктор копирования
+
+\begin{lstlisting}
+template <typename T>
+Stack<T>::Stack(const Stack& rhs) : m_v(safe_copy(rhs.m_v, rhs.m_vsize, rhs.m_vsize)), 
+                                 m_vsize(rhs.m_vsize), 
+                                 m_vused(rhs.m_vused) 
+{
+}
+\end{lstlisting}
+
+Единственный источник исключений здесь -- \lstinline!safe_copy!, в которой никакой утечки быть не может. Теперь присваивание:
+
+\begin{lstlisting}
+template <typename T>
+Stack<T>& Stack<T>::Stack(const Stack<T>& rhs)
+{
+  T *v_new;
+
+  if (this == &rhs)
+    return *this;
+
+  v_new = safe_copy(rhs.m_v, rhs.m_vsize, rhs.m_vsize);
+  delete [] m_v;
+  m_v = v_new;
+  m_vsize = rhs.m_vsize); 
+  m_vused = rhs.m_vused);
+  return *this;
+}
+\end{lstlisting}
+
+Таким образом состояние остаётся неизменным и даже при генерации исключения, оно выходит наружу не нарушая консистентности объекта.
+
+Подобные же средства обеспечения безопасности можно предложить для помещения элемента в стек:
+
+\begin{lstlisting}
+template <typename T>
+void Stack<T>::Push(const T& t)
+{
+  size_t vsize_new;
+  T *v_new;
+
+  if (m_vused < m_vsize)
+    {
+      m_vused = t;
+      m_vused += 1;
+      return;
+    }
+
+  vsize_new = m_vsize*2 + 1;
+  v_new = safe_copy(m_v, m_vsize, vsize_new);
+  delete [] v;
+  m_v = v_new;
+  m_vsize = vsize_new;
+}
+\end{lstlisting}
+
+Общий урок раздела заключается в том, что все места, где может быть сгенерировано исключение полезно собрать в одну вспомогательную функцию для использования безопасным образом.
+
+\subsection{Неявное копирование и безопасность исключений}
+
+Но проблемы как обычно подстерегают там, где их не ждали. Давайте рассмотрим метод Pop, который пока что остался не реализованным. К сожалению, его реализация только кажется простой.
+
+\begin{lstlisting}
+template <typename T>
+T Stack<T>::Pop(void)
+{
+  T result;
+
+  assert(m_vused > 0);
+  result = m_v[m_vused - 1];
+  m_vused -= 1;
+  return result;
+}
+\end{lstlisting}
+
+Вся проблема с этим кодом заключается в его возможном использовании:
+
+\begin{lstlisting}
+Stack<Sometype> s;
+SomeType s2;
+/* .. some code .. */
+s2 = s.Pop();
+\end{lstlisting}
+
+В последней строчке проихсодит копирование возвращаемого SomeType в место назначения. Если в этот момент возникнет исключение, то все побочные эффекты со стеком уже окажутся учтены -- элемент будет снят с верхушки, но он пропадёт безвозвратно. Именно поэтому в коде стандартной библиотеки и в любом безопасном относительно исключений коде, эти операции разделены:
+
+\begin{lstlisting}
+template <typename T> 
+class Stack
+{
+public:
+  Stack(): m_v(new T[10]), m_vsize(10), m_vused(10) {}
+  ~Stack() { delete [] v; }
+  Stack(const Stack&);
+  Stack& operator= (const Stack&);
+  void Push(const T&);
+  T& Top();
+  void Pop();
+private:
+  T* m_v;
+  size_t m_vsize;
+  size_t m_vused;
+};
+\end{lstlisting}
+
+Метод Top() даёт верхний элемент но не модифицирует стек, метод Pop() модифицирует стек но не возвращает никакого значения. Основной урок здесь состоит в том, что безопасность исключений действительно влияет на проектирование класса и думать о ней необходимо уже на этапе проектирования.
+
+\subsection{Идиома PImpl для безопасного кода}
+
+\subsection{Что нельзя деструкторам и можно нам}
 
 \pagebreak
 \section{Два лица стандартной библиотеки}
