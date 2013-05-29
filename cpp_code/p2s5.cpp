@@ -38,3 +38,15 @@ int main(void)
   return 0;
 }
 
+int add_mass(const Fruit &x, const Fruit &y)
+{
+  return x.get_mass() + y.get_mass();
+}
+
+int main(void)
+{
+  Apple a;
+  Pear b;
+  int total_mass = add_mass(a, b);
+}
+

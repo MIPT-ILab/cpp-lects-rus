@@ -38,6 +38,7 @@ ball_t::fly(double time)
   m_x += m_vx * time;
   m_y += m_vy * time - g * time * time;
   m_vy -= g * time;
+  m_t += time;
 }
 
 int 
