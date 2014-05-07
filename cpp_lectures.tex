@@ -3174,6 +3174,329 @@ int main()
 
 Итак, lambda-expressions позволяют (совместно с std::function) привнести в C++ некоторые полезные особенности функциональных языков, предоставляют удобный синтаксис для объявление функторов и использования алгоритмов стандартной билиотеки, и даже частично совместимы со старыми указателями на функции. Освоение lambda-выражений позволяет сделать код короче, выразительней и проще для поддержки.
 
+\subsection{Multithreading}
+
+Многопоточность всегда оставалась за кадром стандартных возможностей C++ и была отдана на откуп API конкретных библиотек и операционной системы. Это порождало различных уродцев, когда заказчик хотел видеть программу портабельной и для Windows и для Unix и программист был вынужден либо сам увешивать свой код условной компиляцией, либо использовать библиотеки, которые уже сделали это за него. Зачастую разные. Зачастую с кривым и несовместимым интерфейсом. В стандарте C++11 решено было наконец покончить с этой вольницей и урегулировать работу с потоками, стандартизовав её и предоставив простые и логичные механизмы для распараллеливания и синхронизации в программах на C++.
+
+\subsubsection{Привет, поток}
+
+Как обычно, разбор следует начинать с Hello world -- это позволит быстро ввести в курс дела и посмотреть как себя ведут простейшие потоки.
+
+\begin{lstlisting}
+#include <thread>
+#include <cstdio>
+
+using namespace std;
+
+void 
+my_thread_func (void)
+{
+  printf ("%s", "Hello, world\n");
+}
+
+int 
+main (void)
+{
+  std::thread t(my_thread_func);
+  t.join();
+  return 0;
+}
+\end{lstlisting}
+
+Итак, основной тип данных здесь это \lstinline!std::thread!. В момент создания поток t запускается и начинает выполнение функции \lstinline!my_thread_func!, переданной ему в качестве аргумента. Чтобы точно дождаться завершения потока используется метод \lstinline!join()! после которого поток гарантированно завершает исполнение.
+
+Следует немного сказать о компиляции этого примера. GCC 4.8.1, использованный для этого мной, потребовал передачи в явном виде опции -std=c++11 а также опции -pthread чтобы включить многопоточность. Как правило, подобный набор опций требуется и на более иных компиляторах.
+
+Немного усложнив Hello world, можно продемонстрировать передачу аргументов в функцию потока
+
+\begin{lstlisting}
+#include <thread>
+#include <cstdio>
+
+using namespace std;
+
+void 
+my_thread_func (const char *msg)
+{
+  printf ("%s\n", msg);
+}
+
+void 
+increment(int& i)
+{
+  ++i;
+}
+
+int 
+main (void)
+{
+  int x = 42;
+
+  std::thread t1 (my_thread_func, "Hello, world!");
+  t1.join ();
+
+  std::thread t2 (increment, std::ref (x));
+  t2.join ();
+
+  printf ("x value is %d\n", x);
+
+  return 0;
+}
+\end{lstlisting}
+
+Обратите особое внимание на использование \lstinline!std::ref! для передачи в поток по ссылке и дальнейшее использование возвращенного из потока значения.
+
+\subsubsection{Немножко синхронизации}
+
+Разумеется, в жизни довольно редко можно встретить поток, который занят печатью Hello World. Чаще потоки работают с данными и хорошим тоном многопоточного программирования является синхронизация данных. Базовый механизм синхронизации в C++11 называется mutex и работа с ним осуществляется через класс \lstinline!lock_guard!, являющийся красивой иллюстрацией механизма RAII.
+
+\begin{lstlisting}
+#include <mutex>
+#include <cstdio>
+
+std::mutex m;
+unsigned counter = 0;
+
+unsigned increment (void)
+{
+  std::lock_guard<std::mutex> lk(m);
+  return ++counter;
+} /* release m */
+
+unsigned query (void)
+{
+  std::lock_guard<std::mutex> lk(m);
+  return counter;
+} /* release m */
+
+int
+main (void)
+{
+  increment ();
+  printf ("querying: %d\n", query ());
+  return 0;
+}
+\end{lstlisting}
+
+Альтернативным примитивом синхронизации, предоставляемым стандартной библиотекой, являются \lstinline!condition_variable! обычно использующиеся вместе с классом \lstinline!unique_lock! и мьютексами. Они позволяют делать полноценное ожидание условия, которое происходит внутри запущенного потока:
+
+\begin{lstlisting}
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+
+std::condition_variable c;
+std::mutex mu;
+
+void thread_func()
+{
+  /* ... */
+  std::unique_lock<std::mutex> lock(mu);
+  /* ... */
+  printf ("Notification issued\n");
+  c.notify_one(); /* It also releases the unique lock */
+  /* ... */
+}
+
+int
+main (void)
+{
+  std::unique_lock<std::mutex> lock(mu); /* Lock the mutex */
+  std::thread t1(thread_func);
+
+  printf ("Waiting started\n");
+
+  c.wait(lock); /* This unlocks the mutex mu and allows thread_func to lock it */
+
+  printf ("Waiting complete\n");
+
+  /* ... */
+
+  t1.join();
+  return 0;
+}
+\end{lstlisting}
+
+Многие другие интересные возможности синхронизации оставлены за кадром и предлагаются на самостоятельное изучение.
+Но лучше всего в модели асинхронного исполнения C++ то, что часто синхронизация вручную оказывается вообще не нужна и работа с распараллеливанием может быть выполнена гораздо, гораздо проще. 
+
+\subsubsection{std::future}
+
+C++11 предоставляет программисту полезную абстракцию "асинхронный провайдер -- асинхронный результат". В этой абстракции асинхронный провайдер это объект, который обещает выполнить некоторую задачу, не конкретизируя как именно она будет выполнена. Это обещание называется std::promise. В свою очередь асинхронный результат хранится как отдельный объект и может быть запрошен тогда, когда он действительно нужен. Такой результат называется std::future. Посмотрим на иллюcтративный Hello, World.
+
+\begin{lstlisting}
+#include <utility>
+#include <thread>
+#include <future>
+#include <iostream>
+
+int
+main (void)
+{
+  auto promise = std::promise<std::string>();
+
+  auto producer = std::thread([&]
+    {
+      promise.set_value("Hello World\n");
+    });
+
+  auto future = promise.get_future();
+
+  auto consumer = std::thread([&]
+    {
+      std::cout << future.get();
+    });
+
+  producer.join();
+  consumer.join();
+
+  return 0;
+}
+\end{lstlisting}
+
+Здесь запущены два потока. Поток producer обещает, что он подготовит данные для вывода. Когда поток consumer готов их вывести, он запрашивает эти данные через future.get() и выводит их.
+
+Несколько граничных случаев работы с future и promise помогут лучше понять как это работает:
+
+\begin{itemize}
+\item Неактивное обещание
+\begin{lstlisting}
+int test()
+{
+    std::promise<int> pr;
+    return 0;
+}
+\end{lstlisting}
+
+Здесь все хорошо, никаких проблем
+
+\item Неиспользованное обещание
+\begin{lstlisting}
+int test()
+{
+    std::promise<int> pr;
+    auto fut = pr.get_future();
+    return 0;
+}
+\end{lstlisting}
+
+Все хорошо, но fut.get() будет заблокировано на неопределенное время. Пока оно не вызвано -- нет проблем.
+
+\item Множественные будущие
+\begin{lstlisting}
+int test()
+{
+    std::promise<int> pr;
+    auto fut1 = pr.get_future();
+    auto fut2 = pr.get_future();  /*   Error: "Future already retrieved" */
+    return 0;
+}
+\end{lstlisting}
+
+Ошибка, объект асинхронного результата уже получен.
+
+\item Переданное обещание
+\begin{lstlisting}
+int test()
+{
+  std::promise<int> pr;
+  auto fut = pr.get_future();
+
+  {
+    std::promise<int> pr2(std::move(pr));
+    pr2.set_value(10);
+  }
+
+  return fut.get();
+}
+\end{lstlisting}
+
+Все хорошо, вернет 10.
+
+\item Слишком много результатов
+\begin{lstlisting}
+int test()
+{
+    std::promise<int> pr;
+    auto fut = pr.get_future();
+
+    {
+        std::promise<int> pr2(std::move(pr));
+        pr2.set_value(10);
+        pr2.set_value(10);  /* Error: "Promise already satisfied" */
+    }
+
+    return fut.get();
+}
+\end{lstlisting}
+
+Ошибка. Данные для асинхронного результата уже предоставлены.
+
+\item Нарушенное обещание
+\begin{lstlisting}
+int test()
+{
+  std::promise<int> pr;
+  auto fut = pr.get_future();
+
+  {
+    std::promise<int> pr2(std::move(pr));
+  } // Error: "broken promise"
+
+  return fut.get();
+}
+\end{lstlisting}
+
+\end{itemize}
+
+Механизм future/promise сам по себе достаточно удобен, но реально прозрачно его оборачивает механизм std::async
+
+\subsubsection{std::async}
+
+Предположим, что у нас есть долгое и сложное вычисление, которое хочется запустить в два параллельных потока. Нет ничего проще!
+
+\begin{lstlisting}
+#include <future>
+#include <iostream>
+
+class EquationSolver
+{
+public:
+  void runMultiThread ();
+private:
+  int calculate (int from, int to);  
+};
+
+int 
+EquationSolver::calculate (int from, int to)
+{
+  return (from + to) / 2;
+}
+
+void 
+EquationSolver::runMultiThread()
+{
+  std::future<int> f1 = std::async (&EquationSolver::calculate, this,  0, 10);
+  std::future<int> f2 = std::async (&EquationSolver::calculate, this, 11, 20);
+
+  int res1 = f1.get ();
+  int res2 = f2.get ();
+
+  std::cout << res1 << " " << res2 << std::endl;
+}
+
+int
+main (void)
+{
+  EquationSolver t;
+  t.runMultiThread ();
+  return 0;
+}
+\end{lstlisting}
+
+Как видно из примера, std::async принимает те же аргументы, что и std::thread. После чего возвращает результат в виде future когда он запрошен. Как именно будет выполнена асинхронная задача -- детали реализации. Скорее всего она будет запущена в несколько потоков.
+Этот пример рекомендуется к изучению и экспериментам.
+
 \pagebreak
 \section{За пределами беспредельного}
 
