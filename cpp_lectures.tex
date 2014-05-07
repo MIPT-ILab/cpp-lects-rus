@@ -3123,7 +3123,7 @@ void negate_all(std::vector<T>& v)
 
 Теперь пришло время разобраться с тем, как же типизированы lambda-выражения.
 
-\subsection{Осваиваем std::function}
+\subsubsection{Осваиваем std::function}
 
 lambda-выражение с пустой спецификацией считается обычной функцией и может присваиваться указателям на функции в стиле C:
 
@@ -3496,6 +3496,200 @@ main (void)
 
 Как видно из примера, std::async принимает те же аргументы, что и std::thread. После чего возвращает результат в виде future когда он запрошен. Как именно будет выполнена асинхронная задача -- детали реализации. Скорее всего она будет запущена в несколько потоков.
 Этот пример рекомендуется к изучению и экспериментам.
+
+\subsection{Вычисления времени компиляции}
+
+Вычисления времени компиляции до выхода стандарта C++11 велись исключительно с помощью особой шаблонной магии, рассмотренной выше. В новом стандарте появился способ сделать это по человечески. Новое ключевое слово constexpr контролирует время выполнения выражения. Это позволяет создавать настоящие константы и константные выражения, заниматься метапрограммированием и многое другое. Здесь будут систематично рассмотрены все перечисленные возможности.
+
+\subsubsection{Ещё раз о константности}
+
+Уже рассматривавшийся выше модификатор const служит для того, чтобы объявить некие данные неизменяемыми. Но когда этим не изменяемым данным будет в первый раз присвоено их (в дальнейшем окончательное) значение? It depends.
+
+\begin{lstlisting}
+const int MAXSIZE = numeric_limits<int>::max();
+int arr[MAXSIZE]; /* not legal in C++ */
+\end{lstlisting}
+
+В этом примере значение максимального возможного целого будет присвоено MAXSIZE только в динамике. В результате на этапе компиляции, размер arr всё ещё неизвестен и строго соответсвующие стандарту C++ компиляторы могут выразить этим свое неудовольствие (такие массивы возможны в C и часто для C++ это включают как расширение).
+
+Те же проблемы испытывают статические данные в классах и структурах:
+
+\begin{lstlisting}
+struct S 
+{
+  static const int sz;
+};
+
+const int page_sz = 4 * S::sz; /* dynamic init */
+
+const int S::sz = 256; /* too late */
+\end{lstlisting}
+
+Это законная запись. Инициализатор статической константы, как и было рассмотрено ранее, должен появиться вне класса. Далее \lstinline!page_sz! будет инициализирвоана верным значением, но потребует инициализации времени выполнения. Как ни странно, но совсем немного отличающийся код уже пройдет инициадизацию на этапе компиляции:
+
+\begin{lstlisting}
+struct S 
+{
+  static const int sz = 256;
+};
+
+const int page_sz = 4 * S::sz; /* static init */
+
+const int S::sz; /* ok */
+\end{lstlisting}
+
+Это довольно грустно и требует от программиста помнить все тонкие правила константности, что, конечно, нереально. Именно этим и было мотивировано введение в стандарт ключевого слова, делающего известность на этапе компиляции явной.
+
+\subsubsection{constexpr функции}
+
+Как вообще могла бы быть объявлена функция \lstinline!numeric_limits<int>::max()!? Например так:
+
+\begin{lstlisting}
+#define INT_MAX (2147483647)
+
+class numeric_limits<int>
+{
+public:
+  static inline int max () { return INT_MAX; }
+};
+\end{lstlisting}
+
+Эта функция -- прекрасный кандидат на формирование константного выражения. Она:
+\begin{itemize}
+\item не void, то есть возвращает какое-то значение
+\item состоит из одного return statement -- то есть не заводит локальных переменных и не использует стек
+\end{itemize}
+
+Именно в таких двух условиях, функция в C++11 может быть сделана constexpr
+
+\begin{lstlisting}
+class numeric_limits<int>
+{
+public:
+  static constexpr int max () { return INT_MAX; }
+};
+\end{lstlisting}
+
+Более интересный пример:
+
+\begin{lstlisting}
+constexpr int square(int x) { return x * x; }
+/* ... */
+const int res = square(5);
+\end{lstlisting}
+
+Здесь res будет известен на этапе компиляции. Но при этом в таком виде:
+
+\begin{lstlisting}
+int
+foo (int y)
+{
+  return square(y);
+}
+\end{lstlisting}
+
+Функция square (даже объявленная constexpr) ведёт себя как самая обычная функция. Это позволяет иметь её одну, не заводя зоопарк constexpr и non-constexpr зверюшек.
+
+\subsubsection{constexpr данные}
+
+Чтобы отличать обычные данные от известных на этапе компиляции, данные и даже члены классов тоже можно аннотировать constexpr
+
+\begin{lstlisting}
+struct S
+{
+private:
+  static constexpr int sz; // constexpr variable
+public:
+  constexpr int two(); //constexpr function
+};
+
+constexpr int S::sz = 256;
+enum DataPacket
+{
+  Small=S::two(), //error. S::two() called before it was defined
+  Big=1024
+};
+
+constexpr int S::two() { return sz*2; }
+constexptr S s;
+
+int arr[s.two()]; //OK, s.two() called after its definition
+\end{lstlisting}
+
+Видно, что по существу они мало чем отличаются от обычных данных. Но компилятор имеет насчёт них точную гарантию что их значения при компиляции уже известны.
+
+Но тогда возникает вопрос. Неужели у нас могут быть constexpr данные типов int или float, но не может быть constexpr данных пользовательских типов? Конечно могут.
+
+\subsubsection{constexpr конструкторы}
+
+Если у вас есть необходимость, чтобы ваш тип мог вести себя как compile-time константа, для него можно написать constexpr-коснтруктор:
+
+\begin{lstlisting}
+struct complex
+{
+public:
+  constexpr complex(double r, double i) : re(r), im(i) { }
+  constexpr double real() { return re;}
+  constexpr double imag() { return im;}
+private:
+ double re;
+ double im;
+};
+
+constexpr complex c(0.0, 1.0);
+\end{lstlisting}
+
+Тело такого конструктора обязано быть пустым, вся инициализация производится в списке инициализации.
+
+\subsubsection{пользовательские литералы}
+
+Наличие constexpr конструкторов специального вида, позволяет определять пользовательские литералы.
+
+\begin{lstlisting}
+#include <cstdio>
+#include <utility>
+
+struct Complex
+{
+public:
+  constexpr Complex(double r = 0.0, double i = 0.0) : re(r), im(i) { }
+
+  class Imaginary {}; /* tag */
+  explicit constexpr Complex(Imaginary, double i) : re (0.0), im (i) {}
+
+  constexpr double real() { return re;}
+  constexpr double imag() { return im;}
+
+  friend constexpr Complex operator+ (const Complex lhs, const Complex rhs);
+
+private:
+  double re;
+  double im;
+};
+
+constexpr Complex operator+ (const Complex lhs, const Complex rhs)
+{
+  return Complex(lhs.re+rhs.re, lhs.im+rhs.im);
+}
+
+constexpr Complex operator "" _i( long double i )
+{
+  return Complex{Complex::Imaginary{}, static_cast<double>(i)};
+}
+
+int
+main (void)
+{
+  constexpr Complex c = 0.0 + 1.0_i;
+
+  std::printf ("c: (%g, %g)\n", c.real(), c.imag());
+  return 0;
+}
+\end{lstlisting}
+
+Ключевой строчкой в это машинерии является \lstinline!constexpr Complex c = 0.0 + 1.0_i! что достигается с помощью переопределения \lstinline!constexpr Complex operator "" _i! и разумеется пользователь может переопределять любые литералы.
+
+\textbf{Домашняя наработка:} добейтесь работы строчки \lstinline!constexpr Kilogramm mass = 5_kg + 3_lb!, где lb это фунты, на этапе компиляции строящей преобразование фунтов в килограммы.
 
 \pagebreak
 \section{За пределами беспредельного}
