@@ -6,7 +6,7 @@ long long foo(long long z = 0x0afff) { return z; }
 
 int test01(void)
 {
-  char *b = "abcdefgh", a, c;
+  char b[] = "abcdefgh", a, c;
   int i, j;
   a = b[i];
   c = j[b];
