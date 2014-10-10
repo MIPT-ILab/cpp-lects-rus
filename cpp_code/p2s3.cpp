@@ -1,7 +1,7 @@
 #include <iostream>
 #include <cmath>
 
-class ball_t
+struct ball_t
 {
 private:
   /* internal state */

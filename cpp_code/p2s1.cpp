@@ -40,7 +40,7 @@ ball foo(void)
 
 using namespace std;
 
-class ball_t
+struct ball_t
 {
 private:
   double m_x;
