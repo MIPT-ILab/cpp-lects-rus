@@ -1095,7 +1095,26 @@ main (void)
 
 \lstinputlisting[firstline=1,lastline=10]{cpp_code/p1s6.cpp}
 
-Все правила для пространств имён нужно хорошо знать и ещё раз освежить в стандарте по мере того, как вы забудете то, о чём я говорил здесь.
+Поиск Кёнига не срабатывает для имён, которые компилятор считает известными
+
+\begin{lstlisting}
+typedef int f;
+
+namespace N {
+  struct A;
+  int f(A*);
+}
+
+int g(N::A *a)
+{
+  int i = f(a);
+  /* f is the typedef, not the N::f
+     function: equivalent to int(a) */
+  return i;
+}
+\end{lstlisting}
+
+Без верхнего \lstinline!typedef! всё сработало бы прекрасно, но в его присутствии, компилятор не будет искать функцию \lstinline!f!, полагая, что здесь написано преобразование к типу \lstinline!int!.
 
 \subsection{Мелкие отличия C-подмножества C++ от ANSI C}
 
