@@ -1,0 +1,143 @@
+\documentclass{beamer}
+
+\usepackage[utf8]{inputenc}
+\usepackage{listings}
+
+\title[Template functions] {Template functions in C++ and generic programming}
+\author[Vladimirov]{K.~Vladimirov}
+
+\begin{document}
+\frame{\titlepage}
+
+\begin{frame}[fragile]
+\frametitle{Simple function templates}
+
+\begin{columns}[c]
+\begin{column}{.5\textwidth}
+\begin{block}{Simple template function}
+\begin{lstlisting}[basicstyle=\tiny]
+template <typename T> inline const T
+min (const T a, const T b)
+{
+  return (a < b) ? a : b;
+}
+\end{lstlisting}
+\end{block}
+\end{column}
+\begin{column}{.5\textwidth}
+\begin{block}{Syntax, according to (14.1) C++14}
+\small{
+tdecl: template $\langle$ plist $\rangle$ declaration\\
+plist: parameter $\mid$ (plist , parameter)
+}
+\end{block}
+\end{column}
+\end{columns}\pause
+
+\begin{alertblock}{What about case, where type \lstinline!T! denotes heavy argument?}
+In this case, say \lstinline!sizeof(T)>1000!, passing on stack is overhead
+\end{alertblock}\pause
+
+\begin{block}{Use constant references to avoid overhead}
+\begin{lstlisting}[basicstyle=\small]
+template <typename T> inline const T&
+min (const T &a, const T &b)
+{
+  return (a < b) ? a : b;
+}
+\end{lstlisting}
+\end{block}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{How to write and test min/max pair?}
+
+\begin{columns}[c]
+\begin{column}{.5\textwidth}
+\begin{block}{Min function}
+\begin{lstlisting}[basicstyle=\tiny]
+template <typename T> inline const T&
+min (const T &a, const T &b)
+{
+  return (a < b) ? a : b;
+}
+\end{lstlisting}
+\end{block}
+\end{column}
+\begin{column}{.5\textwidth}
+\begin{block}{Max function}
+\begin{lstlisting}[basicstyle=\tiny]
+template <typename T> inline const T&
+max (const T &a, const T &b)
+{
+  return (a > b) ? a : b;
+}
+\end{lstlisting}
+\end{block}
+\end{column}
+\end{columns}\pause
+
+\begin{alertblock}{How to test this solution?}
+Idea: assert, that $(x<y) \Rightarrow \{\min(x,y),\max(x,y)\}=\{x,y\}$
+\end{alertblock}\pause
+
+\begin{block}{Write template unit tests}
+\begin{lstlisting}[basicstyle=\tiny]
+template <typename T> bool
+test_minmax (const T &a, const T &b)
+{
+  assert (a <= b);
+  return (min (a, b) == a) && (max (a, b) == b);
+}
+\end{lstlisting}
+
+We can call this function with different data:
+\begin{lstlisting}[basicstyle=\tiny]
+assert(test_minmax ('a', 'b'));
+assert(test_minmax (5, 6));
+assert(test_minmax (3.0, 7.2));
+/* ... */
+\end{lstlisting}
+\end{block}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{More interesting tests and unexpected bugs}
+
+\begin{alertblock}{What if \lstinline!T! is more sophisticated?}
+Say we do have class Person with name and age, and comparison is based on age:
+\begin{lstlisting}[basicstyle=\tiny]
+struct Person
+{
+  const char *name;
+  int age;
+  Person (const char *a_name, int an_age) : name (a_name), age(an_age) {}
+};
+
+/* operators > and <= are the same */
+static bool
+operator < (const Person &lhs, const Person &rhs)
+{
+  return lhs.age < rhs.age;
+}
+
+static bool
+operator == (const Person &lhs, const Person &rhs)
+{
+  return (lhs.age == rhs.age) && (!strcmp (lhs.name, rhs.name));
+}
+\end{lstlisting}
+
+What if we will call 
+
+\begin{lstlisting}[basicstyle=\tiny]
+Person Ivan ("Ivan", 20);
+Person Danila ("Danila", 20);
+assert(test_minmax (3.0, 7.2));
+\end{lstlisting}
+\end{alertblock}\pause
+\end{frame}
+
+\end{document}
