@@ -685,7 +685,7 @@ int t = x[0];
 x[1] = t;
 x[0] = x[1];
 \end{lstlisting}
-\item Деградировать (decay) к указателю если он используется как rvalue
+\item Деградировать (decay) к указателю если он используется как rvalue\label{ArrDecaying}
 \begin{lstlisting}
 int foo (int *t);
 int *p = &x[0];
@@ -4433,7 +4433,7 @@ T foo (int n)
 
 При выбросе исключения, память под вектором будет корректно освобождена. Явный цикл теперь не подвержен ошибкам индексов и по сути является циклом \lstinline!for_each!. И главное, программа стала невероятно C++-стильной и сразу выдаёт в вас чуть более крутого разработчика, чем раньше. Впрочем, тут ещё есть, что улучшать. Когда разговор зайдёт про алгоритмы, это будет сделано и вы увидите космос.
 
-\subsubsection{От обработки строк в стиле C к \lstinline!std::string!}
+\subsubsection{От обработки строк в стиле C к \lstinline!std::string!}\label{CStringToStdString}
 
 Стандартная библиотека языка C и все её возможности по ссылке включены в стандарт C++ и могут использоваться, как обычно. Но добавленный также класс \lstinline!basic_string! и его специализации \lstinline!string! и \lstinline!wstring! позволяют делать то же самое гораздо безопаснее и во многом проще (иногда ценой производительности).
 
@@ -4484,9 +4484,73 @@ main (void)
 
 \subsection{Итераторы}
 
-\subsubsection{От указателей к итераторам}
+Итератор является обобщением понятия указателя, с которым к этому моменту уже не должно возникать проблем. Какие два свойства можно выделить у указателя, которые делают его полезным при обходе массива?
 
-\subsubsection{Ассоциативные контейнеры}
+\begin{enumerate}
+\item Указатель может быть использован для доступа к тому элементу на который он указывает
+\item При инкременте, указатель позволяет перейти от данного элемента к следующему (в каком бы смысле не понималось отношение последования)
+\item Указатель может иметь специальное значение (например NULL), позволяющая проверить, что дальнейший переход невозможен
+\end{enumerate}
+
+Все те же свойства можно отнести к итератору, который, разумеется, может быть объектом гораздо более сложной структуры, чем указатель. Важно то, что если указатель не слишком изолирует от реальности лежащих под ним данных, то итератор в общем случае независимо от того какие данные он ``указывает'' позволяет работать с ними прозрачным образом.
+
+У каждого контейнера стандартной библиотеки может быть получен типизированный итератор в положении начала контейнера \lstinline!begin()! и конца контейнера \lstinline!end()!
+
+\subsubsection{От указателей к итераторам}\label{PointersToIterators}
+
+Допустим, есть массив и функция, которая обходит этот массив и что-то на нем выполняет:
+
+\begin{lstlisting}
+template <typename F>
+int process_arr(int *arr, int key, F cmp)
+{
+  while (arr != 0)
+    {
+      if (F (*arr, key)) 
+        return (*arr);
+      arr += 1; 
+    }  
+}
+\end{lstlisting}
+
+Теперь допустим есть не массив а список:
+
+\begin{lstlisting}
+template <typename F>
+int process_list(list_t *list, int key, F cmp)
+{
+  while (list != 0)
+    {
+      if (F (list->data, key)) 
+        return (list->data);
+      list = list->next;
+    }  
+}
+\end{lstlisting}
+
+Этот код очень похож, но при попытке его обобщить возникают проблемы. Для обобщения нужен общий интерфейс. Если договорится, что и массив и список предоставляют такой интерфейс, то можно написать общий код:
+
+\begin{lstlisting}
+template <typename T, typename F>
+int process_list(const T& t, int key, F cmp)
+{
+  typename T::iterator i = t.begin();
+  while (i != t.end())
+    {
+      if (F (*i, key)) 
+        return (*i);
+      i++;
+    }  
+}
+\end{lstlisting}
+
+В этом коде тип \lstinline!T! удовляетворяет трём условиям: он содержит зависимый тип итератора \lstinline!T::iterator!, а также функцию \lstinline!begin()! для возврата итератора на своё начало и \lstinline!end()! для итераторая на свой конец
+
+\subsubsection{Какие бывают итераторы}
+
+Стандартная библиотека C++ определяет несколько более жесткие требования к совместимому контейнеру. Совместимый контейнер должен определять
+
+\subsubsection{Линейный обход ассоциативных контейнеров}
 
 Ассоциативные контейнеры включают в себя множества (set) отображения (map), мультимножества (multiset) и мультиотображения (multimap).
 
@@ -4523,7 +4587,15 @@ int main(int argc, char** argv)
 }
 \end{lstlisting}
 
+Надо понимать, что внутреннее представление \lstinline!map! это скорее всего красно-черное дерево. Обратите особое внимание как интерфейс \lstinline!map <std::string, int>::iterator! позволяет устроить линейный inorder обход узлов дерева.
+
+\subsubsection{Идиома erase-remove}
+
+Удаление элементов из контейнера при работе с итераторами имеет свои контринтуитивные особенности
+
 \subsection{Алгоритмы}
+
+Пример \lstinline!process_list! приведенный в \ref{PointersToIterators} сам по себе является довольно обобщенным кодом, который благодаря механизму итераторов, способен выполнять некие нетривиальные действия над любым совместимым контейнером стандартной библиотеки. Но что если написать много такого кода для распространённых случаев и поместить его в стандартную библиотеку, не заставляя программиста раз за разом изобретать велосипеды? Это подводит к идее алгоритмов стандартной библиотеки.
 
 \subsubsection{Жизнь без явных циклов}
 
@@ -4578,10 +4650,6 @@ T foo (int n)
 
 Впрочем, ненадолго. Теперь, когда вы почувствовали вкус к алгоритмам, пора углубиться в детали, которые, как обычно, вовсе не розы и песни.
 
-\subsubsection{Идиома erase-remove}
-
-Удаление элементов из контейнера имеет свои контринтуитивные особенности
-
 \subsection{Блеск и нищета обобщения}
 
 Майерс \cite{effectivestl} предостерегает от излишне обобщённого кода. Есть смысл повторить здесь его рассуждения, потому что они до сих пор не потеряли актуальность. 
@@ -4593,6 +4661,59 @@ T foo (int n)
 TODO: пример
 
 Это произошло от того, что в целом коммьюнити разочаровалось в потоках ввода-вывода и поэтому эти лекции не разделяют общего апологетического тона книг по C++ на эту тему. Но сначала -- общий обзор.
+
+\subsubsection{Виды и иерархия потоков}
+
+В программах на C привычными потоками (имеющими тип FILE*)
+
+\subsubsection{Итераторы ввода-вывода}
+
+\begin{lstlisting}
+const int N = 10;
+
+/* function generator: */
+int RandomNumber (void) { return (std::rand() % 20); }
+
+/* less than class */
+template <typename T>
+class less_than_X
+{
+public:
+  less_than_X(T x): m_x(x) {}
+
+  bool operator() (const T &x) const
+    {
+      return (x < m_x);
+    }
+private:
+  T m_x;
+};
+
+int main() 
+{
+  vector<int> v1(N), v2;
+  less_than_X<int> pred(10); /* less than 10 instance */
+
+  /* prefer generators to immediate fill */
+  generate (v1.begin(), v1.end(), RandomNumber);
+
+  /* some output to look at v1 */
+  copy(v1.begin(), v1.end(), std::ostream_iterator<int>(cout, " "));
+  cout << std::endl;
+
+  remove_copy_if(v1.begin(), v1.end(), inserter(v2,v2.end()), pred);
+
+  /* some output to be sure v2 contain more than 10 */
+  copy(v2.begin(), v2.end(), std::ostream_iterator<int>(cout, " "));
+  cout << std::endl;
+
+  return 0;
+}
+\end{lstlisting}
+
+\subsubsection{Форматированный ввод и вывод}
+
+Для обеспечения форматированного ввода и вывода у потоков в стандартной библиотеке есть форматные модификаторы
 
 \pagebreak
 \section{Новые горизонты}
@@ -4653,6 +4774,109 @@ decltype (i) k = i; /* typeof (k) == const int */
 \end{lstlisting}
 
 Разумное применение этих средств позволяет существенно улучшить читаемость вашего кода и сделать гораздо меньше тонких ошибок и опечаток в сложных именах типов.
+
+\subsubsection{Расширенный синтаксис функций}
+
+Возможности автоматического вывода типов подразумевают построение абстракций с зависимыми типами. Пусть нам нужен статический шаблонный контракт на любой тип \lstinline!T!, поддерживающий функцию \lstinline!T::makeobject!, возвращающую некий свой тип. Мы не можем написать:
+
+\begin{lstlisting}
+template <typename T> auto /* Error! */
+makeAndProcessObject (const T& builder)
+{
+    auto val = builder.makeObject();
+    /* do stuff with val */
+    return val;
+}
+\end{lstlisting}
+
+Потому что компилятор в точке объявления функции не обладает информацией о типе, который вернет \lstinline!T::makeobject!. Точно так же мы не можем написать:
+
+\begin{lstlisting}
+template <typename T> 
+decltype(builder.makeObject()) /* Error again! */
+makeAndProcessObject (const T& builder)
+{
+    auto val = builder.makeObject();
+    /* do stuff with val */
+    return val;
+}
+\end{lstlisting}
+
+Потому что \lstinline!builder! не может быть использован до точки своего объявления (которой является список аргументов функции). Комитет по стандартизации решил эту проблему изящно, предложив расширенный синтаксис для обобщённых функций, возвращающих зависимые типы:
+
+\begin{lstlisting}
+template <typename T> auto
+makeAndProcessObject (const T& builder) -> decltype( builder.makeObject() )
+{
+    auto val = builder.makeObject();
+    /* do stuff with val */
+    return val;
+}
+\end{lstlisting}
+
+\subsubsection{Decaying и минимальные общие типы}
+
+Decaying уже был рассмотрен, при рассмотрении деградации массивов в указатели (\ref{ArrDecaying}), но если в старом стандарте это была built-in особенность для одной конкретной пары типов, то новый стандарт предлагает интересные варианты обобщения этого понятия на любые типы. Простой случай:
+
+\begin{lstlisting}
+int foo (const int &s) 
+{ 
+  return s + 2; 
+}
+\end{lstlisting}
+
+Здесь в выражении \lstinline!s + 2!, \lstinline!s! ведёт себя так, как будто его тип \lstinline!int!. Тогда можно сказать, что \lstinline!const int &! деградирует к \lstinline!int! в том же смысле, в каком массив деградирует к указателю, etc. Новый стандарт позволяет вручную ``деградировать'' тип:
+
+\begin{lstlisting}
+const int &i;
+std::decay<decltype(i)>::type j; /* int j */
+/* and btw */
+auto k = i; /* int k = i; */
+\end{lstlisting}
+
+Поскольку \lstinline!auto! также осуществляет деградацию, можно считать \lstinline!decay! + \lstinline!decltype! способом вывести тот тип, который вывело бы \lstinline!auto!.
+
+На механизме \lstinline!decay! неявно построен механизм \lstinline!common_type!, позволяющий вывести минимальный общий тип:
+
+\begin{lstlisting}
+int foo (int &i)
+{
+  const long j;
+  std::common_type<decltype(i), decltype(j)>::type k; /* long k */
+  /* ... */
+}
+\end{lstlisting}
+
+В качестве полезного примера, можно привести смешанную арифметику для числового класса:
+
+\begin{lstlisting}
+template <class T>
+struct Number { T n; };
+ 
+template <class T, class U>
+Number<typename std::common_type<T, U>::type> operator+(const Number<T>& lhs,
+                                                        const Number<U>& rhs) 
+{
+    return {lhs.n + rhs.n};
+}
+ 
+int main()
+{
+    Number<int> i1 = {1}, i2 = {2};
+    Number<double> d1 = {2.3}, d2 = {3.5};
+    std::cout << "i1i2: " << (i1 + i2).n << "\ni1d2: " << (i1 + d2).n << '\n'
+              << "d1i2: " << (d1 + i2).n << "\nd1d2: " << (d1 + d2).n << '\n';
+}
+\end{lstlisting}
+
+Здесь вывод будет следующим:
+
+\begin{lstlisting}
+i1i2: 3
+i1d2: 4.5
+d1i2: 4.3
+d1d2: 5.8
+\end{lstlisting}
 
 \subsection{Rvalue references}
 

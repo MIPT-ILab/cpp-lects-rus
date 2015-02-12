@@ -7,7 +7,7 @@
 
 using namespace std;
 
-/* 1. Prefer constants to defines */
+/* prefer constants to defines */
 const int N = 10;
 
 /* function generator: */
