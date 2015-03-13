@@ -5757,7 +5757,118 @@ main (void)
 
 \subsection{Вариабельные шаблоны}
 
-Вариабельные шаблоны расширяют идею шаблонов C++ (TODO: описание)
+Вариабельные шаблоны расширяют идею шаблонов C++, подобно тому, как функции с произвольным числом аргументов расширяют возможности обычных функций. Прежде, чем рассматривать в деталях это новшество, следует сделать обзор использования троеточий (ellipsis) в C и C++, чтобы поместить новую информацию в контекст.
+
+\subsubsection{Поговорим о \texttt{...}}
+
+Троеточия (ellipsis) впервые появились в языке C для таких функций, как \lstinline!printf! и \lstinline!scanf! 
+
+\begin{lstlisting}
+int printf (const char* format, ... );
+\end{lstlisting}
+
+Были придуманы общеизвестные приемы работы с ними -- список актуально переданных аргументов, получаемый через \lstinline!va_list! однонаправленно итерировался с помощью \lstinline!va_arg!, причем никакой информации о типах не сохранялось и они были полностью отданы на откуп программиста (обычно использовалась та или иная форма дедуцирования из форматного списка). Это приводило к крайне тяжелым последствиям. Скажем простая строчка:
+
+\begin{lstlisting}
+printf(name);
+\end{lstlisting}
+
+позволяла хакеру при её вызове со строчкой вроде \lstinline!name = %f%f%f%x(%s)! распечатать содержимое рантайм-стека и вывести на экран некие хранящиеся там приватные для программы сведения. А наличие таких легальных возможностей, как форматный модификатор \lstinline!%n!, позволявший модификацию переменных:
+
+\begin{lstlisting}
+int i;
+printf("12345%n6789\n", &i);
+assert (i == 5);
+\end{lstlisting}
+
+Делала такие функции любимым оружием злоумышленников. 
+
+Тем не менее, плюсы перевешивали минусы, а на атаки находились защиты. Впоследствии переменное число аргументов было распространено на макросы:
+
+\begin{lstlisting}
+#define eprintf(...) fprintf (stderr, __VA_ARGS__)
+\end{lstlisting}
+
+В C++ всё это было сохранено, и, более того, сверху было добавлено использование троеточия в обработке исключений:
+
+\begin{lstlisting}
+try{
+    // Try block.
+}
+catch(...){
+    // Catch block.
+}
+\end{lstlisting}
+
+Систематически прослеживается обращение с троеточием как с заменой слов ``все что угодно''.
+
+\subsubsection{Вариабельные шаблоны функций}
+
+Синтаксис вариабельного шаблоны выглядит несколько необычно:
+
+\begin{lstlisting}
+template<typename... Arguments>
+\end{lstlisting}
+
+При этом он может вначале иметь и не-вариабельную часть:
+
+\begin{lstlisting}
+template<typename Arg, typename... Arguments>
+\end{lstlisting}
+
+В данном случае параметр \lstinline!Arguments...! это тип для использования в выражениях особого вида. Можно рассматривать его как ``все остальные аргументы'', а первый тип как ``верхний аргумент списка''. Интересно, что 
+
+\begin{lstlisting}
+template<typename T> void
+bar(T &&t)
+{
+  std::cout << "b: " << t << "\n";
+}
+
+/* recursion end */
+void foo() {}
+
+template<typename Arg, typename ... Args> void 
+foo(Arg &&arg, Args &&... args)
+{
+    bar(std::forward<Arg>(arg));
+    foo(std::forward<Args>(args)...);
+}
+
+int 
+main()
+{
+  foo (1, 2, 3, "3");
+  return 0;
+}
+\end{lstlisting}
+
+Используя эти возможности, можно соорудить безопасный относительно типов \lstinline!printf! не подверженный, рассматривавшимся выше атакам:
+
+\begin{lstlisting}
+void printf(const char* s) {
+  while (*s) {
+    if (*s == '%' && *++s != '%') 
+      throw std::runtime_error("invalid format string: missing arguments");
+    std::cout << *s++;
+  }
+}
+
+template<typename T, typename... Args>
+void printf(const char* s, const T& value, const Args&... args) { 
+  while (*s) { 
+    if (*s == '%' && *++s != '%') {
+    // ignore the character that follows the '%': we already know the type!
+    std::cout << value;
+    return printf(++s, args...);
+    }
+    std::cout << *s++;
+  }
+  throw std::runtime error("extra arguments provided to printf");
+}
+\end{lstlisting}
+
+\subsubsection{Вариабельные шаблоны классов}
 
 Пример простого кортежа на вариабельных шаблонах
 
