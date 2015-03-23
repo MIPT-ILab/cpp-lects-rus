@@ -101,7 +101,7 @@ inputencoding=utf8,
 
 С++ (произносится ``си плас плас'')\index{C++} это язык общего назначения с сильной статической типизацией и ручным управлением ресурсами. Де-факто в современном программировании C++ является индустриальным стандартом. Язык был создан Бьярном Строструпом\index{Stroustrup} в 1980-м году как объектно-ориентированное расширение языка C\index{C}, известного с 70-х. В 1985-м появилась первая коммерческая версия компилятора Cfront и по языку была опубликована первая книга. 
 
-По прошествии времени, C++ был принят сообществом, широко распространился на различных архитектурах и операционных системах. В 1998-м году язык C++ был стандартизован (работа велась с 1990-го года). Сейчас язык C++ имеет развитую инфраструктуру средств компиляции, отладки, библиотек, поддержку в IDE. Много новых возможностей было введено в язык новым стандартом, принятым в 2011-м году.
+По прошествии времени, C++ был принят сообществом, широко распространился. Код на C++ переносимо работает на различных архитектурах и операционных системах. В 1998-м году язык C++ был стандартизован (работа велась с 1990-го года). Сейчас язык C++ имеет развитую инфраструктуру средств компиляции, отладки, библиотек, поддержку в IDE. Много новых возможностей было введено в язык новым стандартом, принятым в 2011-м году. Ещё больше возможностей добавлено в стандарте C++14, окончательно принятом в 2015-м году.
 
 \subsection{Стандартизация C++}\label{Standartization}
 
@@ -152,7 +152,7 @@ inputencoding=utf8,
 \pagebreak
 \subsection{Неопределенное поведение}\label{UB}
 
-Изо всех рассмотренных выше видов поведения программы, самое страшное это неопределённое поведение (undefined behavior или для краткости UB). Любой программист на языке C++ с опытом развивает чутьё на неопределённые ситуации, но даже профессионалы часто попадаются на эту удочку. В этих лекциях я предпочитаю остановиться на этой теме с самого начала, поскольку чутьё на такие ситуации надо развивать сразу. Сначала эффектный пример.
+Изо всех рассмотренных выше видов поведения программы, самое страшное это неопределённое поведение (undefined behavior или для краткости UB). Любой программист на языке C++ с опытом развивает чутьё на неопределённые ситуации, но даже профессионалы часто попадаются на эту удочку. В этих лекциях я предпочитаю остановиться на этой теме с самого начала, поскольку упомянутое выше чутьё надо развивать сразу. Сначала эффектный пример.
 
 \subsubsection{Неявное UB как путь к проклятию}\label{HiddenUB}
 
@@ -197,7 +197,7 @@ main ()
 \item Разыменование неинициализированного указателя
 \item Разыменование указателя на память, динамически выделенную с нулевым размером
 \item Использование указателей и ссылок на объекты с истекшим сроком жизни
-\item Адресная арифметика с результатом выходящим за границы массива и доступ к такой памяти
+\item Адресная арифметика с результатом, выходящим за границы массива и доступ к такой памяти
 \item Преобразование указателей в несовместимые типы
 \item Использование memcpy на пересекающихся участках памяти
 \end {itemize}
@@ -356,7 +356,7 @@ Exceptional C++ – исключения, гарантии исключений,
 \item
 Перевернуть односвязный список в памяти
 \item
-Написать быструю сортировку массива
+Найти тысячное простое число
 \end{itemize}
 
 Несмотря на то, что существенная часть этой лекции посвящена повторению языка C, я во-первых призываю всех читать и перечитывать Кернигана и Ричи, а во-вторых практиковаться в C, не забывая о нём при изучении C++. Лично я предпочитаю C и решения в стиле C за их простоту и близость аппаратуре.
@@ -383,7 +383,7 @@ Exceptional C++ – исключения, гарантии исключений,
 
 Вопрос: кто запишет константный указатель на константные данные? Сделать это надо двумя способами, не меньше.
 
-Вопрос: кто понимает, что значит ключевое слово volatile\index{volatile}.
+Вопрос: кто понимает, что значит ключевое слово \lstinline!volatile!\index{volatile}.
 
 Вопрос: Запишите теперь константый указатель на волатильные данные. Имеет ли он смысл? Можете ли вы представить ситуацию, когда вам может понадобиться волатильный указатель на константные данные?
 
@@ -1122,7 +1122,7 @@ int g(N::A *a)
 
 Без верхнего \lstinline!typedef! всё сработало бы прекрасно, но в его присутствии, компилятор не будет искать функцию \lstinline!f!, полагая, что здесь написано преобразование к типу \lstinline!int!.
 
-\subsection{Мелкие отличия C-подмножества C++ от ANSI C}
+\subsection{Мелкие отличия C-подмножества C++ от ISO C}
 
 \begin{itemize}
 \item
@@ -1250,7 +1250,7 @@ typedef struct tree_tag
 
 \lstinputlisting[firstline=1,lastline=13]{cpp_code/p2s2.cpp}
 
-Получившийся тип (собственно ``not POD-тип'' или ``NPOD-тип'') несколько удобнее в работе. Но при этом теряются гарантии по расположению в памяти и размерам (которые с учётом выравнивания и в C в общем-то были довольно призрачными). Обратите внимание что в C++ была исключена необходимость добавлять struct к символьному имени структуры, что делает ненужным оставшийся в C-style коде typedef тэга структуры на её имя.
+Получившийся тип (собственно ``not POD-тип'' или ``NPOD-тип'') несколько удобнее в работе. Но при этом теряются гарантии по расположению в памяти и размерам (которые с учётом выравнивания и в C в общем-то были довольно призрачными). Обратите внимание что в C++ была исключена необходимость добавлять \lstinline!struct! к символьному имени структуры, что делает ненужным оставшийся в C-style коде \lstinline!typedef! тэга структуры на её имя.
 
 Кстати имя метода \lstinline!transpose_pair! структуры \lstinline!pair_t! в C++ также будет манглировано (вспоминаем прошлую лекцию) и в ассемблере встретится, например в виде:
 
@@ -1318,11 +1318,11 @@ anytype `op` int => int `op` int
 
 \lstinputlisting[firstline=26,lastline=31]{cpp_code/p2s2.cpp}
 
-Верный способ определить конструктор, чтобы явно заявить компилятору, что он не поддерживает неявного преобразования это определить его с ключевым словом explicit
+Верный способ определить конструктор, чтобы явно заявить компилятору, что он не поддерживает неявного преобразования это определить его с ключевым словом \lstinline!explicit!
 
 \lstinputlisting[firstline=12,lastline=13]{cpp_code/p2s3.cpp}
 
-Это важное решение при проектировании и его надо принимать осознанно. Лепить explicit куда ни попадя -- дурной тон (скажем это ключевое слово возможно но совершенно не нужно на конструкторе более чем с одним аргументом и без аргументов по умолчанию). Но иногда он очень нужен.
+Это важное решение при проектировании и его надо принимать осознанно. Лепить \lstinline!explicit! куда ни попадя -- дурной тон (скажем это ключевое слово возможно но совершенно не нужно на конструкторе более чем с одним аргументом и без аргументов по умолчанию). Но иногда он очень нужен.
 
 \subsubsection{Value-инициализация и Default-инициализация}
 
@@ -1383,7 +1383,7 @@ int *pt = new int [10](); /* 10 ints are initialized with 0 */
 
 \subsubsection{Статические константы в классе\index{static members}}
 
-Задумаемся над реализацией метода fly. Очевидно, нам понадобится ускорение свободного падения. Логично сделать его константой общей для каждого экземпляра класса \lstinline!ball_t!, но при этом закрытой, так как это его деталь реализации.
+Задумаемся над реализацией метода \lstinline!fly!. Очевидно, нам понадобится ускорение свободного падения. Логично сделать его константой общей для каждого экземпляра класса \lstinline!ball_t!, но при этом закрытой, так как это его деталь реализации.
 
 Пишем объявление:
 
@@ -3275,7 +3275,7 @@ class A
   public:
      void func(void) { internal_func (Type2Type<T1>()); }
   private:
-    template< class V >
+    template <class V>
     void internal_func (Type2Type<V>)
       { printf ("forall\n"); }
 
@@ -3768,13 +3768,13 @@ main( int argc, char ** argv )
 Представьте, что вы используете CRTP для предоставления ``интерфейса'' к набору дочерних шаблонов, при этом как родитель, так и потомки параметризованы:
 
 \begin{lstlisting}
-template <typename DERIVED, typename VALUE> class interface {
-    void do_something(VALUE v) {
-        static_cast<DERIVED*>(this)->do_something(v);
+template <typename derived, typename value> class interface {
+    void do_something(value v) {
+        static_cast<derived*>(this)->do_something(v);
     }
 };
 
-template <typename VALUE> class derived : public interface<DERIVED, VALUE> {
+template <typename value> class derived : public interface<derived<value>, value> {
     void do_something(VALUE v) { ... }
 };
 
@@ -3784,20 +3784,20 @@ typedef interface<derived<int>, int> derived_t;
 Строчка, определяющая \lstinline!derived_t! содержит неприятное дублирование типа  \lstinline!int!, который на самом деле один и тот же и для потомка и для предка. Мало того это даёт возможность ошибки при опечатке. Чтобы явно отобразить, что шаблон параметризуется зависимым параметризованным типом:
 
 \begin{lstlisting}
-template <template <typename> class DERIVED, typename VALUE> class interface {
-    void do_something(VALUE v) {
-        static_cast<DERIVED<VALUE>*>(this)->do_something(v);
+template <template <typename> class derived, typename value> class interface {
+    void do_something(value v) {
+        static_cast<derived<value>*>(this)->do_something(v);
     }
 };
 
-template <typename VALUE> class derived : public interface<DERIVED, VALUE> {
-    void do_something(VALUE v) { ... }
+template <typename value> class derived : public interface<derived, value> {
+    void do_something(value v) { ... }
 };
 
 typedef interface<derived, int> derived_t;
 \end{lstlisting}
 
-Обратите внимание на \lstinline!template <typename> class DERIVED! -- именно такой синтаксис внутри списка аргументов показывает, что \lstinline!DERIVED! это шаблонный тип, специфицированный неким зависимым. Александреску\cite{mcpp} использует шаблонные шаблонные параметры для реализации policy-классов
+Обратите внимание на \lstinline!template <typename> class derived! -- именно такой синтаксис внутри списка аргументов показывает, что \lstinline!derived! это шаблонный тип, специфицированный неким зависимым. Александреску\cite{mcpp} использует шаблонные шаблонные параметры для реализации policy-классов
 
 \begin{lstlisting}
 template <template <typename> class CreationPolicy>
@@ -3819,7 +3819,7 @@ class WidgetManager : public CreationPolicyEx<Widget, WidgetPattern>
 
 Разумеется, явно может быть указано сколько угодно зависимых типов.
 
-\subsubsection{CRTP с закрытой базой}
+\subsubsection{CRTP с закрытой базой и ещё немного дружбы}
 
 При использовании CRTP с закрытой базой (являющейся специализацией шаблонного шаблонного параметра), бывает полезно объявить закрытую базу другом, чтобы дать ей доступ к своей закрытой части.
 
@@ -3827,14 +3827,11 @@ class WidgetManager : public CreationPolicyEx<Widget, WidgetPattern>
 /* Transport<service> is implementation detail */
 template<template<typename> class Transport>
 class service : private Transport<service> {
-
     /* since we derive privately, make the transport layer a friend of us, 
        so that it can cast its this pointer down to us */
     friend class Transport<service>;
-
 public:
     typedef Transport<service> transport_type;
-
     /* common code */
     void do_something() { 
         this->send(....);
@@ -3865,21 +3862,129 @@ typedef service<udp> service_udp;
 
 \subsection{Метапрограммы\index{Metaprogramming}}
 
-Шаблонное метапрограммирование было открыто в 1994-м году. Эрвин Анрух (Erwin Unruh) на заседании комитета по стандартизации сделал доклад, из которого следовало, что шаблоны могут быть использованы для вычисления на этапе компиляции и продемонстрировал генератор простых чисел, который на этапе компиляции выводил в виде сообщений об ошибках простые числа от 2 до заранее заданного настраиваемого предела. Но этот генератор довольно сложен. На простом примере можно показать как работает метапрограммирование в целом:
+Шаблонное метапрограммирование было открыто в 1994-м году. Эрвин Анрух (Erwin Unruh) на заседании комитета по стандартизации сделал доклад, из которого следовало, что шаблоны могут быть использованы для вычисления на этапе компиляции и продемонстрировал генератор простых чисел, который на этапе компиляции выводил в виде сообщений об ошибках простые числа от 2 до заранее заданного настраиваемого предела. Но этот генератор довольно сложен. Кроме того, метапрограммирование использует несколько иной подход к вычислениям, с которого и следует начать.
+
+\subsubsection{Две модели вычислений}
+
+Представьте простую функцию, вычисляющую факториал числа. Человек с опытом на C написал бы её в итеративном стиле:
+
+\begin{lstlisting}
+int
+fact_0 (int x)
+{
+  int i, res = 1;
+  for (i = 2; i <= x; ++i)
+    res *= i;
+
+  return res;
+}
+\end{lstlisting}
+
+Здесь для того, чтобы вычислить факториал понадобились две ячейки памяти -- изменяемые переменные \lstinline!i! и \lstinline!res!. Математик Алан Тьюринг в 1936-м году опубликовал статью из которой следовало, что очень сложные вычислительные процессы можно произвести, имея в своем распоряжении:
+
+\begin{itemize}
+\item ветвления (скажем оператор \lstinline!if! или тернарный оператор)
+\item переходы (хороший пример -- любой цикл или простое \lstinline!goto!)
+\item последовательное линейное исполнение инструкций
+\item достаточное количество изменяемой памяти
+\end{itemize}
+
+Факториал переписанный в более Тьюринг-стиле, но все ещё на C показывает некий минимализм выразительных средств:
+
+\begin{lstlisting}
+int memory[3];
+
+/* memory[0] is input and result */
+fact_0:
+  memory[1] = 1;
+  memory[2] = 1;
+  label t, fin;
+t:
+  memory[1] += 1;
+  memory[2] *= memory[1];
+  if (memory[1] > memory[0]) 
+    goto fin;
+  goto t;
+fin:
+  memory[0] = memory[2];
+\end{lstlisting}
+
+Некоторое время спустя, Алонсо Черч обнаружил, что очень сложные вычислительные процессы можно произвести, имея в своем распоряжении:
+
+\begin{itemize}
+\item ветвления (скажем оператор \lstinline!if! или тернарный оператор)
+\item вызовы функций с передачей аргументов
+\end{itemize}
+
+В этом случае вообще не требуется изменяемых переменных.
+
+И правда, факториал можно записать иначе:
+
+\begin{lstlisting}
+int
+fact_1 (int x)
+{
+  if (x < 2)
+    return x;
+  else
+    return fact_1 (x - 1);
+}
+\end{lstlisting}
+
+Порождаемый таким образом рекурсивный процесс вычислительно не слишком эффективен, но аккумулятор тоже можно сымитировать, изменив факториал:
+
+\begin{lstlisting}
+int
+fact_2_1 (int x, int idx, int product)
+{
+  if (idx > x)
+    return product;
+  else
+    return fact_2_1 (x, idx + 1, product * idx);
+}
+
+int
+fact_2 (int x)
+{
+  return fact_2_1 (x, 1, 1);
+}
+
+\end{lstlisting}
+
+Интересно, что обычные программы на C++ больше похожи на подсахаренные машины Тьюринга (с поправкой на структурное программирование, взрослые циклы и вызовы функций). Но вот шаблоны... шаблоны больше похожи на подход Черча, который также называется функциональным стилем.
+
+\subsubsection{Простая рекурсия и арифметика}
+
+Однако, шаблоны. Начать следует с простой рекурсии и арифметики. 
+
+\textbf{Задача:} вычислить N-ю степень числа 3
+
+Пока что ведь неочевидно, что на шаблонах во время компиляции можно даже это. Всегда первый шаг: переписать в функциональном стиле
+
+\begin{lstlisting}
+int
+three_to_n (int n)
+{
+  if (n == 0)
+    return 1;
+  else
+    return 3 * three_to_n (n - 1);
+}
+\end{lstlisting}
+
+Теперь вычислить N-ю степень числа 3 на этапе компиляции довольно просто:
 
 \begin{lstlisting}
 /* primary template to compute 3 to the Nth */
 template<int N> 
-class Pow3 { 
-  public: 
-    enum { result=3*Pow3<N-1>::result }; 
+struct Pow3 { 
+  enum { result=3*Pow3<N-1>::result }; 
 }; 
 
 /* full specialization to end the recursion */
 template<> 
-class Pow3<0> { 
-  public: 
-    enum { result = 1 }; 
+struct Pow3<0> { 
+  enum { result = 1 }; 
 }; 
 
 int main() 
@@ -3909,56 +4014,156 @@ int main()
 
 Это и выведет тривиально правильный результат. Пример специально подобран так, что написать в коде \lstinline!Pow3<7>::result! занимает столько же символов, сколько итоговая строчка. Выгода здесь в читабельности кода (общий смех). 
 
-В метапрограммах можно делать также ветвления if-then-else\index{if-then-else template}. Напишем простой шаблон:
+Вопрос к студентам: теперь кто напишет факториал?
+
+Ответ:
 
 \begin{lstlisting}
-// primary template: yield second or third argument depending on first argument 
+template <int n>
+struct factorial 
+{
+  enum { value = n * factorial<n - 1>::value };
+};
+ 
+template <>
+struct factorial<0> {
+  enum { value = 1 };
+};
+\end{lstlisting}
+
+Очень хорошо. Пора получить в руки пушку помощней.
+
+\subsubsection{Ветвления и пример квадратного корня}
+
+Обычная шаблонная специализация позволяет проверять только равенство. В метапрограммах можно делать также ветвления if-then-else\index{if-then-else template} с любыми, сколь угодно сложными условиями. Напишем простой шаблон:
+
+\begin{lstlisting}
+/* primary template: yield second or third argument depending on first argument */
 template<bool C, typename Ta, typename Tb> 
-class IfThenElse; 
+struct IfThenElse; 
 
-// partial specialization: true yields second argument 
+/* partial specialization: true yields second argument */
 template<typename Ta, typename Tb> 
-class IfThenElse<true, Ta, Tb> { 
-
-  public: 
-    typedef Ta ResultT; 
+struct IfThenElse<true, Ta, Tb> 
+{ 
+  typedef Ta ResultT; 
 }; 
 
-// partial specialization: false yields third argument 
+/* partial specialization: false yields third argument */
 template<typename Ta, typename Tb> 
-class IfThenElse<false, Ta, Tb> { 
-  public: 
-    typedef Tb ResultT; 
+struct IfThenElse<false, Ta, Tb> 
+{ 
+  typedef Tb ResultT; 
 }; 
 \end{lstlisting}
 
-С помощью этого шаблона теперь можно легко написать, например, вычисление целочисленного квадратного корня во время компиляции:
+С помощью этого шаблона теперь можно легко написать, например, вычисление целочисленного квадратного корня во время компиляции.
+И опять первый шаг: прикинуть код на C++ в функциональном стиле:
 
 \begin{lstlisting}
-// primary template for main recursive step 
-template<int N, int LO=1, int HI=N> 
-class Sqrt { 
-  public: 
-    // compute the midpoint, rounded up 
-    enum { mid = (LO+HI+1)/2 }; 
+int
+isqrt (int N, int lo = 1, int hi = N)
+{
+  int mid = (lo + hi + 1) / 2;
 
-    // search a not too large value in a halved interval 
-    typedef typename IfThenElse<(N<mid*mid), 
-                                Sqrt<N,LO,mid-1>, 
-                                Sqrt<N,mid,HI> >::ResultT 
-            SubT; 
-    enum { result = SubT::result }; 
+  if (lo == hi)
+    return lo;
+  else
+    {
+      if (N < mid * mid)
+        return isqrt (N, lo, mid - 1);
+      else
+        return isqrt (N, mid, hi);
+    }
+}
+\end{lstlisting}
+
+Теперь его можно перевести на шаблоны
+
+\begin{lstlisting}
+/* primary template for main recursive step */
+template <int N, int LO = 1, int HI = N> 
+struct Sqrt 
+{ 
+  /* compute the midpoint, rounded up */
+  enum { mid = (LO+HI+1)/2 }; 
+
+  /* search a not too large value in a halved interval */
+  typedef typename IfThenElse<(N<mid*mid), 
+                               Sqrt<N,LO,mid-1>, 
+                               Sqrt<N,mid,HI> >::ResultT 
+          SubT; 
+  enum { result = SubT::result }; 
 }; 
 
-// partial specialization for end of recursion criterion 
-template<int N, int S> 
-class Sqrt<N, S, S> { 
-  public: 
-    enum { result = S }; 
+/* partial specialization for end of recursion criterion */
+template <int N, int S> 
+struct Sqrt <N, S, S> 
+{ 
+  enum { result = S }; 
 }; 
 \end{lstlisting}
 
 Рассмотренные примеры показывают, что мы можем делать в метапрограммах ветвления и циклы (через рекурсию), хранить промежуточные данные и нам доступна целочисленная арифметика. Всего этого достаточно для того, чтобы доказать Тьюринг-полноту шаблонов C++\index{Turing completeness of templates}.
+
+\subsubsection{Простые числа}
+
+Благодаря вложенным классам, можно устраивать некую модульность в вычислениях и даже писать нечто, похожее на ``метаподпрограммы''. Большой пример с простыми числами сильно отличается от базового кода Анруха (его всегда можно найти в интернетах), но он несколько полезней, так как результаты печатаются не в виде ошибок, а доступны для использования.
+
+\begin{lstlisting}
+template <int i>
+struct NthPrime
+{
+  template <int p>
+  struct is_prime
+  {
+    template <int n>
+    struct n_divisors
+    {
+      template <int N, int M>
+      struct is_divisor
+      {
+        enum { val = is_divisor <N, M - 1>::val + ((N % M) == 0) };
+      };
+
+      template <int N>
+      struct is_divisor <N, 1>
+      {
+        enum { val = 0 };
+      };
+
+      enum { val = is_divisor <n, n - 1>::val };
+    };
+    enum { val = (n_divisors <p>::val == 0) };
+  };
+
+  template <int n, int m>
+  struct search_step
+  {
+    enum { val = search_step <n - (is_prime <m>::val), m + 1>::val };
+  };
+
+  template <int m>
+  struct search_step <1, m>
+  {
+    enum { val = m - 1 };
+  };
+
+  enum { val = search_step <i, 3>::val };
+};
+\end{lstlisting}
+
+Использование очевидно:
+
+\begin{lstlisting}
+int main(int argc, char* argv[])
+{
+  printf("Prime 6: %i\n", NthPrime<6>::val);
+  return 0;
+}
+\end{lstlisting}
+
+\textbf{Домашняя наработка:} коды Грея на шаблонах
 
 \subsection{Мелкие детали шаблонов C++}
 
