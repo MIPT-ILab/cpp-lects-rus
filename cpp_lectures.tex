@@ -1762,7 +1762,7 @@ private:
 
 \textbf{Домашняя наработка:} поясните или опровергните мысль: ``именно из-за проблемы двойного освобождения, в C++ нет и не может быть простого аналога realloc''
 
-\subsubsection{Оптимизации возвращаемого значения\index{RVO}}
+\subsubsection{Оптимизации возвращаемого значения\index{RVO}}\label{RVO}
 
 RVO или оптимизация возвращаемого значения, прописана в стандарт C++ (например 12.3.2.15 для С++98) и она гласит, если коротко, что компилятор имеет право не вызывать копирующие конструкторы если он может статически доказать, что объекты эквивалентны.
 
@@ -5754,6 +5754,8 @@ makeAndProcessObject (const T& builder) -> decltype( builder.makeObject() )
 }
 \end{lstlisting}
 
+Внутри скобок \lstinline!decltype! в данном случае вычисление выражения (в том числе вызов функции) не происходит -- происходит только вывод типа.
+
 \subsubsection{Decaying и минимальные общие типы}
 
 Decaying уже был рассмотрен, при рассмотрении деградации массивов в указатели (\ref{ArrDecaying}), но если в старом стандарте это была built-in особенность для одной конкретной пары типов, то новый стандарт предлагает интересные варианты обобщения этого понятия на любые типы. Простой случай:
@@ -5782,8 +5784,8 @@ auto k = i; /* int k = i; */
 int foo (int &i)
 {
   const long j;
-  std::common_type<decltype(i), decltype(j)>::type k; /* long k */
-  /* ... */
+  /* long k */
+  std::common_type<decltype(i), decltype(j)>::type k;
 }
 \end{lstlisting}
 
@@ -5794,8 +5796,9 @@ template <class T>
 struct Number { T n; };
  
 template <class T, class U>
-Number<typename std::common_type<T, U>::type> operator+(const Number<T>& lhs,
-                                                        const Number<U>& rhs) 
+Number<typename std::common_type<T, U>::type> 
+operator+(const Number<T>& lhs,
+          const Number<U>& rhs) 
 {
     return {lhs.n + rhs.n};
 }
@@ -5804,19 +5807,80 @@ int main()
 {
     Number<int> i1 = {1}, i2 = {2};
     Number<double> d1 = {2.3}, d2 = {3.5};
-    std::cout << "i1i2: " << (i1 + i2).n << "\ni1d2: " << (i1 + d2).n << '\n'
-              << "d1i2: " << (d1 + i2).n << "\nd1d2: " << (d1 + d2).n << '\n';
+    std::cout << "i1i2: " << (i1 + i2).n 
+              << "\ni1d2: " << (i1 + d2).n 
+              << "\nd1i2: " << (d1 + i2).n 
+              << "\nd1d2: " << (d1 + d2).n 
+              << '\n';
 }
 \end{lstlisting}
 
-Здесь вывод будет следующим:
+\textbf{Домашняя наработка:} проанализировать вывод этой программы и то, почему он ведет себя именно так.
+
+\subsubsection{Стой, кто идёт?\index{Type traits}}
+
+Новый стандарт предлагает большое количество удобных стандартных шаблонов для получения более детальной информации о типах на этапе выполнения. 
+
+Большинство из них должны как-то сообщать ответы ``да'' и ``нет'' на вопросы ``является ли это тем-то и тем-то?'', скажем: ``является ли тип аргумента указателем на функцию-член класс?''. Чтобы закодировать ответы, используется обертка над интегральными константами времени компиляции:
 
 \begin{lstlisting}
-i1i2: 3
-i1d2: 4.5
-d1i2: 4.3
-d1d2: 5.8
+template< class T, T v >
+struct integral_constant;
 \end{lstlisting}
+
+Теперь можно определить \lstinline!true_type! как \lstinline!integral_constant<bool, true>! и \lstinline!false_type! как \lstinline!std::integral_constant<bool, false>!.
+
+Можно продемонстрировать создание пользовательских констант:
+
+\begin{lstlisting}
+typedef std::integral_constant<int, 2> two_t;
+typedef std::integral_constant<int, 4> four_t;
+static_assert(two_t::value*2 == four_t::value, "2*2 != 4");
+\end{lstlisting}
+
+Используя закодированные таким образом истину и ложь, простейший из определителей типов: является ли анализируемый тип интегральным (это такие типы как \lstinline!bool!, \lstinline!char!, \lstinline!short!, \lstinline!int!, \lstinline!long!, \lstinline!long long! и все их cv-квалификации).
+
+\begin{lstlisting}
+template <class T>
+T f(T i)
+{
+    static_assert(std::is_integral<T>::value, 
+                  "Integer required");
+    return i;
+}
+\end{lstlisting}
+
+\textbf{Домашняя наработка:} как могла бы выглядеть реализация \lstinline!is_integral! и \lstinline!is_floating_point!?
+
+Имея два определителя, можно скомбинировать из них производные, скажем:
+
+\begin{lstlisting}
+template< class T >
+struct is_arithmetic : std::integral_constant<bool,
+  std::is_integral<T>::value ||
+  std::is_floating_point<T>::value> {};
+\end{lstlisting}
+
+Можно потренироваться и определить является ли нечто указателем:
+
+\begin{lstlisting}
+template< class T > struct is_pointer_helper     : std::false_type {};
+template< class T > struct is_pointer_helper<T*> : std::true_type {};
+template< class T > struct is_pointer : is_pointer_helper<typename std::remove_cv<T>::type> {};
+\end{lstlisting}
+
+Обратите внимание на использование \lstinline!remove_cv!, который сам является композитным хелпером из \lstinline!remove_const! и \lstinline!remove_volatile! которые по отдельности тоже не составляют проблем.
+
+Вопрос к студентам: как бы вы реализовали \lstinline!remove_const!? 
+
+Правильный ответ:
+
+\begin{lstlisting}
+template< class T > struct remove_const          { typedef T type; };
+template< class T > struct remove_const<const T> { typedef T type; };
+\end{lstlisting}
+
+Полное рассмотрение всех возможных traits не нужно -- они перечислены в стандарте и их несложно конструировать по мере необходимости.
 
 \subsection{Rvalue references}
 
@@ -5929,7 +5993,7 @@ Derived(Derived&& rhs) : Base(std::move(rhs)) {};
 
 Сюрпризы подобные этому ожидают, казалось бы, в очевидных вещах. Ccылка на ссылку -- невозможна. Это все знают и тысячу раз отвечали на собеседованиях. Что же, этот ответ всё ещё верен и стандарт C++11 (8.3.2.5) запрещает ссылки на ссылки, указатели на ссылки и массивы ссылок. Но как быть, когда в шаблоне или при \lstinline!typedef! получается смесь правых и левых ссылочных типов? Это способно поставить в тупик.
 
-\subsubsection{Свёртка ссылочных типов}
+\subsubsection{Свёртка ссылочных типов}\label{ReferenceConvolution}
 
 Стандарт (8.3.2.6) определяет следующие правила свёртки ссылок, применимые для определений typedef и decltype, а также параметров шаблонов:
 
@@ -5955,7 +6019,7 @@ int *p = (std::remove_reference<int&>::type *)0;
 
 (Я надеюсь, никто никогда не напишет такую строчку в реальном коде).
 
-Пара функторов \lstinline!std::is_lvalue_reference<T>::value! и \lstinline!std::is_rvalue_reference<T>::value! позволяют определять на этапе исполнения к какой базовой категории относится конкретный тип \lstinline!T! (для этого надо применить к нему \lstinline!std::remove_reference! и проверить получившийся тип): lvalue если сработало условие \lstinline!is_lvalue_reference!, xvalue если сработало условие \lstinline!is_rvalue_reference!, или prvalue, если не сработало ни одно из них.
+Пара функторов \lstinline!is_lvalue_reference! и \lstinline!is_rvalue_reference! позволяют определять на этапе исполнения к какой базовой категории относится конкретный тип \lstinline!T! (для этого надо применить к нему \lstinline!std::remove_reference! и проверить получившийся тип): lvalue если сработало условие \lstinline!is_lvalue_reference!, xvalue если сработало условие \lstinline!is_rvalue_reference!, или prvalue, если не сработало ни одно из них.
 
 Вопрос к студентам: как определить glvalue и prvalue?
 
@@ -6004,7 +6068,7 @@ X&& std::move(X& a) noexcept
 
 Что и требовалось.
 
-Сама идея, что теперь обмен значениями может быть семантически выражен как обмен значениями, а не копирование (а значит и соптимизирован соответствующим образом) после её осознания, приводит людей в лёгкую эйфорию. В конце концов стремление к максимальной эффективности -- нормальное стремление. Тем не менее, с функцией \lstinline!std::move! следует быть осторожным. Часто идея вернуть \lstinline!std::move(x)! вместо \lstinline!x!, когда реально нужно rvalue и хочется избежать лишних копирований, приводит к отключению оптимизаций возвращаемого значения в компиляторе и результат ухудшается. Большинство таких трансформаций на современных компиляторах требует замеров и не должны выполняться preliminary:
+Сама идея, что теперь обмен значениями может быть семантически выражен как обмен значениями, а не копирование (а значит и соптимизирован соответствующим образом) после её осознания, приводит людей в лёгкую эйфорию. В конце концов стремление к максимальной эффективности -- нормальное стремление. Тем не менее, с функцией \lstinline!std::move! следует быть осторожным. Часто идея вернуть \lstinline!std::move(x)! вместо \lstinline!x!, когда реально нужно rvalue и хочется избежать лишних копирований, приводит к отключению оптимизаций возвращаемого значения (\ref{RVO}) в компиляторе и результат ухудшается. Большинство таких трансформаций на современных компиляторах требует замеров и не должны выполняться preliminary:
 
 \begin{lstlisting}
 X foo()
@@ -6016,13 +6080,116 @@ X foo()
 
 Итак, rvalue references позволяют (совместно с \lstinline!std::move!) по новому взглянуть на ссылки и открывают простор к более тонкому различию таких терминов естественного языка как ``копирование'', ``присваивание значения'', ``присваивание результата'' на языке C++, что открывает как простор к оптимизациям, так и возможности более аккуратного выражения старых идиом (хороший пример блестящего использования правых ссылок это \lstinline!std::unique_ptr! который в новом стандарте пришёл на смену печально известному \lstinline!auto_ptr!). Их освоение -- важная черта отличающая программиста на C++11.
 
-\subsubsection{Universal references}
+\subsubsection{Universal references}\index{Universal references}\label{UniversalReferences}
 
-Здесь нечто о \lstinline!auto&&!
+Благодаря свертке ссылочных типов (\ref{ReferenceConvolution}) двойные амперсанды в объявлении типов и аргументах шаблонов имеют два разных значения:
 
-\subsubsection{Perfect forwarding}
+\begin{lstlisting}
+  /* rvalue references */
+  Widget&& var1 = someWidget; 
+  template<typename T> void f(std::vector<T>&& param);
+     
+  /* NOT rvalue references */
+  auto&& var2 = var1; 
+  template<typename T> void g(T&& param);
+\end{lstlisting}
 
-Здесь нечто о perfect forwarding
+В первых двух случаях \lstinline!var1! и параметр функции \lstinline!f! это честные rvalue references. Во вторых двух случаях они зависят от вывода (в том числе -- свертки) типов.
+
+\begin{lstlisting}
+  int t;
+  auto&& var2 = t; /* typeof (var2) == int&
+\end{lstlisting}
+
+В этом контексте \lstinline!var2! это левая а не правая ссылка по правилам свертки типов. Поскольку \lstinline!var2! может разрешиться в любую ссылку -- как в левую, так и в правую, она называется \textbf{универсальной} ссылкой.
+
+Но важно понимать, что свертка типов происходит только в контекстах чистого автоматического вывода. Даже следующий простой пример:
+
+\begin{lstlisting}
+template<typename T> void f(const T&& param);
+\end{lstlisting}
+
+Означает обязательно правую, ни в коем случае не универсальную ссылку. Хуже того, универсальной ссылка не может быть, если тип полностью разрешен и вывод типа не включается:
+
+\begin{lstlisting}
+template <class T, class Allocator = allocator<T>>
+class vector 
+{
+  public:
+  /* rvalue reference! */  
+  void push_back(T&& x);
+};
+\end{lstlisting}
+
+Здесь также видна существенная разница между \lstinline!auto! и \lstinline!decltype!, поскольку механизм \lstinline!decltype! зависит только от вывода типа внутри выражения:
+
+\begin{lstlisting}
+Widget w1, w2;
+auto&& v1 = w1; /* Ok, v1 is Widget& */
+decltype(w1)&& v2 = w2; /* Error! */
+decltype(w1)&& v2 = std::move(w2); /* Ok, v2 is Widget&& */
+\end{lstlisting}
+
+Таким образом, универсальные ссылки в контексте \lstinline!decltype! невозможны.
+
+Вопрос к студентам:
+
+\begin{lstlisting}
+template <typename T> void f(T &a);  /* (1) */
+template <typename T> void f(T &&a); /* (2) */
+
+int a;
+f(a); /* ? */
+f(1); /* ? */
+\end{lstlisting}
+
+Знание об универсальных ссылках теперь должно подсказать вам правильный ответ: оба раза будет вызвана вторая функция.
+
+\subsubsection{Perfect forwarding}\label{PerfectForw}
+
+Важной проблемой относительно правых ссылок является проброс правой ссылки (с присущей ей move-семантикой) через цепочку функций. Наивная попытка такого проброса может выглядеть как-то так:
+
+\begin{lstlisting}
+void g(int &&t); /* 1 */
+void g(int &t);  /* 2 */
+
+void h(int &&t) { g(t); } /* always 2 */
+
+h(1);
+\end{lstlisting}
+
+Увы, это не работает. Даже менее наивная попытка с использованием универсальных ссылок (\ref{UniversalReferences}) проваливается:
+
+\begin{lstlisting}
+template <typename T>
+void h2(T &&t) { g(t); } /* always 2 */
+\end{lstlisting}
+
+Конечно можно выйти из положения с явным \lstinline!std::move! следующим образом:
+
+\begin{lstlisting}
+template <typename T>
+void h3(T &&t) { g(std::move(t)); } /* always 1 */
+\end{lstlisting}
+
+Но увы, это решение шатает в другую крайность -- теперь даже вызовы с lvalue будут идти по rvalue маршруту. Решение проблемы является использование \lstinline!std::forward<T>!
+
+\begin{lstlisting}
+template <typename T>
+void h4(T &&t) { g(std::forward<T>(t)); }
+\end{lstlisting}
+
+Теперь наконец-то можно различить что и по какой ветке было вызвано
+
+\begin{lstlisting}
+int x = 0;
+h4(1); /* calls 1 */
+h4(x); /* calls 2 */
+\end{lstlisting}
+
+Название это техники perfect forwarding способно сбивать с толку. Он не столь уж и perfect в том смысле, что, например, не способен решить проблему перегрузки универсальной ссылки.
+
+\textbf{Домашняя наработка:} как все-таки решить проблему перегрузки универсальной ссылки из раздела (\ref{UniversalReferences})?
 
 \subsection{Lambda expressions}
 
