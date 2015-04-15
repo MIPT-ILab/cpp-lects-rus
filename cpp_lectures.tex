@@ -5718,6 +5718,24 @@ decltype (i) k = i; /* typeof (k) == const int */
 
 Разумное применение этих средств позволяет существенно улучшить читаемость вашего кода и сделать гораздо меньше тонких ошибок и опечаток в сложных именах типов.
 
+Разные правила для \lstinline!decltype! и \lstinline!auto! привели в стандарте C++14 к введению идиомы \lstinline!decltype(auto)! которая позволяет вывести
+
+\begin{lstlisting}
+const int i;
+auto j = i; /* typeof(j) == int */
+decltype (auto) k = i; /* typeof (k) == const int */
+\end{lstlisting}
+
+Очень интересный случай это выражение справа от \lstinline!decltype!, заключенное в круглые скобки.
+
+\begin{lstlisting}
+int i;
+auto x4a = (i); /* decltype(x4a) is int */
+decltype(auto) x4d = (i); /* decltype(x4d) is int& */
+\end{lstlisting}
+
+Таким образом моделируется поведение двух круглых скобок у \lstinline!decltype((t))! с конкретным \lstinline!t!.
+
 \subsubsection{Расширенный синтаксис функций}
 
 Возможности автоматического вывода типов подразумевают построение абстракций с зависимыми типами. Пусть необходим статический шаблонный контракт на любой тип \lstinline!T!, поддерживающий функцию \lstinline!T::makeobject!, возвращающую некий свой тип. Нельзя просто взять и написать:
@@ -5758,6 +5776,31 @@ makeAndProcessObject (const T& builder) -> decltype (builder.makeObject())
 \end{lstlisting}
 
 Внутри скобок \lstinline!decltype! в данном случае вычисление выражения (в том числе вызов функции) не происходит -- происходит только вывод типа.
+
+\subsubsection{Коррективы в вывод типов для C++14}
+
+В некоторых простых случаях компилятору действительно не составляет проблем вывести тип функции: 
+
+\begin{lstlisting}
+auto isquare (int x) -> decltype (x) { return x*x; }
+\end{lstlisting}
+
+Здесь указание \lstinline!decltype! выглядит просто излишним и C++14 разрешает его убрать:
+
+\begin{lstlisting}
+auto isquare (int x) { return x*x; }
+\end{lstlisting}
+
+Для таких простых вариантов все хорошо, но как быть с рекурсией? Здесь возникает проблема: тип должен быть выведен до того, как рекурсивный вызов произошел:
+
+\begin{lstlisting}
+auto Correct(int i) {
+  if (i == 1)
+    return i; // return type deduced as int
+  else
+    return Correct(i-1)+i;  // ok to call it now
+}
+\end{lstlisting}
 
 \subsubsection{Decaying и минимальные общие типы}
 
@@ -6420,7 +6463,35 @@ int main()
 
 \subsubsection{Generic lambdas}
 
-Здесь что-то о Generic lambdas
+Первое приближение к lambda-функциям в стандарте C++11 позволяло спсики инициализации только с конкретными типами аргументов:
+
+\begin{lstlisting}
+auto ifunc = [](int input) { return input * input; };
+auto dfunc = [](double input) { return input * input; };
+/* ... */
+\end{lstlisting}
+
+Но простое программирование на шаблонах оказывалось в некотором смысле более мощным, так как позволяло создать обобщенную (type-generic) функцию (или функтор) и сделать это совсем несложно:
+
+\begin{lstlisting}
+template <typename T>
+T func(T z) 
+{
+  return z * z;
+}
+\end{lstlisting}
+
+Для того, чтобы lambda-выражения не уступали в выразительной мощности, в стандарте C++14 появились обобщенные lambda-expressions.
+
+\begin{lstlisting}
+auto func = [](auto input) { return input * input; };
+/* ... */
+std::cout << func(2) << std::endl;
+std::cout << func(2.0) << std::endl;
+std::cout << func(std::complex<double>(2.0, 1.0)) << std::endl;
+\end{lstlisting}
+
+Они особенно удобны для создания функторов при использовании вместе с алгоритмами стандартной библиотеки.
 
 \subsection{Multithreading}
 
@@ -6833,7 +6904,27 @@ main()
 }
 \end{lstlisting}
 
-Используя эти возможности, можно соорудить безопасный относительно типов \lstinline!printf! не подверженный, рассматривавшимся выше атакам:
+Используя эти возможности, можно соорудить безопасный относительно типов \lstinline!printf! не подверженный, рассматривавшимся выше атакам. Основной шаг рекурсии контролирует наличие спецификатора для каждого из поданных аргументов
+
+\begin{lstlisting}
+template<typename T, typename... Args>
+void printf(const char* s, const T& value, const Args&... args) 
+{ 
+  while (*s) 
+    { 
+      if (*s == '%' && *++s != '%') 
+        {
+          /* ignore the character that follows the '%': we already know the type! */
+          std::cout << value;
+          return printf(++s, args...);
+        }
+      std::cout << *s++;
+    }
+  throw std::runtime error("extra arguments provided to printf");
+}
+\end{lstlisting}
+
+Завершение рекурсии содержит контроль наличия всех необходимых аргументов.
 
 \begin{lstlisting}
 void printf(const char* s) {
@@ -6843,29 +6934,23 @@ void printf(const char* s) {
     std::cout << *s++;
   }
 }
-
-template<typename T, typename... Args>
-void printf(const char* s, const T& value, const Args&... args) { 
-  while (*s) { 
-    if (*s == '%' && *++s != '%') {
-    // ignore the character that follows the '%': we already know the type!
-    std::cout << value;
-    return printf(++s, args...);
-    }
-    std::cout << *s++;
-  }
-  throw std::runtime error("extra arguments provided to printf");
-}
 \end{lstlisting}
 
-\subsubsection{Вариабельные шаблоны классов}
+Следует обратить особое внимание на то, что обе потенциально ошибочные ситуации явно возбуждают исключения. Также замена простого троеточия на более интересную конструкцию \lstinline!const Args&... args! позволяет иметь не просто любое количество аргументов, но любое количество типизированных аргументов (что совсем другой разговор).
 
-Пример простого кортежа на вариабельных шаблонах
+\subsubsection{Слияние ежа и ужа}
+
+Вариабельные шаблоны в некотором смысле ``объединяют'' аргументы разных типов, вводя в C++ возможность сделать кортежи. В отличии от структур имеющих именованные поля разных типов и массивов, имеющих неименованные поля одного типа, кортежи это такой вид синтаксического клея, который позволяет склеивать неименованные поля разных типов. Можно сказать, что это структура которая ведет себя как массив. Механическое склеивание разнотипных полей можно проиллюстрировать через шаблон \lstinline!ctmap! с переопределенным оператором, скажем \lstinline!operator^! для доступа к полю:
 
 \begin{lstlisting}
-#include <iostream>
-#include <utility>
+  auto person = ctmap (age, last_name);
+  person^last_name = "Smith";
+  person^age = 50;
+\end{lstlisting}
 
+Чтобы реализовать такой шаблон, потребуется простая структура с описанием поля и переопределенным оператором доступа:
+
+\begin{lstlisting}
 template <typename T>
 struct Field {
   typename T::value_type storage;
@@ -6874,30 +6959,143 @@ struct Field {
     return storage;
   }
 };
+\end{lstlisting}
+
+Все возможные типы, которые может склеить шаблон (тут может быть любой список) описываются тэгами:
+
+\begin{lstlisting}
 template<typename T>
 struct tag{using value_type=T;};
 
 static struct:tag<int>{} age;
 static struct:tag<std::string>{} last_name;
+/* ... */
+\end{lstlisting}
 
+После такой подготовки, сам шаблон выглядит довольно просто
+
+\begin{lstlisting}
 template<typename... Fields>
 struct ctmap_t : public Field<typename std::decay<Fields>::type>... {
 };
+\end{lstlisting}
 
+И его создание с помощью выделенной для этого функции:
+
+\begin{lstlisting}
 template<class...Fields>
 ctmap_t<Fields...> ctmap( Fields&&... ) { return {}; }
+\end{lstlisting}
 
+Делегирование значений полей через правые ссылки -- обычная практика в таких случаях.
 
-int main() {
-  auto person = ctmap( age, last_name );
-  person^last_name = "Smith";
-  person^age = 104;
+\subsubsection{Стандартные кортежи и их применения}
+
+Стандартная библиотека определяет стандартный класс \lstinline!std::tuple!
+
+\begin{lstlisting}
+std::tuple<int, double, int> t(1, 2.0, 3);
+\end{lstlisting}
+
+Доступ к трем полям осуществляется рекурсивно через \lstinline!base! и \lstinline!head_!
+
+\begin{lstlisting}
+assert (t.head_ == 1);
+assert (t.base.head_ == 2.0);
+assert (t.base.base.head_ == 3);
+\end{lstlisting}
+
+Кроме того, можно обращаться к полям по индексу, используя стандартную функцию \lstinline!std::get!
+
+\begin{lstlisting}
+assert (get<0>(t) == 1);
+assert (get<1>(t) == 2.0);
+assert (get<2>(t) == 3);
+\end{lstlisting}
+
+В стандарте C++14 добавлена возможность обращаться к полям по типу:
+
+\begin{lstlisting}
+assert (get<double>(t) == 2.0);
+\end{lstlisting}
+
+Но попытка получить нечто по типу \lstinline!int! в данном случае приведет к ошибке компиляции из-за неоднозначности.
+
+Посредством функции \lstinline!std::tie! удобно распаковать кортеж, например чтобы обработать возвращамые из функции несколько аргументов:
+
+\begin{lstlisting}
+std::tuple<int,int> foo();
+
+/* ... */
+
+int a;
+int b;
+std::tie(a,b)=foo();
+\end{lstlisting}
+
+Ещё одна интересная задача: создание отложенного исполнения 
+
+\begin{lstlisting}
+template<int ...> struct seq {};
+template<int N, int ...S> struct gens : gens<N-1, N-1, S...> {};
+template<int ...S> struct gens<0, S...>{ typedef seq<S...> type; };
+\end{lstlisting}
+
+Обертка для сохранения элемента отложенного исполнения:
+
+\begin{lstlisting}
+template <typename ...Args>
+struct save_it_for_later
+{
+  std::tuple<Args...> params;
+  double (*func)(Args...);
+
+  double delayed_dispatch()
+  {
+    return callFunc(typename gens<sizeof...(Args)>::type());
+  }
+
+  template<int ...S>
+  double callFunc(seq<S...>)
+  {
+    return func(std::get<S>(params) ...);
+  }
+};
+\end{lstlisting}
+
+Для примера какой-нибудь простой функции:
+
+\begin{lstlisting}
+double foo(int x, float y, double z)
+{
+  return x + y + z;
 }
 \end{lstlisting}
 
+Её отложенное исполнение.
+
+\begin{lstlisting}
+std::tuple<int, float, double> t = std::make_tuple(1, 1.2, 5);
+save_it_for_later<int,float, double> saved = {t, foo};
+/* ... */
+auto x = saved.delayed_dispatch();
+\end{lstlisting}
+
+Здесь функция \lstinline!std::make_tuple! исполняет ту же роль, что и \lstinline!ctmap! в прошлом примере (только создает стандартный кортеж, а не самописный \lstinline!ctmap_t!).
+
+Стандартная функция \lstinline!std::tuple_cat! позволяет конкатенировать произвольное количество кортежей в один кортеж
+
+\begin{lstlisting}
+std::tuple<int, std::string, float> t1(10, "Test", 3.14);
+int n = 7;
+auto t2 = std::tuple_cat(t1, std::make_pair("Foo", "bar"), t1, std::tie(n));
+\end{lstlisting}
+
+Следует обратить внимание на запись \lstinline!std::make_pair! -- единственный способ создать нечто похожее на кортеж в C++98 вполне принимается как способ создать кортеж в C++14.
+
 \subsubsection{Вариабельные шаблоны для метапрограммирования}
 
-Выше (\ref{TypeTraits}) мы говорили про определители типов из стандартной библиотеки. Довольно легко определить (и не надо определять, так как он есть в стандарте) простой шаблон \lstinline!is_same! определяющий одинаковые ли типы переданы ему на вход:
+Выше (\ref{TypeTraits}) были упомянуты определители типов из стандартной библиотеки. Довольно легко определить (и не надо определять, так как он есть в стандарте) простой шаблон \lstinline!is_same! определяющий одинаковые ли типы переданы ему на вход:
 
 \begin{lstlisting}
 template<class T, class U>
@@ -6972,7 +7170,7 @@ const int S::sz; /* ok */
 
 Это довольно грустно и требует от программиста помнить все тонкие правила константности, что, конечно, нереально. Именно этим и было мотивировано введение в стандарт ключевого слова, делающего известность на этапе компиляции явной.
 
-\subsubsection{constexpr функции}
+\subsubsection{Константно-выраженные функции}
 
 Как вообще могла бы быть объявлена функция \lstinline!numeric_limits<int>::max()!? Например так:
 
@@ -6988,11 +7186,11 @@ public:
 
 Эта функция -- прекрасный кандидат на формирование константного выражения. Она:
 \begin{itemize}
-\item не void, то есть возвращает какое-то значение
-\item состоит из одного return statement -- то есть не заводит локальных переменных и не использует стек
+\item не \lstinline!void!, то есть возвращает какое-то значение
+\item состоит из одного \lstinline!return! -- то есть не заводит локальных переменных и не использует стек
 \end{itemize}
 
-Именно в таких двух условиях, функция в C++11 может быть сделана constexpr
+Именно в таких двух условиях, функция в C++11 может быть сделана \lstinline!constexpr!
 
 \begin{lstlisting}
 class numeric_limits<int>
@@ -7020,11 +7218,32 @@ foo (int y)
 }
 \end{lstlisting}
 
-Функция square (даже объявленная constexpr) ведёт себя как самая обычная функция. Это позволяет иметь её одну, не заводя зоопарк constexpr и non-constexpr зверюшек.
+Функция square (даже объявленная \lstinline!constexpr!) ведёт себя как самая обычная функция. Это позволяет иметь её одну, не заводя зоопарк \lstinline!constexpr! и не-\lstinline!constexpr! зверюшек.
 
-\subsubsection{constexpr данные}
+В стандарте C++14 ослаблены ограничения. Начиная с этого стандарта, в такой функции могут содержаться:
 
-Чтобы отличать обычные данные от известных на этапе компиляции, данные и даже члены классов тоже можно аннотировать constexpr
+\begin{itemize}
+\item Все объявления, кроме \lstinline!static! и \lstinline!thread_local! переменных, а также неинициализированных переменных
+\item Условные операции \lstinline!if! и \lstinline!switch!
+\end{itemize}
+
+Это делает написание таких функций гораздо более удобным. Например легальной становится следующая конструкция:
+
+\begin{lstlisting}
+constexpr int 
+g(int x, int n) 
+{ 
+  int r = 1;
+  while (--n > 0) r *= x;
+  return r;
+}
+\end{lstlisting}
+
+Конечно это увеличивает работу для компилятора.
+
+\subsubsection{Аннотация данных}
+
+Чтобы отличать обычные данные от известных на этапе компиляции, данные и даже члены классов тоже можно аннотировать \lstinline!constexpr!
 
 \begin{lstlisting}
 struct S
@@ -7050,9 +7269,33 @@ int arr[s.two()]; //OK, s.two() called after its definition
 
 Видно, что по существу они мало чем отличаются от обычных данных. Но компилятор имеет насчёт них точную гарантию что их значения при компиляции уже известны.
 
-Но тогда возникает вопрос. Неужели у нас могут быть constexpr данные типов int или float, но не может быть constexpr данных пользовательских типов? Конечно могут.
+Но тогда возникает вопрос. Неужели у нас могут быть \lstinline!constexpr! данные типов \lstinline!int! или \lstinline!float!, но не может быть \lstinline!constexpr! данных пользовательских типов? Конечно могут.
 
-\subsubsection{constexpr конструкторы}
+\subsubsection{Темные чудеса шаблонных переменных}
+
+В отличии от C++11, в C++14 разрешено делать шаблонными не только 
+
+\begin{lstlisting}
+template<typename T> T n = T(5);
+
+int 
+main()
+{
+    n<int> = 10;
+    std::cout << n<int> << " ";    // 10
+    std::cout << n<double> << " "; // 5
+}
+\end{lstlisting}
+
+Вместе с \lstinline!constexpr! аннотацией переменных, это позволяет вводить гораздо более симпатичные определители типов, рассмотренные в (\ref{TypeTraits}).
+
+\begin{lstlisting}
+template <class T> constexpr bool is_void_v = is_void<T>::value;
+\end{lstlisting}
+
+Записывать \lstinline!is_void_v<T>! конечно гораздо проще и приятней, чем \lstinline!is_void<T>::value! (общий смех).
+
+\subsubsection{Аннотация конструкторов}
 
 Если у вас есть необходимость, чтобы ваш тип мог вести себя как compile-time константа, для него можно написать constexpr-коснтруктор:
 
@@ -7073,7 +7316,7 @@ constexpr complex c(0.0, 1.0);
 
 Тело такого конструктора обязано быть пустым, вся инициализация производится в списке инициализации.
 
-\subsubsection{пользовательские литералы}
+\subsubsection{Пользовательские литералы}
 
 Наличие constexpr конструкторов специального вида, позволяет определять пользовательские литералы.
 
