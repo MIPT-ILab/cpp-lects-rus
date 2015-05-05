@@ -5560,6 +5560,174 @@ vec.erase(std::remove(vec.begin(), vec.end(), number_in), vec.end());
 
 Этот код записывается слитно очень часто, так что такие паттерны, как использование этой идиомы, опытный разработчик должен распознавать в коде ``на лету''.
 
+\subsubsection{Трансформации и циклы}
+
+\begin{lstlisting}
+template <class MapT>
+class eraseFct {
+public:
+  eraseFct(MapT* m) : theMap(m) {}
+  void operator() (string nam)
+  { typename MapT::iterator iter = theMap->find(nam);
+    if (iter == theMap->end()) 
+        throw invalid_argument(nam);
+    theMap->erase(iter);
+  }
+private:
+  MapT* theMap;
+};
+
+template <class MapT>
+eraseFct<MapT> eraser(MapT* m) 
+{ return eraseFct<MapT>(m); }
+\end{lstlisting}
+
+Подход с foreach
+
+\begin{lstlisting}
+map<string,info> directory_1;
+// ... populate directory_1 ...
+ifstream infile("toBeErased.txt");
+for_each(istream_iterator<string>(infile),istream_iterator<string>(),
+         eraser(&directory_1));
+\end{lstlisting}
+
+\subsubsection{Связывание функций-членов}
+
+\begin{lstlisting}
+std::transform(data_.begin(), data_.end(), data_.begin(), 
+    std::bind(&CryptoModule::UndoCaesar, this, std::placeholders::_1)
+);
+\end{lstlisting}
+
+\subsection{Потоки ввода/вывода}
+
+Потоки ввода-вывода -- довольно спорная тема и именно поэтому они оставлены ``напоследок'' среди всех тем стандартной библиотеки. Их обзорное знание -- хороший тон, но стоит ли реально ими пользоваться -- большой вопрос (особенно учитывая, что стандарт C++11 предоставляет возможность соорудить безопасный относительно типов printf на variadic templates). В большинстве языков, спроектированных \textbf{позже} C++, ввод и вывод больше похожи на printf и scanf, чем на cin и cout. Например в предельно объектно ориентированном C\# это выглядит так
+
+TODO: пример
+
+Это произошло от того, что в целом коммьюнити разочаровалось в потоках ввода-вывода и поэтому эти лекции не разделяют общего апологетического тона книг по C++ на эту тему. Но сначала -- общий обзор.
+
+\subsubsection{Виды и иерархия потоков}
+
+В программах на C привычными потоками (имеющими тип FILE*)
+
+\subsubsection{Итераторы потоков ввода-вывода}
+
+\begin{lstlisting}
+const int N = 10;
+
+/* function generator: */
+int RandomNumber (void) { return (std::rand() % 20); }
+
+/* less than class */
+template <typename T>
+class less_than_X
+{
+public:
+  less_than_X(T x): m_x(x) {}
+
+  bool operator() (const T &x) const
+    {
+      return (x < m_x);
+    }
+private:
+  T m_x;
+};
+
+int main() 
+{
+  vector<int> v1(N), v2;
+  less_than_X<int> pred(10); /* less than 10 instance */
+
+  /* prefer generators to immediate fill */
+  generate (v1.begin(), v1.end(), RandomNumber);
+
+  /* some output to look at v1 */
+  copy(v1.begin(), v1.end(), std::ostream_iterator<int>(cout, " "));
+  cout << std::endl;
+
+  remove_copy_if(v1.begin(), v1.end(), inserter(v2,v2.end()), pred);
+
+  /* some output to be sure v2 contain more than 10 */
+  copy(v2.begin(), v2.end(), std::ostream_iterator<int>(cout, " "));
+  cout << std::endl;
+
+  return 0;
+}
+\end{lstlisting}
+
+\subsubsection{Форматированный ввод и вывод}
+
+Для обеспечения форматированного ввода и вывода у потоков в стандартной библиотеке есть форматные модификаторы
+
+\subsection{Умные и слишком умные указатели}
+
+Идиома RAII уже рассматривалась в (\ref{RAII}), и там же была сделана наивная попытка завернуть в класс для управления ресурсами такой классический разделяемый ресурс как дисковый файл. Конечно, идея обобщить RAII для любого \lstinline!T!, используя шаблоны -- приходит на ум почти сразу после знакомства с шаблонами. Паттерн обертки, осуществляющей управление временем жизни объекта умнее, чем это делается через обычный указатель, называется ``smart pointer'' или умный указатель. Таким образом это не какой-то класс, это общая концепция для целого семейства от крайне простых до крайне сложных и интересных классов.
+
+\subsubsection{Первая попытка -- не слишком умный указатель}
+
+Первая попытка написать не слишком сложную обертку для управления ресурсами, может выглядеть как-то так:
+
+\begin{lstlisting}
+template <typename T> 
+class NotSoSmartP
+{
+private:
+  T* pData; /* Generic pointer to be stored */
+public:
+  SP(T* pValue) : pData(pValue) {}
+  ~SP() { delete pData; }
+  T& operator* () { return *pData; }
+  T* operator-> () { return pData; }
+};
+\end{lstlisting}
+
+Самое главное здесь это перегрузка двух интересных операторов -- \lstinline!operator*! который называется \textbf{dereferencing} т.е. разыменование и \lstinline!operator->! который называется \textbf{indirection} т.е. косвенный доступ. Но далее они часто будут называться просто ``звёздочка'' и ``стрелочка''.
+
+Пусть есть класс \lstinline!Polynom! определенный как-то так:
+
+\begin{lstlisting}
+class Polynom
+{
+public:
+  Polynom (int size, ...);
+  Polynom (const Polynom & rhs);
+  ~Polynom ();
+  void display ();
+  /* ... */
+}
+\end{lstlisting}
+
+Его можно использовать вместе с умным указателем как-то так:
+
+\begin{lstlisting}
+  NotSoSmartP<Polynom> p(new Polynom(5, 1, 2, 3, 4, 5));
+  p->display();
+  /* no need to delete */
+\end{lstlisting}
+
+Особое внимание следует обратить, что метод умного указателя вызывается так, как если бы действительно вызывался метод класса \lstinline!Polynom! по указателю на него.
+
+Но первая проблема обнаруживается сразу же:
+
+\begin{lstlisting}
+  NotSoSmartP<Polynom> p(new Polynom(5, 1, 2, 3, 4, 5));
+  NotSoSmartP<Polynom> q = p;
+  p->display();
+  /* boom! */
+\end{lstlisting}
+
+И действительно -- обычное копирование или создание по образцу такого указателя приведет к ошибке двойного удаления. Что тут можно сделать? Самый простой способ -- запретить копирование и присваивание. Эта стратегия называется ``scoped pointer'' и именно так устроен и работает класс \lstinline!boost::scoped_ptr!. Но это все ещё не самая умная стратегия. Очевидно есть две более разумные вещи -- обеспечить уникальность владения объектом и передачу владения при некоторых обстоятельствах или обеспечить безопасное совместное владение объектом и -- в той или иной форме -- подсчет ссылок.
+
+\subsubsection{Стандартные умные указатели}
+
+Исторически первым 
+
+\subsubsection{Проблема COAP и небольшая экскурсия в новый стандарт}
+
+\subsubsection{Ещё более умные указатели}
+
 \subsection{Память своими руками}
 
 Интересной идеей в стандартной библиотеке C++ является идея аллокатора. Аллокатором называется класс, инкапсулирующий в себе стратегию выделения и освобождения памяти. Большинство стандартных контейнеров используют аллокаторы. Скажем полное определение уже знакомого нам класса \lstinline!vector! на самом деле выглядит вот так:
@@ -5656,134 +5824,6 @@ std::vector<T,tbb::scalable_allocator<T> >
 
 Ещё примеры -- аллокаторы рассчитанные на ограниченное количество памяти в EASTL, собственные аллокаторы из файла. Скорее всего вам никогда не придется все это писать.
 
-\subsection{Умные и слишком умные указатели}
-
-Идиома RAII уже рассматривалась в (\ref{RAII}), и там же была сделана наивная попытка завернуть в класс для управления ресурсами такой классический разделяемый ресурс как дисковый файл. Конечно, идея обобщить RAII для любого \lstinline!T!, используя шаблоны -- приходит на ум почти сразу после знакомства с шаблонами. Паттерн обертки, осуществляющей управление временем жизни объекта умнее, чем это делается через обычный указатель, называется ``smart pointer'' или умный указатель. Таким образом это не какой-то класс, это общая концепция для целого семейства от крайне простых до крайне сложных и интересных классов.
-
-\subsubsection{Первая попытка -- не слишком умный указатель}
-
-Первая попытка написать не слишком сложную обертку для управления ресурсами, может выглядеть как-то так:
-
-\begin{lstlisting}
-template <typename T> 
-class NotSoSmartP
-{
-private:
-  T* pData; /* Generic pointer to be stored */
-public:
-  SP(T* pValue) : pData(pValue) {}
-  ~SP() { delete pData; }
-  T& operator* () { return *pData; }
-  T* operator-> () { return pData; }
-};
-\end{lstlisting}
-
-Самое главное здесь это перегрузка двух интересных операторов -- \lstinline!operator*! который называется \textbf{dereferencing} т.е. разыменование и \lstinline!operator->! который называется \textbf{indirection} т.е. косвенный доступ. Но далее они часто будут называться просто ``звёздочка'' и ``стрелочка''.
-
-Пусть есть класс \lstinline!Polynom! определенный как-то так:
-
-\begin{lstlisting}
-class Polynom
-{
-public:
-  Polynom (int size, ...);
-  Polynom (const Polynom & rhs);
-  ~Polynom ();
-  void display ();
-  /* ... */
-}
-\end{lstlisting}
-
-Его можно использовать вместе с умным указателем как-то так:
-
-\begin{lstlisting}
-  NotSoSmartP<Polynom> p(new Polynom(5, 1, 2, 3, 4, 5));
-  p->display();
-  /* no need to delete */
-\end{lstlisting}
-
-Особое внимание следует обратить, что метод умного указателя вызывается так, как если бы действительно вызывался метод класса \lstinline!Polynom! по указателю на него.
-
-Но первая проблема обнаруживается сразу же:
-
-\begin{lstlisting}
-  NotSoSmartP<Polynom> p(new Polynom(5, 1, 2, 3, 4, 5));
-  NotSoSmartP<Polynom> q = p;
-  p->display();
-  /* boom! */
-\end{lstlisting}
-
-И действительно -- обычное копирование или создание по образцу такого указателя приведет к ошибке двойного удаления. Что тут можно сделать? Самый простой способ -- запретить копирование и присваивание. Эта стратегия называется ``scoped pointer'' и именно так устроен и работает класс \lstinline!boost::scoped_ptr!. Но это все ещё не самая умная стратегия. Очевидно есть две более разумные вещи -- обеспечить уникальность владения объектом и передачу владения при некоторых обстоятельствах или обеспечить безопасное совместное владение объектом и -- в той или иной форме -- подсчет ссылок.
-
-\subsubsection{Стандартные умные указатели}
-
-Исторически первым 
-
-\subsubsection{Проблема COAP и небольшая экскурсия в новый стандарт}
-
-\subsubsection{Ещё более умные указатели}
-
-\subsection{Потоки ввода/вывода}
-
-Потоки ввода-вывода -- довольно спорная тема и именно поэтому они оставлены ``напоследок'' среди всех тем стандартной библиотеки. Их обзорное знание -- хороший тон, но стоит ли реально ими пользоваться -- большой вопрос (особенно учитывая, что стандарт C++11 предоставляет возможность соорудить безопасный относительно типов printf на variadic templates). В большинстве языков, спроектированных \textbf{позже} C++, ввод и вывод больше похожи на printf и scanf, чем на cin и cout. Например в предельно объектно ориентированном C\# это выглядит так
-
-TODO: пример
-
-Это произошло от того, что в целом коммьюнити разочаровалось в потоках ввода-вывода и поэтому эти лекции не разделяют общего апологетического тона книг по C++ на эту тему. Но сначала -- общий обзор.
-
-\subsubsection{Виды и иерархия потоков}
-
-В программах на C привычными потоками (имеющими тип FILE*)
-
-\subsubsection{Итераторы потоков ввода-вывода}
-
-\begin{lstlisting}
-const int N = 10;
-
-/* function generator: */
-int RandomNumber (void) { return (std::rand() % 20); }
-
-/* less than class */
-template <typename T>
-class less_than_X
-{
-public:
-  less_than_X(T x): m_x(x) {}
-
-  bool operator() (const T &x) const
-    {
-      return (x < m_x);
-    }
-private:
-  T m_x;
-};
-
-int main() 
-{
-  vector<int> v1(N), v2;
-  less_than_X<int> pred(10); /* less than 10 instance */
-
-  /* prefer generators to immediate fill */
-  generate (v1.begin(), v1.end(), RandomNumber);
-
-  /* some output to look at v1 */
-  copy(v1.begin(), v1.end(), std::ostream_iterator<int>(cout, " "));
-  cout << std::endl;
-
-  remove_copy_if(v1.begin(), v1.end(), inserter(v2,v2.end()), pred);
-
-  /* some output to be sure v2 contain more than 10 */
-  copy(v2.begin(), v2.end(), std::ostream_iterator<int>(cout, " "));
-  cout << std::endl;
-
-  return 0;
-}
-\end{lstlisting}
-
-\subsubsection{Форматированный ввод и вывод}
-
-Для обеспечения форматированного ввода и вывода у потоков в стандартной библиотеке есть форматные модификаторы
-
 \pagebreak
 \subsection{Домашняя наработка по стандартной библиотеке}
 
@@ -5835,7 +5875,14 @@ decltype(p.x) x; /* const int */
 decltype((p.x)) x; /* int */
 \end{lstlisting}
 
-Это кажется некоторым переусложнением, но это на самом деле единственный разумный выход из ситуации.
+Это кажется некоторым переусложнением, но это на самом деле единственный разумный выход из ситуации. Увы, \lstinline!decltype(())! имеет неприятную особенность -- если тип под ним это lvalue, то он добавит ссылку (если её не было)
+
+\begin{lstlisting}
+int x;
+typedef decltype((x)) xref; 
+\end{lstlisting}
+
+Почему это делается станет ясно позже при рассмотрении новых типов ссылочных значений.
 
 Вывод типов в C++ работает гораздо более приблизительно, чем их прямая аннотация, поэтому \lstinline!auto! часто выводит первый попавшийся (на самом деле -- наименее общий о чем см. далее) тип, а вот \lstinline!decltype! всегда старается сохранить даже cv-квалификацию
 
@@ -5845,9 +5892,31 @@ auto j = i; /* typeof(j) == int */
 decltype (i) k = i; /* typeof (k) == const int */
 \end{lstlisting}
 
-Разумное применение этих средств позволяет существенно улучшить читаемость вашего кода и сделать гораздо меньше тонких ошибок и опечаток в сложных именах типов.
+Разумное применение этих средств позволяет существенно улучшить читаемость вашего кода и сделать гораздо меньше тонких ошибок и опечаток в сложных именах типов. Но тут нужно учитывать, что всегда есть тонкости и волчьи ямы. Я рассказал как ведет себя \lstinline!auto!, но \lstinline!auto! ведет себя так не всегда. Если вы конкретизируете тип, то все квалификаторы сохранятся вместе с вашей конкретизацией:
 
-Разные правила для \lstinline!decltype! и \lstinline!auto! привели в стандарте C++14 к введению идиомы \lstinline!decltype(auto)! которая позволяет вывести
+\begin{lstlisting}
+const int c = 0;
+auto& rc = c;
+rc = 44; // error: const qualifier was not removed
+\end{lstlisting}
+
+Также, и это бывает неприятно, \lstinline!auto! склонно пропускать модификаторы если на верхнем уровне оно встречает то, к чему они относятся:
+
+\begin{lstlisting}
+int x = 42;
+const int* p1 = &x;
+auto p2 = p1; /* p2 это const int* */
+\end{lstlisting}
+
+Язык C++ справедливо считает, что константность данных под указателем это слишком важная характеристика типа. В отличии от этого, константность самого указателя может быть сброшена легко:
+
+\begin{lstlisting}
+int x = 42;
+int* const p1 = &x;
+auto p2 = p1; /* p2 это int* */
+\end{lstlisting}
+
+Разные правила для \lstinline!decltype! и \lstinline!auto! привели в стандарте C++14 к введению идиомы \lstinline!decltype(auto)! которая позволяет вывести тип из правой части автоматически, но именно так, как его вывел бы \lstinline!decltype!.
 
 \begin{lstlisting}
 const int i;
@@ -5865,7 +5934,7 @@ decltype(auto) x4d = (i); /* decltype(x4d) is int& */
 
 Таким образом моделируется поведение двух круглых скобок у \lstinline!decltype((t))! с конкретным \lstinline!t!.
 
-\subsubsection{Расширенный синтаксис функций}
+\subsubsection{Расширенный синтаксис функций}\label{DeclFunctions}
 
 Возможности автоматического вывода типов подразумевают построение абстракций с зависимыми типами. Пусть необходим статический шаблонный контракт на любой тип \lstinline!T!, поддерживающий функцию \lstinline!T::makeobject!, возвращающую некий свой тип. Нельзя просто взять и написать:
 
@@ -5906,7 +5975,18 @@ makeAndProcessObject (const T& builder) -> decltype (builder.makeObject())
 
 Внутри скобок \lstinline!decltype! в данном случае вычисление выражения (в том числе вызов функции) не происходит -- происходит только вывод типа.
 
-\subsubsection{Коррективы в вывод типов для C++14}
+Конечно, здесь есть возможные ошибки и засады:
+
+\begin{lstlisting}
+template<typename T, typename S>
+auto min(T x, S y) -> decltype(x < y ? x : y) {
+  return x < y ? x : y;
+}
+\end{lstlisting}
+
+Казалось бы все при всем, но так писать нельзя, поскольку \lstinline!decltype! вокруг выражения работает как \lstinline!decltype(())!, а значит результат может быть выведен как ссылка, что чревато. Эта проблема найдет свое решение позже (см. \ref{ReferenceConvolution}).
+
+\subsubsection{Коррективы в вывод типов для C++14}\label{DecltypeAuto}
 
 В некоторых простых случаях компилятору действительно не составляет проблем вывести тип функции: 
 
@@ -5930,6 +6010,40 @@ auto Correct(int i) {
     return Correct(i-1)+i;  // ok to call it now
 }
 \end{lstlisting}
+
+Но если переставить возвраты в вышеприведенном коде, он не будет скомпилирован.
+
+Увы, как уже было сказано \lstinline!auto! режет типы. 
+
+\begin{lstlisting}
+auto Example(int const& i) 
+{ 
+    return i; 
+}
+\end{lstlisting}
+
+Здесь возвращаемый тип \lstinline!int!. Конечно, в конкретном коде несложно вернуть квалификацию типа:
+
+\begin{lstlisting}
+auto const& Example(int const& i) 
+{ 
+    return i; 
+}
+\end{lstlisting}
+
+Но что делать в обобщенном коде?
+
+В обобщенном коде для точного вывода возвращаемого типа может быть использован \lstinline!decltype (auto)! например так:
+
+\begin{lstlisting}
+template<class Fun, class Arg>
+decltype(auto) example(Fun fun, Arg arg) 
+{ 
+    return fun(arg); 
+}
+\end{lstlisting}
+
+Теперь тип возвращаемого значения будет проброшен точно. Ниже будет показано как написать совершенно прозрачную обертку: пробросив не только возвращаемое значение но и произвольные аргументы (см. \ref{PerfectForw}).
 
 \subsubsection{Decaying и минимальные общие типы}
 
@@ -5956,12 +6070,29 @@ auto k = i; /* int k = i; */
 На механизме \lstinline!decay! неявно построен механизм \lstinline!common_type!, позволяющий вывести минимальный общий тип:
 
 \begin{lstlisting}
-int foo (int &i)
+template<typename T, typename S>
+void foo(T lhs, S rhs) {
 {
-  const long j;
-  /* long k */
-  std::common_type<decltype(i), decltype(j)>::type k;
+  std::common_type<decltype(lhs), decltype(rhs)>::type k;
+  // ...
 }
+\end{lstlisting}
+
+В принципе минимальные общие типы не так уже и нужны
+
+\begin{lstlisting}
+template<typename T, typename S>
+void foo(T lhs, S rhs) {
+  auto prod = lhs * rhs;
+  //...
+}
+\end{lstlisting}
+
+Устроит не менее качественную деградацию. Мало того, такое расширение GCC давно известное и во многих других компиляторах как \lstinline!typeof!, позволяло делать это и в старом стандарте. В новом же можно использовать \lstinline!decltype!.
+
+\begin{lstlisting}
+typedef typeof(lhs * rhs) product_type;
+typedef decltype(lhs * rhs) product_type;
 \end{lstlisting}
 
 В качестве полезного примера, можно привести смешанную арифметику для числового класса:
@@ -6207,17 +6338,28 @@ void foo(T&& t);
 
 Пусть теперь \lstinline!foo! вызвана с аргументом \lstinline!x! типа \lstinline!X!, причём \lstinline!x! является \lstinline!lvalue!. Тогда \lstinline!T! разрешается в \lstinline!X&!, а реальным типом аргумента t будет \lstinline!X& &&!, то есть (см. выше правила свёртки) \lstinline!X&!. Если же \lstinline!x! является \lstinline!rvalue!, то \lstinline!T! разрешается в \lstinline!X! и реальным типом аргумента \lstinline!t! будет \lstinline!X&&!.
 
-Стандарт также определяет функтор \lstinline!remove_reference! (20.9.7.2), который позволяет получить не-ссылочный тип из ссылочного. Он работает похоже на \lstinline!static_cast! и прочие привычные вещи. Аналогично (но наоборот) работает пара \lstinline!add_lvalue_reference!/\lstinline!add_rvalue_reference!.
+Стандарт также определяет функтор \lstinline!remove_reference! (20.9.7.2), который позволяет получить не-ссылочный тип из ссылочного. Он работает похоже на \lstinline!static_cast! и прочие привычные вещи. Аналогично (но наоборот) работает пара \lstinline!add_lvalue_reference!/\lstinline!add_rvalue_reference!. Этот функтор позволяет, например, безопасно написать минимум для смешанных типов:
 
 \begin{lstlisting}
-int *p = (std::remove_reference<int&>::type *)0;
+template<typename T, typename S>
+auto min(T x, S y) -> remove_reference<decltype(x < y ? x : y)>::type {
+  return x < y ? x : y;
+}
 \end{lstlisting}
 
-(Я надеюсь, никто никогда не напишет такую строчку в реальном коде).
+Что решает задачу, поставленную выше (см. \ref{DeclFunctions}).
 
-Пара функторов \lstinline!is_lvalue_reference! и \lstinline!is_rvalue_reference! позволяют определять на этапе исполнения к какой базовой категории относится конкретный тип \lstinline!T! (для этого надо применить к нему \lstinline!std::remove_reference! и проверить получившийся тип): lvalue если сработало условие \lstinline!is_lvalue_reference!, xvalue если сработало условие \lstinline!is_rvalue_reference!, или prvalue, если не сработало ни одно из них.
+Пара функторов \lstinline!is_lvalue_reference! и \lstinline!is_rvalue_reference! позволяют определять на этапе исполнения к какой базовой категории относится конкретный тип \lstinline!T! (для этого надо применить к нему \lstinline!std::remove_reference! и проверить получившийся тип): \lstinline!lvalue! если сработало условие \lstinline!is_lvalue_reference!, \lstinline!xvalue! если сработало условие \lstinline!is_rvalue_reference!, или \lstinline!prvalue!, если не сработало ни одно из них.
 
-Вопрос к студентам: как определить glvalue и prvalue?
+Вопрос к студентам: как определить \lstinline!glvalue! и \lstinline!rvalue!?
+
+Кроме того, правила свертки ссылок вносят коррективы не только в вывод типов шаблонами, но и в вывод их рассмотренными ранее средствами, скажем  \lstinline!auto! также сворачивает ссылочные типы:
+
+\begin{lstlisting}
+int i = 42;
+auto&& ri_1 = i;  /* int& ri_1 */
+auto&& ri_2 = 42; /* int&& ri_2 */
+\end{lstlisting}
 
 Теперь настала пора посмотреть зачем же комитетом по стандартизации были введены все эти сложности.
 
@@ -6384,6 +6526,8 @@ h4(x); /* calls 2 */
 \end{lstlisting}
 
 Название это техники perfect forwarding способно сбивать с толку. Он не столь уж и perfect в том смысле, что, например, не способен решить проблему перегрузки универсальной ссылки.
+
+Хорошей иллюстрацией техники совершенной проброски аргументов будет обещанная ранее совершенно прозрачная оболочка над функцией. Увы, она требует variadic templates, так что придется ещё немного потерпеть (см. \ref{PerfectCloth}).
 
 \textbf{Домашняя наработка:} как все-таки решить проблему перегрузки универсальной ссылки из раздела (\ref{UniversalReferences})?
 
@@ -6945,7 +7089,7 @@ main (void)
 Как видно из примера, \lstinline!std::async! принимает те же аргументы, что и \lstinline!std::thread!. После чего возвращает результат в виде \lstinline!std::future! когда он запрошен. Как именно будет выполнена асинхронная задача -- детали реализации. Скорее всего она будет запущена в несколько потоков.
 Этот пример рекомендуется к изучению и экспериментам.
 
-\subsection{Вариабельные шаблоны}
+\subsection{Вариабельные шаблоны}\label{VariadicTemplates}\index{Variadic Templates}
 
 Вариабельные шаблоны расширяют идею шаблонов C++, подобно тому, как функции с произвольным числом аргументов расширяют возможности обычных функций. Прежде, чем рассматривать в деталях это новшество, следует сделать обзор использования троеточий (ellipsis) в C и C++, чтобы поместить новую информацию в контекст.
 
@@ -7066,6 +7210,20 @@ void printf(const char* s) {
 \end{lstlisting}
 
 Следует обратить особое внимание на то, что обе потенциально ошибочные ситуации явно возбуждают исключения. Также замена простого троеточия на более интересную конструкцию \lstinline!const Args&... args! позволяет иметь не просто любое количество аргументов, но любое количество типизированных аргументов (что совсем другой разговор).
+
+\subsubsection{Наконец-то совершенно прозрачная оболочка}\label{PerfectCloth}
+
+Собирая вместе информацию о пробросе выводимого возвращаемого типа (см. \ref{DecltypeAuto}) и проброске аргументов (см. \ref{PerfectForw}) теперь можно написать совершенно прозрачную обертку над функцией:
+
+\begin{lstlisting}
+template<class Fun, class... Args>
+decltype(auto) transparent(Fun fun, Args&&... args) 
+{ 
+    return fun(std::forward<Args>(args)...); 
+}
+\end{lstlisting}
+
+Эта обертка позволяет вызвать любую функцию передав ей любое количество аргументов и в точности сохранив их типы и вернуть в точности тот тип, который возвращает эта функция.
 
 \subsubsection{Слияние ежа и ужа}
 
