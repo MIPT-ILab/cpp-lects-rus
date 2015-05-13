@@ -4976,7 +4976,7 @@ Operation for_each(Iterator act, Iterator end, Operation op)
 
 Некоторые контейнеры определяют дополнительные неявные требования, такие как наличие критерия сортировки (для упорядоченных конструкций) или конструктора по умолчанию.
 
-\subsubsection{От массивов к \lstinline!std::vector!}\label{vectorarrs}
+\subsubsection{От массивов к std::vector}\label{vectorarrs}
 
 Одной из главных проблем, которые красной нитью проходили через все лекции была проблема управления памятью. Правильно спаривать \lstinline!new! и \lstinline!delete!, использовать RAII для управления ресурсами, управлять памятью в безопасном для исключений стиле -- всё это важные и нужные навыки. Но внутри стандартной библиотеки содержится контейнер, который для большинства практических случаев позволяет в принципе избегать явного использования динамической памяти. Это класс \lstinline!vector!. Он определён в заголовке \lstinline!<vector>! стандартной библиотеки как:
 
@@ -5070,7 +5070,7 @@ T foo (int n)
 
 \subsection{Строки}
 
-\subsubsection{От обработки строк в стиле C к \lstinline!std::string!}\label{CStringToStdString}
+\subsubsection{От обработки строк в стиле C к std::string}\label{CStringToStdString}
 
 Стандартная библиотека языка C и все её возможности по ссылке включены в стандарт C++ и могут использоваться, как обычно. Но добавленный также класс \lstinline!basic_string! и его специализации \lstinline!string! и \lstinline!wstring! позволяют делать то же самое гораздо безопаснее и во многом проще (иногда ценой производительности).
 
@@ -5724,7 +5724,7 @@ public:
 
 Исторически первым 
 
-\subsubsection{Проблема COAP и небольшая экскурсия в новый стандарт}
+\subsubsection{Проблема COAP и небольшая экскурсия в новый стандарт}\label{COAP}
 
 \subsubsection{Ещё более умные указатели}
 
@@ -5885,9 +5885,9 @@ decltype(p.x) x; /* int */
 decltype((p.x)) x; /* const int& */
 \end{lstlisting}
 
-Кстати вторая строчка является ошибкой компиляции, так как объявляет неинициализированные ссылки.
+Кстати, вторая строчка является ошибкой компиляции, так как объявляет неинициализированные ссылки.
 
-На самом деле это различие более тонкое чем просто ещё одни скобки (это была бы слишком гребаная магия даже для C++). Речь идёт о разнице между \lstinline!decltype(name)! и \lstinline!decltype(expr)!. Первое возвращает тип, с которым было объявлено имя, второе -- тип, который могло бы приобрести выражение при его вычислении. Как сделать имя выражением? Обернуть его скобками, очевидно. Это кажется некоторым переусложнением, но это на самом деле единственный разумный выход из ситуации. Увы, \lstinline!decltype(expr)! имеет неприятную особенность -- если тип под ним это lvalue, то он добавит ссылку (если её не было)
+На самом деле это различие более тонкое чем просто ещё одни скобки (это была бы слишком грешная магия даже для C++). Речь идёт о разнице между \lstinline!decltype(id-expr)! и \lstinline!decltype(expr)!. Первое возвращает тип, с которым было объявлено имя, второе -- тип, который могло бы приобрести выражение при его вычислении. Как сделать имя выражением? Обернуть его скобками, очевидно. Это кажется некоторым переусложнением, но это на самом деле единственный разумный выход из ситуации. Увы, \lstinline!decltype(expr)! имеет неприятную особенность -- если тип под ним это lvalue, то он добавит ссылку (если её не было)
 
 \begin{lstlisting}
 int x;
@@ -6311,8 +6311,9 @@ struct is_arithmetic : std::integral_constant<bool,
 \begin{lstlisting}
 template <typename T> 
 struct is_pointer_helper : std::false_type {};
-template< class T > struct is_pointer_helper<T*> : std::true_type {};
-template< class T > struct is_pointer : is_pointer_helper<typename std::remove_cv<T>::type> {};
+template <typename T> struct is_pointer_helper<T*> : std::true_type {};
+template <typename T> struct is_pointer : 
+    is_pointer_helper <typename std::remove_cv<T>::type> {};
 \end{lstlisting}
 
 Обратите внимание на использование \lstinline!remove_cv!, который сам является композитным хелпером из \lstinline!remove_const! и \lstinline!remove_volatile! которые по отдельности тоже не составляют проблем.
@@ -6374,7 +6375,7 @@ foo() = 42;
 
 Собственно, в стандарте языка C90 и последовавшем за ним C99 нет термина rvalue. В C99 есть оговорка ``What is sometimes called ``rvalue'' is in this International Standard described as the ``value of an expression'''', позволяющая предположить, что к этому времени этот термин существовал и использовался, но фиксировать его строго в случае языка C было не нужно.
 
-Всё изменилось с приходом языка C++, который принёс с собой references. Выражение из прошлого примера:
+Всё изменилось с приходом языка C++, который принёс с собой ссылки (lvalue references). Выражение из прошлого примера:
 
 \begin{lstlisting}
 foo() = 42;
@@ -6392,13 +6393,21 @@ int foobar();
 int* p2 = &foobar();
 \end{lstlisting}
 
-В некотором смысле, lvalue в C++98 содержательно становится locator value (а не left hand side value). Так, например если есть указатель \lstinline!int *val!, то выражение \lstinline!val+1! можно разыменовать, но нельзя взять его адрес.
+В некотором смысле, lvalue в C++98 содержательно становится locator value (а не left hand side value). Так, например если есть \lstinline!int *val!, то выражение \lstinline!val+1! можно разыменовать, но нельзя взять его адрес.
 
 \begin{lstlisting}
 int *val;
 int correct = *(val + 1);
 int **wrong = &(val + 1);
 \end{lstlisting}
+
+При этом в качестве двух облаков на горизонте языка маячили проблемы семантики перемещения и совершенного форвардинга.
+
+Семантика перемещения может быть проиллюстрирована проблемой COAP (см. \ref{COAP}) -- действительно контейнеры из \lstinline!auto_ptr! вели себя странно, потому что перемещение и копирование никак не были разделены: в языке была возможность написать \lstinline!a = b! но не \lstinline!move(a,b)! и заложенная в переопределенный оператор присваивания семантика перемещения оказалась миной: рано или поздно так или иначе кто-то все равно использует присваивание как присваивание.
+
+Совершенный форвардинг это та же проблема в приложении к формальным аргументам функций, речь о ней пойдет чуть ниже.
+
+Как ни странно, но чтобы решить эти две простые проблемы, потребовалось очень глубокое пересомысление терминологии и существенная доработка стандарта.
 
 Cтандарт С++11 объявляет (3.10) пять терминов: lvalue, rvalue, xvalue, а также glvalue (обобщение lvalue и xvalue) и prvalue (более узкая специализация rvalue). Базовыми терминами являются знакомые нам lvalue, rvalue и новый xvalue (от expiring value). Забегая вперёд -- например xvalue является результат функции возвращающей rvalue ссылку. То, что понималось под rvalue в C++98, в C++11 стало prvalue (в то время как rvalue обобщает xvalue и prvalue), а новый термин glvalue обобщает lvalue и xvalue. 
 
@@ -6450,7 +6459,7 @@ int &&x = a * b;
 foo(x); /* calls foo (int &x) !!! */
 \end{lstlisting}
 
-Это очень важное правило, потому что представьте ситуацию, в которой объявлен класс Base и в нём есть необходимость определить конструкторы:
+Это очень важное правило. Легко представить ситуацию, в которой объявлен класс Base и в нём есть необходимость определить конструкторы:
 
 \begin{lstlisting}
 Base(Base const & rhs);
@@ -6470,11 +6479,13 @@ Derived(Derived&& rhs) : Base(rhs) {};
 Derived(Derived&& rhs) : Base(std::move(rhs)) {};
 \end{lstlisting}
 
-Сюрпризы подобные этому ожидают, казалось бы, в очевидных вещах. Ccылка на ссылку -- невозможна. Это все знают и тысячу раз отвечали на собеседованиях. Что же, этот ответ всё ещё верен и стандарт C++11 (8.3.2.5) запрещает ссылки на ссылки, указатели на ссылки и массивы ссылок. Но как быть, когда в шаблоне или при \lstinline!typedef! получается смесь правых и левых ссылочных типов? Это способно поставить в тупик.
+Говорят, что \lstinline!std::move! скрывает имя \lstinline!rhs!, делая его таким же безымянным rvalue выражением, как \lstinline!a*b!. Это общее правило ``оно не должно иметь имени'' очень полезно для выработки интуиции.
 
 \subsubsection{Свёртка ссылочных типов}\label{ReferenceConvolution}
 
-Стандарт (8.3.2.6) определяет следующие правила свёртки ссылок, применимые для определений typedef и decltype, а также параметров шаблонов:
+Ccылка на ссылку -- невозможна. Это все знают и тысячу раз отвечали на собеседованиях. Что же, этот ответ всё ещё верен и стандарт C++11 (8.3.2.5) запрещает ссылки на ссылки, указатели на ссылки и массивы ссылок. Но как быть, когда в шаблоне или при \lstinline!typedef! получается смесь правых и левых ссылочных типов? Это способно поставить в тупик.
+
+Стандарт (8.3.2.6) определяет следующие правила свёртки ссылок, применимые для определений \lstinline!auto! и \lstinline!decltype!, а также параметров шаблонов:
 
 \lstinline!A& &! становится \lstinline!A&!
 \lstinline!A& &&! становится \lstinline!A&!
@@ -6488,22 +6499,24 @@ template<typename T>
 void foo(T&& t);
 \end{lstlisting}
 
-Пусть теперь \lstinline!foo! вызвана с аргументом \lstinline!x! типа \lstinline!X!, причём \lstinline!x! является \lstinline!lvalue!. Тогда \lstinline!T! разрешается в \lstinline!X&!, а реальным типом аргумента t будет \lstinline!X& &&!, то есть (см. выше правила свёртки) \lstinline!X&!. Если же \lstinline!x! является \lstinline!rvalue!, то \lstinline!T! разрешается в \lstinline!X! и реальным типом аргумента \lstinline!t! будет \lstinline!X&&!.
+Пусть теперь \lstinline!foo! вызвана с аргументом \lstinline!x! типа \lstinline!X!, причём \lstinline!x! является lvalue. Тогда \lstinline!T! разрешается в \lstinline!X&!, а реальным типом аргумента t будет \lstinline!X& &&!, то есть (см. выше правила свёртки) \lstinline!X&!. Если же \lstinline!x! является rvalue, то \lstinline!T! разрешается в \lstinline!X! и реальным типом аргумента \lstinline!t! будет \lstinline!X&&!.
 
 Стандарт также определяет функтор \lstinline!remove_reference! (20.9.7.2), который позволяет получить не-ссылочный тип из ссылочного. Он работает похоже на \lstinline!static_cast! и прочие привычные вещи. Аналогично (но наоборот) работает пара \lstinline!add_lvalue_reference!/\lstinline!add_rvalue_reference!. Этот функтор позволяет, например, безопасно написать минимум для смешанных типов:
 
 \begin{lstlisting}
 template<typename T, typename S>
-auto min(T x, S y) -> remove_reference<decltype(x < y ? x : y)>::type {
+auto min(T x, S y) -> 
+  remove_reference <decltype(x < y ? x : y)>::type 
+{
   return x < y ? x : y;
 }
 \end{lstlisting}
 
 Что решает задачу, поставленную выше (см. \ref{DeclFunctions}).
 
-Пара функторов \lstinline!is_lvalue_reference! и \lstinline!is_rvalue_reference! позволяют определять на этапе исполнения к какой базовой категории относится конкретный тип \lstinline!T! (для этого надо применить к нему \lstinline!std::remove_reference! и проверить получившийся тип): \lstinline!lvalue! если сработало условие \lstinline!is_lvalue_reference!, \lstinline!xvalue! если сработало условие \lstinline!is_rvalue_reference!, или \lstinline!prvalue!, если не сработало ни одно из них.
+Пара функторов \lstinline!is_lvalue_reference! и \lstinline!is_rvalue_reference! позволяют определять на этапе исполнения к какой базовой категории относится конкретный тип \lstinline!T! (для этого надо применить к нему \lstinline!std::remove_reference! и проверить получившийся тип): lvalue если сработало условие \lstinline!is_lvalue_reference!, xvalue если сработало условие \lstinline!is_rvalue_reference!, или prvalue, если не сработало ни одно из них.
 
-Вопрос к студентам: как определить \lstinline!glvalue! и \lstinline!rvalue!?
+\textbf{Вопрос к студентам:} как определить glvalue и rvalue?
 
 Кроме того, правила свертки ссылок вносят коррективы не только в вывод типов шаблонами, но и в вывод их рассмотренными ранее средствами, скажем  \lstinline!auto! также сворачивает ссылочные типы:
 
@@ -6558,6 +6571,10 @@ X&& std::move(X& a) noexcept
 
 Что и требовалось.
 
+\textbf{Вопрос к студентам:} Так почему бы не писать \lstinline!static_cast<X&&>(x)! вместо \lstinline!std::move!?
+
+Правильный ответ: заворачивание в шаблон в данном случае позволяет неявный вывод шаблонного параметра, что делает запись удобней. А так пожалуйста.
+
 Сама идея, что теперь обмен значениями может быть семантически выражен как обмен значениями, а не копирование (а значит и соптимизирован соответствующим образом) после её осознания, приводит людей в лёгкую эйфорию. В конце концов стремление к максимальной эффективности -- нормальное стремление. Тем не менее, с функцией \lstinline!std::move! следует быть осторожным. Часто идея вернуть \lstinline!std::move(x)! вместо \lstinline!x!, когда реально нужно rvalue и хочется избежать лишних копирований, приводит к отключению оптимизаций возвращаемого значения (\ref{RVO}) в компиляторе и результат ухудшается. Большинство таких трансформаций на современных компиляторах требует замеров и не должны выполняться preliminary:
 
 \begin{lstlisting}
@@ -6605,6 +6622,7 @@ template<typename T> void f(const T&& param);
 template <class T, class Allocator = allocator<T>>
 class vector 
 {
+/* ... */
   public:
   /* rvalue reference! */  
   void push_back(T&& x);
@@ -6622,7 +6640,7 @@ decltype(w1)&& v2 = std::move(w2); /* Ok, v2 is Widget&& */
 
 Таким образом, универсальные ссылки в контексте \lstinline!decltype! невозможны.
 
-Вопрос к студентам:
+\textbf{Вопрос к студентам:}
 
 \begin{lstlisting}
 template <typename T> void f(T &a);  /* (1) */
@@ -6635,7 +6653,50 @@ f(1); /* ? */
 
 Знание об универсальных ссылках теперь должно подсказать правильный ответ: оба раза будет вызвана вторая функция.
 
-\subsubsection{Perfect forwarding}\label{PerfectForw}
+\subsubsection{Проброс типов}\label{PerfectForw}\index{Perfect Forwarding}
+
+Простая оболочка над фабрикой классов создает очевидную проблему лишнего копирования для своего формального параметра:
+
+\begin{lstlisting}
+template<typename T, typename Arg> 
+T* factory(Arg arg)
+{ 
+  T *retval = new T(arg)
+  return retval;
+} 
+\end{lstlisting}
+
+Попытка её решить, заменив передачу по значению на передачу по ссылке натыкается на очевидное возражение -- может быть важный сценарий использования с передачей туда, например, констант. Или результатов функций, созвращающих значение, etc.
+
+Прошаренный человек может предложить в этом случае добавить перегрузку по константной ссылке. Хорошо. Но представим у нас несколько аргументов. Тогда учет сочетания всех константных и неконстантных ссылок быстро приводит к комбинаторному взрыву.
+
+Решение проблемы выглядит несколько необычно:
+
+\begin{lstlisting}
+template<typename T, typename Arg> 
+shared_ptr<T> factory(Arg&& arg)
+{ 
+  return shared_ptr<T>(new T(std::forward<Arg>(arg)));
+} 
+\end{lstlisting}
+
+Здесь \lstinline!std::forward! это довольно прозрачная оболочка, в чем-то похожая на \lstinline!std::move!
+
+\begin{lstlisting}
+template<class S> S&& 
+forward(typename remove_reference<S>::type& a)
+{
+  return static_cast<S&&>(a);
+} 
+\end{lstlisting}
+
+Идея этого функтора в том, что используя механизм универсальных ссылок он приводит свой аргумент к lvalue-ссылке если сам этот аргумент lvalue и к rvalue-ссылке в противном случае. Это и есть perfect forwarding -- совершенная передача аргументов, которой всем так не хватало в старом добром C++.
+
+\textbf{Вопрос к студентам:} А зачем вообще нужен \lstinline!remove_reference<S>::type&!? Кажется, простое использование \lstinline!S&! свернет ссылки точно так же.
+
+Ответ: это исключает неявный вывод параметра для шаблона.
+
+\subsubsection{Проброс ссылок}\label{PerfectForwRef}
 
 Важной проблемой относительно правых ссылок является проброс правой ссылки (с присущей ей move-семантикой) через цепочку функций. Наивная попытка такого проброса может выглядеть как-то так:
 
@@ -6682,6 +6743,405 @@ h4(x); /* calls 2 */
 Хорошей иллюстрацией техники совершенной проброски аргументов будет обещанная ранее совершенно прозрачная оболочка над функцией. Увы, она требует variadic templates, так что придется ещё немного потерпеть (см. \ref{PerfectCloth}).
 
 \textbf{Домашняя наработка:} как все-таки решить проблему перегрузки универсальной ссылки из раздела (\ref{UniversalReferences})?
+
+\pagebreak
+\subsection{Вариабельные шаблоны}\label{VariadicTemplates}\index{Variadic Templates}
+
+Вариабельные шаблоны расширяют идею шаблонов C++, подобно тому, как функции с произвольным числом аргументов расширяют возможности обычных функций. Прежде, чем рассматривать в деталях это новшество, следует сделать обзор использования троеточий (ellipsis) в C и C++, чтобы поместить новую информацию в контекст.
+
+\subsubsection{Поговорим о <<\texttt{...}>>}
+
+Троеточия (ellipsis) впервые появились в языке C для таких функций, как \lstinline!printf! и \lstinline!scanf! 
+
+\begin{lstlisting}
+int printf (const char* format, ... );
+\end{lstlisting}
+
+Были придуманы общеизвестные приемы работы с ними -- список актуально переданных аргументов, получаемый через \lstinline!va_list! однонаправленно итерировался с помощью \lstinline!va_arg!, причем никакой информации о типах не сохранялось и они были полностью отданы на откуп программиста (обычно использовалась та или иная форма дедуцирования из форматного списка). Это приводило к крайне тяжелым последствиям. Скажем простая строчка:
+
+\begin{lstlisting}
+printf(name);
+\end{lstlisting}
+
+позволяла хакеру при её вызове со строчкой вроде \lstinline!name = %f%f%f%x(%s)! распечатать содержимое рантайм-стека и вывести на экран некие хранящиеся там приватные для программы сведения. А наличие таких легальных возможностей, как форматный модификатор \lstinline!%n!, позволявший модификацию переменных:
+
+\begin{lstlisting}
+int i;
+printf("12345%n6789\n", &i);
+assert (i == 5);
+\end{lstlisting}
+
+Делала такие функции любимым оружием злоумышленников. 
+
+Тем не менее, плюсы перевешивали минусы, а на атаки находились защиты. Впоследствии переменное число аргументов было распространено на макросы:
+
+\begin{lstlisting}
+#define eprintf(...) fprintf (stderr, __VA_ARGS__)
+\end{lstlisting}
+
+В C++ всё это было сохранено, и, более того, сверху было добавлено использование троеточия в обработке исключений:
+
+\begin{lstlisting}
+try{
+    // Try block.
+}
+catch(...){
+    // Catch block.
+}
+\end{lstlisting}
+
+Систематически прослеживается обращение с троеточием как с заменой слов ``все что угодно''.
+
+\subsubsection{Вариабельные шаблоны функций}
+
+Синтаксис вариабельного шаблоны выглядит несколько необычно:
+
+\begin{lstlisting}
+template<typename... Args>
+\end{lstlisting}
+
+При этом он может вначале иметь и не-вариабельную часть:
+
+\begin{lstlisting}
+template<typename Arg, typename... Args>
+\end{lstlisting}
+
+В данном случае параметр \lstinline!Args...! это тип для использования в выражениях особого вида. Можно рассматривать его как ``все остальные аргументы'', а первый тип как ``верхний аргумент списка''.
+
+В вызове такой функции есть определенная свобода:
+
+\begin{lstlisting}
+template<class ... Args> void f(Args ... args);
+f();       // OK: args contains no arguments
+f(1);      // OK: args contains one argument: int
+f(2, 1.0); // OK: args contains two arguments: int and double
+\end{lstlisting}
+
+В нормальном случае аргумент объявленный с тремя точками в начале используется с тремя точками в конце:
+
+\begin{lstlisting}
+template<typename T>
+T adder(T v) {
+  return v;
+}
+
+template<typename T, typename... Args>
+T adder(T first, Args... args) {
+  return first + adder(args...);
+}
+\end{lstlisting}
+
+Видно, что работа с пачками параметров таким образом напоминает рекурсию. 
+
+Но если используется тип пачки параметров, то троеточие указывается после, как в случае с \lstinline!const_cast! ниже:
+
+\begin{lstlisting}
+template<class ... Args> void 
+f(Args ... args)
+{
+  g(&args...); // expands to g(&E1, &E2, etc)
+  g(const_cast<const Args*>(&args)...);
+  // g(const_cast<const E1*>(&X1), const_cast<const E2*>(&X2), etc
+}
+\end{lstlisting}
+
+Здесь выражается идея ``привести все''. Аналогичный пример можно привести с \lstinline!std::forward!
+
+\begin{lstlisting}
+template<typename Arg, typename ... Args> void 
+foo(Arg &&arg, Args &&... args)
+{
+    bar(std::forward<Arg>(arg));
+    foo(std::forward<Args>(args)...);
+}
+\end{lstlisting}
+
+Можно сказать, что троеточие справа от чего-либо используется для расширения пачки аргументов по шаблону того, за чем оно стоит:
+
+\begin{lstlisting}
+template<typename ...T>
+void f(T ... args) 
+{
+   g( args... );       //pattern = args
+   h( x(args)... );    //pattern = x(args)
+   m( y(args...) );    //pattern = args
+   n( z<T>(args)... ); //pattern = z<T>(args)
+}
+\end{lstlisting}
+
+Именно поэтому оно может быть использовано даже в контексте класса для создания списка наследования.
+
+\textbf{Вопрос к студентам:} как вы думаете, для приведенного ниже класса наследование от второго и далее предков из вариабельного списка будет открытым или закрытым?
+
+\begin{lstlisting}
+template<typename ... Mixins>
+class mixture : public Mixins ...  
+\end{lstlisting}
+
+Правильный ответ: открытым, поскольку \lstinline!pattern = public Mixins!
+
+В качестве вишенки на тортик -- довольно грязный, но очень поучительный хак -- визуализация всех параметров без явной рекурсии:
+
+\begin{lstlisting}
+template <class... T>
+void lvisualize(T... args)
+{
+  using expand_variadic_pack  = int[];
+  expand_variadic_pack {0, ((cout << args << endl), void(), 0)... };
+
+  /* leading 0 for void parameter packs
+     uses braced-init-list initialization rules
+     void() is to prevent malicious "operator," overloads, which
+     cannot exist for void types */
+}
+\end{lstlisting}
+
+В качестве примера:
+
+\begin{lstlisting}
+lvisualize(10, 20.2, "asdf", true);
+\end{lstlisting}
+
+Здесь использованы тонкие особенности раскрытия списка инициализации. Но более всего важно какой здесь паттерн. В данном случае это все, что стоит в скобках до троеточия. Согласитесь, это довольно сложный паттерн, тем не менее GCC уже не испытывает с этим кодом проблем.
+
+\subsubsection{Наконец-то безопасный printf}\label{TypesafePrintf}
+
+Используя эти возможности, можно соорудить безопасный относительно типов \lstinline!printf! не подверженный, рассматривавшимся выше атакам. Основной шаг рекурсии контролирует наличие спецификатора для каждого из поданных аргументов
+
+\begin{lstlisting}
+template<typename T, typename... Args>
+void printf(const char* s, const T& value, const Args&... args) 
+{ 
+  while (*s) 
+    { 
+      if (*s == '%' && *++s != '%') 
+        {
+          /* ignore the character that follows the '%': we already know the type! */
+          std::cout << value;
+          return printf(++s, args...);
+        }
+      std::cout << *s++;
+    }
+  throw std::runtime error("extra arguments provided to printf");
+}
+\end{lstlisting}
+
+Завершение рекурсии содержит контроль наличия всех необходимых аргументов.
+
+\begin{lstlisting}
+void printf(const char* s) {
+  while (*s) {
+    if (*s == '%' && *++s != '%') 
+      throw std::runtime_error("invalid format string: missing arguments");
+    std::cout << *s++;
+  }
+}
+\end{lstlisting}
+
+Следует обратить особое внимание на то, что обе потенциально ошибочные ситуации явно возбуждают исключения. Также замена простого троеточия на более интересную конструкцию \lstinline!const Args&... args! позволяет иметь не просто любое количество аргументов, но любое количество типизированных аргументов (что совсем другой разговор).
+
+\subsubsection{Наконец-то совершенно прозрачная оболочка}\label{PerfectCloth}
+
+Собирая вместе информацию о пробросе выводимого возвращаемого типа (см. \ref{DecltypeAuto}) и проброске аргументов (см. \ref{PerfectForw}) теперь можно написать совершенно прозрачную обертку над функцией:
+
+\begin{lstlisting}
+template<class Fun, class... Args>
+decltype(auto) transparent(Fun fun, Args&&... args) 
+{ 
+    return fun(std::forward<Args>(args)...); 
+}
+\end{lstlisting}
+
+Эта обертка позволяет вызвать любую функцию передав ей любое количество аргументов и в точности сохранив их типы и вернуть в точности тот тип, который возвращает эта функция.
+
+\subsubsection{Слияние ежа и ужа}
+
+Вариабельные шаблоны в некотором смысле ``объединяют'' аргументы разных типов, вводя в C++ возможность сделать кортежи. В отличии от структур имеющих именованные поля разных типов и массивов, имеющих неименованные поля одного типа, кортежи это такой вид синтаксического клея, который позволяет склеивать неименованные поля разных типов. Можно сказать, что это структура которая ведет себя как массив. Механическое склеивание разнотипных полей можно проиллюстрировать через шаблон \lstinline!ctmap! с переопределенным оператором, скажем \lstinline!operator^! для доступа к полю:
+
+\begin{lstlisting}
+  auto person = ctmap (age, last_name);
+  person^last_name = "Smith";
+  person^age = 50;
+\end{lstlisting}
+
+Чтобы реализовать такой шаблон, потребуется простая структура с описанием поля и переопределенным оператором доступа:
+
+\begin{lstlisting}
+template <typename T>
+struct Field {
+  typename T::value_type storage;
+
+  typename T::value_type &operator^(const T &) {
+    return storage;
+  }
+};
+\end{lstlisting}
+
+Все возможные типы, которые может склеить шаблон (тут может быть любой список) описываются тэгами:
+
+\begin{lstlisting}
+template<typename T>
+struct tag{using value_type=T;};
+
+static struct:tag<int>{} age;
+static struct:tag<std::string>{} last_name;
+/* ... */
+\end{lstlisting}
+
+После такой подготовки, сам шаблон выглядит довольно просто
+
+\begin{lstlisting}
+template<typename... Fields>
+struct ctmap_t : public Field<typename std::decay<Fields>::type>... {
+};
+\end{lstlisting}
+
+И его создание с помощью выделенной для этого функции:
+
+\begin{lstlisting}
+template<class...Fields>
+ctmap_t<Fields...> ctmap( Fields&&... ) { return {}; }
+\end{lstlisting}
+
+Делегирование значений полей через правые ссылки -- обычная практика в таких случаях.
+
+\subsubsection{Стандартные кортежи и их применения}
+
+Стандартная библиотека определяет стандартный класс \lstinline!std::tuple!
+
+\begin{lstlisting}
+std::tuple<int, double, int> t(1, 2.0, 3);
+\end{lstlisting}
+
+Доступ к трем полям осуществляется рекурсивно через \lstinline!base! и \lstinline!head_!
+
+\begin{lstlisting}
+assert (t.head_ == 1);
+assert (t.base.head_ == 2.0);
+assert (t.base.base.head_ == 3);
+\end{lstlisting}
+
+Кроме того, можно обращаться к полям по индексу, используя стандартную функцию \lstinline!std::get!
+
+\begin{lstlisting}
+assert (get<0>(t) == 1);
+assert (get<1>(t) == 2.0);
+assert (get<2>(t) == 3);
+\end{lstlisting}
+
+В стандарте C++14 добавлена возможность обращаться к полям по типу:
+
+\begin{lstlisting}
+assert (get<double>(t) == 2.0);
+\end{lstlisting}
+
+Но попытка получить нечто по типу \lstinline!int! в данном случае приведет к ошибке компиляции из-за неоднозначности.
+
+Посредством функции \lstinline!std::tie! удобно распаковать кортеж, например чтобы обработать возвращамые из функции несколько аргументов:
+
+\begin{lstlisting}
+std::tuple<int,int> foo();
+
+/* ... */
+
+int a;
+int b;
+std::tie(a,b)=foo();
+\end{lstlisting}
+
+Ещё одна интересная задача: создание отложенного исполнения 
+
+\begin{lstlisting}
+template<int ...> struct seq {};
+template<int N, int ...S> struct gens : gens<N-1, N-1, S...> {};
+template<int ...S> struct gens<0, S...>{ typedef seq<S...> type; };
+\end{lstlisting}
+
+Обертка для сохранения элемента отложенного исполнения:
+
+\begin{lstlisting}
+template <typename ...Args>
+struct save_it_for_later
+{
+  std::tuple<Args...> params;
+  double (*func)(Args...);
+
+  double delayed_dispatch()
+  {
+    return callFunc(typename gens<sizeof...(Args)>::type());
+  }
+
+  template<int ...S>
+  double callFunc(seq<S...>)
+  {
+    return func(std::get<S>(params) ...);
+  }
+};
+\end{lstlisting}
+
+Для примера какой-нибудь простой функции:
+
+\begin{lstlisting}
+double foo(int x, float y, double z)
+{
+  return x + y + z;
+}
+\end{lstlisting}
+
+Её отложенное исполнение.
+
+\begin{lstlisting}
+std::tuple<int, float, double> t = std::make_tuple(1, 1.2, 5);
+save_it_for_later<int,float, double> saved = {t, foo};
+/* ... */
+auto x = saved.delayed_dispatch();
+\end{lstlisting}
+
+Здесь функция \lstinline!std::make_tuple! исполняет ту же роль, что и \lstinline!ctmap! в прошлом примере (только создает стандартный кортеж, а не самописный \lstinline!ctmap_t!).
+
+Стандартная функция \lstinline!std::tuple_cat! позволяет конкатенировать произвольное количество кортежей в один кортеж
+
+\begin{lstlisting}
+std::tuple<int, std::string, float> t1(10, "Test", 3.14);
+int n = 7;
+auto t2 = std::tuple_cat(t1, std::make_pair("Foo", "bar"), t1, std::tie(n));
+\end{lstlisting}
+
+Следует обратить внимание на запись \lstinline!std::make_pair! -- единственный способ создать нечто похожее на кортеж в C++98 вполне принимается как способ создать кортеж в C++14.
+
+\subsubsection{Вариабельные шаблоны для метапрограммирования}
+
+Выше (\ref{TypeTraits}) были упомянуты определители типов из стандартной библиотеки. Довольно легко определить (и не надо определять, так как он есть в стандарте) простой шаблон \lstinline!is_same! определяющий одинаковые ли типы переданы ему на вход:
+
+\begin{lstlisting}
+template<class T, class U>
+struct is_same : std::false_type {};
+ 
+template<class T>
+struct is_same<T, T> : std::true_type {};
+\end{lstlisting}
+
+Но вариабельные шаблоны предлагают большие возможности. Например с их помощью можно сделать определитель \lstinline!is_one_of! определяющий равенство данного типа одному из типов данного списка. Идея проста как правда:
+
+\begin{lstlisting}
+template<class T, class... List>
+struct is_one_of;
+
+template<class T>
+struct is_one_of<T> : false_type {};
+
+template<class T, class... Tail>
+struct is_one_of<T, T, Tail...> : true_type {};
+\end{lstlisting}
+
+Самое сложное и изящное это рекурсивный вызов:
+
+\begin{lstlisting}
+template<class T, class Head, class... Tail>
+struct is_one_of<T, Head, Tail...> : is_one_of<Head, Tail...> {};
+\end{lstlisting}
+
+Таким образом вариабельные шаблоны позволяют рекурсию по списку типов гораздо изящней, чем это позволяли делать обычные шаблоны.
 
 \pagebreak
 \subsection{Lambda expressions}
@@ -6733,9 +7193,110 @@ void abssort(float *x, unsigned N)
 }
 \end{lstlisting}
 
-Тем не менее, в лямбда-выражениях есть и более интересные детали для рассмотрения, одна из которых -- возможность захвата контекста.
+\textbf{Вопрос к студентам:} можно сделать из \lstinline!abssort! просто синоним для нужного \lstinline!sort! с использованием лямбд?
 
-\subsubsection{Захват контекста}
+Правильный ответ: конечно и несложно \lstinline!auto abssort = [] (float *x, unsigned N) { /* ... */ }! тело то же самое
+
+\subsubsection{Generic lambdas}
+
+Первое приближение к lambda-функциям в стандарте C++11 позволяло спсики инициализации только с конкретными типами аргументов:
+
+\begin{lstlisting}
+auto ifunc = [](int input) { return input * input; };
+auto dfunc = [](double input) { return input * input; };
+/* ... */
+\end{lstlisting}
+
+Но простое программирование на шаблонах оказывалось в некотором смысле более мощным, так как позволяло создать обобщенную (type-generic) функцию (или функтор) и сделать это совсем несложно:
+
+\begin{lstlisting}
+template <typename T>
+T func(T z) 
+{
+  return z * z;
+}
+\end{lstlisting}
+
+Для того, чтобы lambda-выражения не уступали в выразительной мощности, в стандарте C++14 появились обобщенные lambda-expressions.
+
+\begin{lstlisting}
+auto func = [](auto input) { return input * input; };
+/* ... */
+std::cout << func(2) << std::endl;
+std::cout << func(2.0) << std::endl;
+std::cout << func(std::complex<double>(2.0, 1.0)) << std::endl;
+\end{lstlisting}
+
+Они особенно удобны для создания функторов при использовании вместе с алгоритмами стандартной библиотеки.
+
+Конечно, есть и проблемы. Допустим есть необходимость используя perfect forwarding (см. \ref{PerfectForw}) протащить из полиморфной лямбды параметр в какую-то функцию:
+
+\begin{lstlisting}
+auto forwardingLambda = [](auto&& param) { f(std::forward<T>(param)); };
+\end{lstlisting}
+
+Стоп-стоп, а что такое \lstinline!T!?
+
+Вопрос к студентам: можно ли здесь использовать \lstinline!decltype(param)!?
+
+Правильный ответ: конечно можно. Даже нужно.
+
+\subsubsection{Замыкания}
+
+Можно ли на C++ написать функцию, которая возвращала бы собственный аргумент? Да и легко:
+
+\begin{lstlisting}
+auto Identity = [](auto x) {
+  return x;
+};
+\end{lstlisting}
+
+Можно ли написать более сложную функцию, которая возвращала бы объект класса-функтора, который потом возвращал бы аргумент при каждом вызове? Да, тоже можно:
+
+\begin{lstlisting}
+auto identityf = [](auto x) {
+  class Inner {
+    int x;
+    public: Inner(int i): x(i) {}
+    int operator() () { return x; }
+  };
+  return Inner(x);
+};
+\end{lstlisting}
+
+Здесь видна одна интересная идея: идея \textbf{захвата контекста}. 
+
+Можно ли написать теперь ещё более сложную функцию, которая возвращала бы другую функцию с тем же свойством что у класса-функтора в примере выше? Оказывается тоже можно. Для этого, сконструированная внутри лямбды, лямбда должна захватить контекст:
+
+\begin{lstlisting}
+auto unit = [](auto x) {
+  return [=]() { return x; };
+};
+\end{lstlisting}
+
+Теперь даже при её использовании за пределами создавшего её контекста, она будет ``помнить'' значение аргумента в момент создания. Она не случайно называется \lstinline!unit!, это получит свое развитие при разговоре о монадах.
+
+Замыкания вместе с вариабельными шаблонами позволяют легко делать каррирование функций:
+
+\begin{lstlisting}
+template<typename Function, typename... Arguments>
+auto curry(Function function, Arguments... args) {
+    return [=](auto... rest) {
+        return function(args..., rest...);
+    }
+}
+\end{lstlisting}
+
+Использовать это как-то так:
+
+\begin{lstlisting}
+auto add = [](auto x, auto y) { return x + y; }
+auto add4 = curry(add, 4);
+\end{lstlisting}
+
+Теперь функция \lstinline!add4! может быть использована как нормальная функция.
+
+\subsubsection{Захват контекста в подробностях}
 
 Список для захвата контекста пишется в квадратных скобках. Правила формирования списка для захвата контекста регулируются стандартом (5.1.2.8). Существует два специальных символа -- \lstinline!=! и \lstinline!&!. Переменные захватываемые по значению, входят в список без модификаторов, захватываемые по lvalue reference -- с модификатором \lstinline!&!
 
@@ -6832,11 +7393,37 @@ void negate_all(std::vector<T>& v)
 }
 \end{lstlisting}
 
+Также lambda-выражения в C++14 могут имитировать перегруженные функции с помощью простого, но иллюстративного трюка:
+
+\begin{lstlisting}
+template <class... F>
+struct overload : F... {
+  overload(F... f) : F(f)... {} 
+};
+\end{lstlisting}
+
+И теперь:
+ 
+\begin{lstlisting}
+template <class... F>
+auto make_overload(F... f) {
+  return overload<F...>(f...);  
+}
+\end{lstlisting}
+
+Используется это как-то так:
+
+\begin{lstlisting}
+auto f =
+    make_overload([](int i) { /* print */ },
+                  [](double d) { /* print */ });
+\end{lstlisting}
+
 Отдельной и интересной темой является обработка исключений внутри lambda-выражений. Мне не удалось набрать достаточно материала чтобы делать выводы, но это место выглядит достаточно error-prone и мне кажется здесь надо соблюдать существенную осторожность (пока Герб Саттер не порадует нас книгой на эту тему, я надеюсь).
 
 Теперь пришло время разобраться с тем, как же типизированы lambda-выражения.
 
-\subsubsection{Осваиваем \lstinline!std::function!}
+\subsubsection{Осваиваем std::function}
 
 lambda-выражение с пустой спецификацией считается обычной функцией и может присваиваться указателям на функции в стиле C:
 
@@ -6887,38 +7474,68 @@ int main()
 
 Итак, lambda-expressions позволяют (совместно с \lstinline!std::function!) привнести в C++ некоторые полезные особенности функциональных языков, предоставляют удобный синтаксис для объявление функторов и использования алгоритмов стандартной билиотеки, и даже частично совместимы со старыми указателями на функции. Освоение lambda-выражений позволяет сделать код короче, выразительней и проще для поддержки.
 
-\subsubsection{Generic lambdas}
+\subsubsection{Variadic lambdas и монады}
 
-Первое приближение к lambda-функциям в стандарте C++11 позволяло спсики инициализации только с конкретными типами аргументов:
+До сих пор монады были сладким поводом задрать нос для всяких там программистов на языке Haskell. Между тем, монада это просто моноид на категории эндофункторов и такую простую вещь вполне можно нарисовать и на языке C++14. Правда понадобится ещё немного синтаксического сахара, поэтому сначала следует поговорить про вариабельные лямбды.
 
-\begin{lstlisting}
-auto ifunc = [](int input) { return input * input; };
-auto dfunc = [](double input) { return input * input; };
-/* ... */
-\end{lstlisting}
-
-Но простое программирование на шаблонах оказывалось в некотором смысле более мощным, так как позволяло создать обобщенную (type-generic) функцию (или функтор) и сделать это совсем несложно:
+Поскольку лямбды внутри являются шаблонами, они наверное могут быть и вариабельными шаблонами? Так точно -- отвечают нам создатели языка. В стандарт C++14 введены variadic lambdas -- расширение рассмотренных выше generic lambdas у которых обобщенные параметры ведут себя как если бы они были вариабельными шаблонами.
 
 \begin{lstlisting}
-template <typename T>
-T func(T z) 
-{
-  return z * z;
-}
+auto list = [](auto ...xs) {
+    return [=](auto access) { return access(xs...); };
+};
+
+auto head = [](auto xs) {
+    return xs([](auto first, auto ...rest) { return first; });
+};
+
+auto tail = [](auto xs) {
+    return xs([](auto first, auto ...rest) { return list(rest...); });
+};
+
+auto length = [](auto xs) {
+    return xs([](auto ...z) { return sizeof...(z); });
+};
 \end{lstlisting}
 
-Для того, чтобы lambda-выражения не уступали в выразительной мощности, в стандарте C++14 появились обобщенные lambda-expressions.
+Это позволяет создавать списки ``как в SICP'' и делать над ними привычные операции:
 
 \begin{lstlisting}
-auto func = [](auto input) { return input * input; };
-/* ... */
-std::cout << func(2) << std::endl;
-std::cout << func(2.0) << std::endl;
-std::cout << func(std::complex<double>(2.0, 1.0)) << std::endl;
+auto three = length(list(1, '2', "3")); 
+cout << three << endl;
 \end{lstlisting}
 
-Они особенно удобны для создания функторов при использовании вместе с алгоритмами стандартной библиотеки.
+\textbf{Вопрос к студентам}: какого типа аргумент \lstinline!xs! в функции \lstinline!length!?
 
+Правильный ответ: \lstinline!std::function!
+
+Для приведенного выше списка можно написать, например, функтор \lstinline!fmap!, у которого на Haskell была бы сигнатура вроде:
+
+\begin{verbatim}
+fmap: (a -> b) -> list[a] -> list[b]
+\end{verbatim}
+
+Для C++ он будет выглядеть ничуть не хуже:
+
+\begin{lstlisting}
+auto fmap = [](auto func) {
+    return [func] (auto alist) {
+        return alist([func](auto... xs) { return List(func(xs)...); });
+    };
+};
+\end{lstlisting}
+
+Например:
+
+\begin{lstlisting}
+auto twice = [](auto i) { return 2*i; };
+auto print = [](auto i) { std::cout << i << " "; return i; };
+auto l1 = List(1, 2, 3, 4);
+auto l2 = fmap(twice)(l1);
+auto l3 = fmap(print)(l2);
+\end{lstlisting}
+
+\pagebreak
 \subsection{Multithreading}
 
 Многопоточность всегда оставалась за кадром стандартных возможностей C++ и была отдана на откуп API конкретных библиотек и операционной системы. Это порождало различных уродцев, когда заказчик хотел видеть программу портабельной и для Windows и для Unix и программист был вынужден либо сам увешивать свой код условной компиляцией, либо использовать библиотеки, которые уже сделали это за него. Зачастую разные. Зачастую с кривым и несовместимым интерфейсом. В стандарте C++11 решено было наконец покончить с этой вольницей и урегулировать работу с потоками, стандартизовав её и предоставив простые и логичные механизмы для распараллеливания и синхронизации в программах на C++.
@@ -7241,331 +7858,6 @@ main (void)
 
 Как видно из примера, \lstinline!std::async! принимает те же аргументы, что и \lstinline!std::thread!. После чего возвращает результат в виде \lstinline!std::future! когда он запрошен. Как именно будет выполнена асинхронная задача -- детали реализации. Скорее всего она будет запущена в несколько потоков.
 Этот пример рекомендуется к изучению и экспериментам.
-
-\subsection{Вариабельные шаблоны}\label{VariadicTemplates}\index{Variadic Templates}
-
-Вариабельные шаблоны расширяют идею шаблонов C++, подобно тому, как функции с произвольным числом аргументов расширяют возможности обычных функций. Прежде, чем рассматривать в деталях это новшество, следует сделать обзор использования троеточий (ellipsis) в C и C++, чтобы поместить новую информацию в контекст.
-
-\subsubsection{Поговорим о <<\texttt{...}>>}
-
-Троеточия (ellipsis) впервые появились в языке C для таких функций, как \lstinline!printf! и \lstinline!scanf! 
-
-\begin{lstlisting}
-int printf (const char* format, ... );
-\end{lstlisting}
-
-Были придуманы общеизвестные приемы работы с ними -- список актуально переданных аргументов, получаемый через \lstinline!va_list! однонаправленно итерировался с помощью \lstinline!va_arg!, причем никакой информации о типах не сохранялось и они были полностью отданы на откуп программиста (обычно использовалась та или иная форма дедуцирования из форматного списка). Это приводило к крайне тяжелым последствиям. Скажем простая строчка:
-
-\begin{lstlisting}
-printf(name);
-\end{lstlisting}
-
-позволяла хакеру при её вызове со строчкой вроде \lstinline!name = %f%f%f%x(%s)! распечатать содержимое рантайм-стека и вывести на экран некие хранящиеся там приватные для программы сведения. А наличие таких легальных возможностей, как форматный модификатор \lstinline!%n!, позволявший модификацию переменных:
-
-\begin{lstlisting}
-int i;
-printf("12345%n6789\n", &i);
-assert (i == 5);
-\end{lstlisting}
-
-Делала такие функции любимым оружием злоумышленников. 
-
-Тем не менее, плюсы перевешивали минусы, а на атаки находились защиты. Впоследствии переменное число аргументов было распространено на макросы:
-
-\begin{lstlisting}
-#define eprintf(...) fprintf (stderr, __VA_ARGS__)
-\end{lstlisting}
-
-В C++ всё это было сохранено, и, более того, сверху было добавлено использование троеточия в обработке исключений:
-
-\begin{lstlisting}
-try{
-    // Try block.
-}
-catch(...){
-    // Catch block.
-}
-\end{lstlisting}
-
-Систематически прослеживается обращение с троеточием как с заменой слов ``все что угодно''.
-
-\subsubsection{Вариабельные шаблоны функций}
-
-Синтаксис вариабельного шаблоны выглядит несколько необычно:
-
-\begin{lstlisting}
-template<typename... Arguments>
-\end{lstlisting}
-
-При этом он может вначале иметь и не-вариабельную часть:
-
-\begin{lstlisting}
-template<typename Arg, typename... Arguments>
-\end{lstlisting}
-
-В данном случае параметр \lstinline!Arguments...! это тип для использования в выражениях особого вида. Можно рассматривать его как ``все остальные аргументы'', а первый тип как ``верхний аргумент списка''. Интересно, что 
-
-\begin{lstlisting}
-template<typename T> void
-bar(T &&t)
-{
-  std::cout << "b: " << t << "\n";
-}
-
-/* recursion end */
-void foo() {}
-
-template<typename Arg, typename ... Args> void 
-foo(Arg &&arg, Args &&... args)
-{
-    bar(std::forward<Arg>(arg));
-    foo(std::forward<Args>(args)...);
-}
-
-int 
-main()
-{
-  foo (1, 2, 3, "3");
-  return 0;
-}
-\end{lstlisting}
-
-Используя эти возможности, можно соорудить безопасный относительно типов \lstinline!printf! не подверженный, рассматривавшимся выше атакам. Основной шаг рекурсии контролирует наличие спецификатора для каждого из поданных аргументов
-
-\begin{lstlisting}
-template<typename T, typename... Args>
-void printf(const char* s, const T& value, const Args&... args) 
-{ 
-  while (*s) 
-    { 
-      if (*s == '%' && *++s != '%') 
-        {
-          /* ignore the character that follows the '%': we already know the type! */
-          std::cout << value;
-          return printf(++s, args...);
-        }
-      std::cout << *s++;
-    }
-  throw std::runtime error("extra arguments provided to printf");
-}
-\end{lstlisting}
-
-Завершение рекурсии содержит контроль наличия всех необходимых аргументов.
-
-\begin{lstlisting}
-void printf(const char* s) {
-  while (*s) {
-    if (*s == '%' && *++s != '%') 
-      throw std::runtime_error("invalid format string: missing arguments");
-    std::cout << *s++;
-  }
-}
-\end{lstlisting}
-
-Следует обратить особое внимание на то, что обе потенциально ошибочные ситуации явно возбуждают исключения. Также замена простого троеточия на более интересную конструкцию \lstinline!const Args&... args! позволяет иметь не просто любое количество аргументов, но любое количество типизированных аргументов (что совсем другой разговор).
-
-\subsubsection{Наконец-то совершенно прозрачная оболочка}\label{PerfectCloth}
-
-Собирая вместе информацию о пробросе выводимого возвращаемого типа (см. \ref{DecltypeAuto}) и проброске аргументов (см. \ref{PerfectForw}) теперь можно написать совершенно прозрачную обертку над функцией:
-
-\begin{lstlisting}
-template<class Fun, class... Args>
-decltype(auto) transparent(Fun fun, Args&&... args) 
-{ 
-    return fun(std::forward<Args>(args)...); 
-}
-\end{lstlisting}
-
-Эта обертка позволяет вызвать любую функцию передав ей любое количество аргументов и в точности сохранив их типы и вернуть в точности тот тип, который возвращает эта функция.
-
-\subsubsection{Слияние ежа и ужа}
-
-Вариабельные шаблоны в некотором смысле ``объединяют'' аргументы разных типов, вводя в C++ возможность сделать кортежи. В отличии от структур имеющих именованные поля разных типов и массивов, имеющих неименованные поля одного типа, кортежи это такой вид синтаксического клея, который позволяет склеивать неименованные поля разных типов. Можно сказать, что это структура которая ведет себя как массив. Механическое склеивание разнотипных полей можно проиллюстрировать через шаблон \lstinline!ctmap! с переопределенным оператором, скажем \lstinline!operator^! для доступа к полю:
-
-\begin{lstlisting}
-  auto person = ctmap (age, last_name);
-  person^last_name = "Smith";
-  person^age = 50;
-\end{lstlisting}
-
-Чтобы реализовать такой шаблон, потребуется простая структура с описанием поля и переопределенным оператором доступа:
-
-\begin{lstlisting}
-template <typename T>
-struct Field {
-  typename T::value_type storage;
-
-  typename T::value_type &operator^(const T &) {
-    return storage;
-  }
-};
-\end{lstlisting}
-
-Все возможные типы, которые может склеить шаблон (тут может быть любой список) описываются тэгами:
-
-\begin{lstlisting}
-template<typename T>
-struct tag{using value_type=T;};
-
-static struct:tag<int>{} age;
-static struct:tag<std::string>{} last_name;
-/* ... */
-\end{lstlisting}
-
-После такой подготовки, сам шаблон выглядит довольно просто
-
-\begin{lstlisting}
-template<typename... Fields>
-struct ctmap_t : public Field<typename std::decay<Fields>::type>... {
-};
-\end{lstlisting}
-
-И его создание с помощью выделенной для этого функции:
-
-\begin{lstlisting}
-template<class...Fields>
-ctmap_t<Fields...> ctmap( Fields&&... ) { return {}; }
-\end{lstlisting}
-
-Делегирование значений полей через правые ссылки -- обычная практика в таких случаях.
-
-\subsubsection{Стандартные кортежи и их применения}
-
-Стандартная библиотека определяет стандартный класс \lstinline!std::tuple!
-
-\begin{lstlisting}
-std::tuple<int, double, int> t(1, 2.0, 3);
-\end{lstlisting}
-
-Доступ к трем полям осуществляется рекурсивно через \lstinline!base! и \lstinline!head_!
-
-\begin{lstlisting}
-assert (t.head_ == 1);
-assert (t.base.head_ == 2.0);
-assert (t.base.base.head_ == 3);
-\end{lstlisting}
-
-Кроме того, можно обращаться к полям по индексу, используя стандартную функцию \lstinline!std::get!
-
-\begin{lstlisting}
-assert (get<0>(t) == 1);
-assert (get<1>(t) == 2.0);
-assert (get<2>(t) == 3);
-\end{lstlisting}
-
-В стандарте C++14 добавлена возможность обращаться к полям по типу:
-
-\begin{lstlisting}
-assert (get<double>(t) == 2.0);
-\end{lstlisting}
-
-Но попытка получить нечто по типу \lstinline!int! в данном случае приведет к ошибке компиляции из-за неоднозначности.
-
-Посредством функции \lstinline!std::tie! удобно распаковать кортеж, например чтобы обработать возвращамые из функции несколько аргументов:
-
-\begin{lstlisting}
-std::tuple<int,int> foo();
-
-/* ... */
-
-int a;
-int b;
-std::tie(a,b)=foo();
-\end{lstlisting}
-
-Ещё одна интересная задача: создание отложенного исполнения 
-
-\begin{lstlisting}
-template<int ...> struct seq {};
-template<int N, int ...S> struct gens : gens<N-1, N-1, S...> {};
-template<int ...S> struct gens<0, S...>{ typedef seq<S...> type; };
-\end{lstlisting}
-
-Обертка для сохранения элемента отложенного исполнения:
-
-\begin{lstlisting}
-template <typename ...Args>
-struct save_it_for_later
-{
-  std::tuple<Args...> params;
-  double (*func)(Args...);
-
-  double delayed_dispatch()
-  {
-    return callFunc(typename gens<sizeof...(Args)>::type());
-  }
-
-  template<int ...S>
-  double callFunc(seq<S...>)
-  {
-    return func(std::get<S>(params) ...);
-  }
-};
-\end{lstlisting}
-
-Для примера какой-нибудь простой функции:
-
-\begin{lstlisting}
-double foo(int x, float y, double z)
-{
-  return x + y + z;
-}
-\end{lstlisting}
-
-Её отложенное исполнение.
-
-\begin{lstlisting}
-std::tuple<int, float, double> t = std::make_tuple(1, 1.2, 5);
-save_it_for_later<int,float, double> saved = {t, foo};
-/* ... */
-auto x = saved.delayed_dispatch();
-\end{lstlisting}
-
-Здесь функция \lstinline!std::make_tuple! исполняет ту же роль, что и \lstinline!ctmap! в прошлом примере (только создает стандартный кортеж, а не самописный \lstinline!ctmap_t!).
-
-Стандартная функция \lstinline!std::tuple_cat! позволяет конкатенировать произвольное количество кортежей в один кортеж
-
-\begin{lstlisting}
-std::tuple<int, std::string, float> t1(10, "Test", 3.14);
-int n = 7;
-auto t2 = std::tuple_cat(t1, std::make_pair("Foo", "bar"), t1, std::tie(n));
-\end{lstlisting}
-
-Следует обратить внимание на запись \lstinline!std::make_pair! -- единственный способ создать нечто похожее на кортеж в C++98 вполне принимается как способ создать кортеж в C++14.
-
-\subsubsection{Вариабельные шаблоны для метапрограммирования}
-
-Выше (\ref{TypeTraits}) были упомянуты определители типов из стандартной библиотеки. Довольно легко определить (и не надо определять, так как он есть в стандарте) простой шаблон \lstinline!is_same! определяющий одинаковые ли типы переданы ему на вход:
-
-\begin{lstlisting}
-template<class T, class U>
-struct is_same : std::false_type {};
- 
-template<class T>
-struct is_same<T, T> : std::true_type {};
-\end{lstlisting}
-
-Но вариабельные шаблоны предлагают большие возможности. Например с их помощью можно сделать определитель \lstinline!is_one_of! определяющий равенство данного типа одному из типов данного списка. Идея проста как правда:
-
-\begin{lstlisting}
-template<class T, class... List>
-struct is_one_of;
-
-template<class T>
-struct is_one_of<T> : false_type {};
-
-template<class T, class... Tail>
-struct is_one_of<T, T, Tail...> : true_type {};
-\end{lstlisting}
-
-Самое сложное и изящное это рекурсивный вызов:
-
-\begin{lstlisting}
-template<class T, class Head, class... Tail>
-struct is_one_of<T, Head, Tail...> : is_one_of<Head, Tail...> {};
-\end{lstlisting}
-
-Таким образом вариабельные шаблоны позволяют рекурсию по списку типов гораздо изящней, чем это позволяли делать обычные шаблоны.
 
 \subsection{Вычисления времени компиляции}
 
