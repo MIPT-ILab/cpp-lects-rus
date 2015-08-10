@@ -17,7 +17,7 @@ int
 baz (int x)
 {
   int y[10] = {4, x};
-  int z [][1] = {{1}, {2}};
+  // int z [][1] = {{1}, {2}};
   int *p = y;
   int t = *(y + 3);
   return p[t];
@@ -57,3 +57,21 @@ caller3 (int x)
   return &x;
 }
 #endif
+
+#include <stddef.h>
+
+ptrdiff_t
+lr (void)
+{
+  int arr[] = {0, 1, 2, 3, 4, 5};
+  int a = 0; 
+  int *b = &arr[0];
+  int *c = b + a; /* ok */
+  int *d = a + b; /* ok */
+//  int *e = c + d; /* error */
+  ptrdiff_t f = c - d; /* ok */
+  int *g = c - a; /* ok */
+//  int *h = a - c; /* error */
+  return f;
+}
+
