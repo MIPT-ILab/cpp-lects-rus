@@ -1,33 +1,32 @@
 	.file	"fact.c"
-	.section	.text.unlikely,"ax",@progbits
-.LCOLDB0:
 	.text
-.LHOTB0:
-	.p2align 4,,15
-	.globl	fact
+.globl fact
 	.type	fact, @function
 fact:
 .LFB0:
 	.cfi_startproc
-	cmpl	$1, %edi
+	pushq	%rbp
+	.cfi_def_cfa_offset 16
+	movq	%rsp, %rbp
+	.cfi_offset 6, -16
+	.cfi_def_cfa_register 6
+	subq	$16, %rsp
+	movl	%edi, -4(%rbp)
+	cmpl	$1, -4(%rbp)
+	ja	.L2
 	movl	$1, %eax
-	jbe	.L4
-	.p2align 4,,10
-	.p2align 3
+	jmp	.L3
+.L2:
+	movl	-4(%rbp), %eax
+	subl	$1, %eax
+	movl	%eax, %edi
+	call	fact
+	imull	-4(%rbp), %eax
 .L3:
-	imull	%edi, %eax
-	subl	$1, %edi
-	cmpl	$1, %edi
-	jne	.L3
-	rep; ret
-.L4:
-	rep; ret
+	leave
+	ret
 	.cfi_endproc
 .LFE0:
 	.size	fact, .-fact
-	.section	.text.unlikely
-.LCOLDE0:
-	.text
-.LHOTE0:
-	.ident	"GCC: (GNU) 5.2.0"
+	.ident	"GCC: (Ubuntu 4.4.3-4ubuntu5.1) 4.4.3"
 	.section	.note.GNU-stack,"",@progbits

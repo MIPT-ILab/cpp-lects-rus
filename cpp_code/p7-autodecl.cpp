@@ -133,7 +133,9 @@ main ()
   x4d = 6;
   cout << x << endl;
 
-  /* decltype (min (1, 2)) r4; */
+  (x4a < x4d ? x4a : x4d) = 0;
+
+/*  decltype (min (1, 2)) r4; */
   decltype (min (1, 2.0)) r5;
 
   cout << sum_to (10) << endl;
