@@ -7642,6 +7642,36 @@ struct A
 };
 \end{lstlisting}
 
+\subsubsection{Параметры функций и обобщения для C++17}\label{DecltypeAuto17}
+
+Несмотря на то, что до 2017-го ещё далеко, GCC уже поддерживает как расширения некоторые
+
+\textbf{Вопрос к студентам:} Как вы думаете, какой тип будет выведен здесь: 
+\begin{lstlisting}
+auto 
+foo (auto x = 1) /* note default argument value */
+{
+  return x;
+}
+\end{lstlisting}
+
+\ifanswers
+Правильный ответ: этот код не должен вводить вас в заблуждение: тип для \lstinline!x! выводится из типа в точке вызова, а не из аргумента по умолчанию
+\fi
+
+Это вообще-то не должно работать в C++14, но в GCC 5.2 это будет работать точно так же, как если бы вы написали:
+
+\begin{lstlisting}
+template <typename T> auto 
+foo (T x = 1) /* now it is obvious that T is not deduced from 1 */
+{
+  return x;
+}
+\end{lstlisting}
+
+Это сделано в качестве предложения по концептам в новом стандарте и имитирует то, как это устроено для полиморфных лямбд (см. \ref{GenericLambdas}).
+
+Конечно, до принятия нового стандарта лучше не использовать такие возможности.
 
 \subsubsection{Decaying и минимальные общие типы}\label{Decaying}\index{Decay function}
 

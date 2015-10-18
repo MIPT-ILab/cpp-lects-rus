@@ -46,6 +46,20 @@ makeAndProcessObject1 (const T& builder)
 }
 #endif
 
+auto fromSilent (auto x /* = 5 */)
+{
+  return x;
+}
+
+int call1 (int x)
+{
+  return fromSilent(x);
+}
+
+float call2 (float x)
+{
+  return fromSilent(x);
+}
 
 template <typename T> auto
 makeAndProcessObject (const T& builder) -> decltype (builder.makeObject())
