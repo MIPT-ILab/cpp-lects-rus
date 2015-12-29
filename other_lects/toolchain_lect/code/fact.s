@@ -1,29 +1,26 @@
 	.file	"fact.c"
 	.text
+	.p2align 4,,15
 .globl fact
 	.type	fact, @function
 fact:
 .LFB0:
 	.cfi_startproc
-	pushq	%rbp
-	.cfi_def_cfa_offset 16
-	movq	%rsp, %rbp
-	.cfi_offset 6, -16
-	.cfi_def_cfa_register 6
-	subq	$16, %rsp
-	movl	%edi, -4(%rbp)
-	cmpl	$1, -4(%rbp)
-	ja	.L2
+	cmpl	$1, %edi
 	movl	$1, %eax
+	ja	.L4
 	jmp	.L3
-.L2:
-	movl	-4(%rbp), %eax
-	subl	$1, %eax
-	movl	%eax, %edi
-	call	fact
-	imull	-4(%rbp), %eax
+	.p2align 4,,10
+	.p2align 3
+.L7:
+	movl	%edx, %edi
+.L4:
+	leal	-1(%rdi), %edx
+	imull	%edi, %eax
+	cmpl	$1, %edx
+	ja	.L7
 .L3:
-	leave
+	rep
 	ret
 	.cfi_endproc
 .LFE0:
