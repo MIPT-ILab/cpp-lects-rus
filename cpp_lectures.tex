@@ -6207,9 +6207,6 @@ int main(int argc, char* argv[])
 
 \textbf{Домашняя наработка:} коды Грея на шаблонах
 
-TODO: вставить улучшенное метапрограммирование с учётом нового стандарта:
-\url{http://www.pdimov.com/cpp2/simple_cxx11_metaprogramming.html}
-
 \subsection{Мелкие детали шаблонов C++}\label{TemplateDetails}
 
 \begin{enumerate}
@@ -9925,10 +9922,45 @@ struct is_one_of<T, T, Tail...> : true_type {};
 
 \begin{lstlisting}
 template<typename T, typename Head, typename... Tail>
-struct is_one_of<T, Head, Tail...> : is_one_of<Head, Tail...> {};
+struct is_one_of<T, Head, Tail...> : 
+       is_one_of<Head, Tail...> {};
 \end{lstlisting}
 
 Таким образом вариабельные шаблоны позволяют рекурсию по списку типов гораздо естественней, чем это позволяли делать обычные шаблоны. Большое количество кода в известной книге \cite{mcpp} теперь может быть переписано гораздо проще.
+
+\textbf{Вопрос к студентам:} Дан template parameter pack \lstinline!...Ts!, где каждый тип может быть либо \lstinline!true_type! или \lstinline!false_type!. Как узнать, являются ли они все \lstinline!true_type!?
+
+Очевиден простой рекурсивный ответ:
+
+\begin{lstlisting}
+template <typename ...Ts>
+struct all_true;
+
+template <typename H, typename ...Ts>
+struct all_true<H, Ts...> : 
+       and_<is_same<true_type, H>, 
+       all_true<Ts...>> {};
+
+template <>
+struct all_true<> : true_type {};
+\end{lstlisting}
+
+Можно ли сделать изящней, не инстанцируя $O(N)$ типов?
+
+\ifanswers
+Более просветляющий ответ использует кортежи:
+
+\begin{lstlisting}
+template <typename H, typename ...Ts>
+struct all_true<H, Ts...> : 
+       and_<is_same<true_type, H>, 
+       is_same<tuple<H,Ts...>,
+               tuple<Ts...,H>>> {};
+\end{lstlisting}
+\fi
+
+TODO: вставить больше улучшенного метапрограммирования с учётом нового стандарта:
+\url{http://www.pdimov.com/cpp2/simple_cxx11_metaprogramming.html}
 
 \pagebreak
 \subsection{Lambda expressions}\label{LambdaExpressions}
