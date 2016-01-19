@@ -18,12 +18,6 @@ operator > (const Person &lhs, const Person &rhs)
 }
 
 static bool
-operator >= (const Person &lhs, const Person &rhs)
-{
-  return lhs.age >= rhs.age;
-}
-
-static bool
 operator < (const Person &lhs, const Person &rhs)
 {
   return lhs.age < rhs.age;
@@ -32,15 +26,14 @@ operator < (const Person &lhs, const Person &rhs)
 static bool
 operator <= (const Person &lhs, const Person &rhs)
 {
-  return lhs.age <= rhs.age;
+  return !(lhs > rhs);
 }
 
 static bool
 operator == (const Person &lhs, const Person &rhs)
 {
-  return (lhs.age == rhs.age) && (!strcmp (lhs.name, rhs.name));
+  return (&lhs == &rhs);
 }
-
 
 template <class T> const T&
 max (const T &x, const T &y)
