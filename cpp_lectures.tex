@@ -1924,6 +1924,10 @@ delete [] dim;
 \pagebreak
 \subsection{Перегрузка функций, аргументы по умолчанию и искажение имён\index{Function Overloading}\index{Name Mangling}}\label{NameResolution}
 
+\hfill\textit{Необходимо начать с исправления имен}{\vspace{0.5em}}
+
+\hfill\textit{-- Конфуций}
+
 \textbf{Вопрос к студентам:} сколько функций вычисления квадратного корня вы можете назвать из стандартной библиотеки языка C?
 
 \ifanswers
@@ -6602,6 +6606,145 @@ main (void)
 
 \textbf{Домашняя наработка:} попробуйте переписать его с использованием только статического полиморфизма.
 
+\subsubsection{Управление инстанцированием шаблонов функций}\label{InstancingFuncs}
+
+Довольно простая функция с довольно простым использованием:
+
+\begin{lstlisting}
+template<class T>
+T square(T n)
+{
+  return n * n;
+}
+
+int
+main ()
+{
+  int x = square (3);
+  float y = square (3.0);
+  return 0;
+}
+\end{lstlisting}
+
+\textbf{Вопрос к студентам:} сколько копий этой функции будет в объектном файле и какие они будут?
+
+\ifanswers
+В вопросе конечно есть подвох:
+
+\begin{verbatim}
+$ g++ -c square.cc
+$ objdump -tC square.o
+\end{verbatim}
+
+даёт 
+
+\begin{verbatim}
+_Z6squareIiET_S0_
+_Z6squareIdET_S0_ 
+\end{verbatim}
+
+Что соответствует:
+
+\begin{lstlisting}
+int square<int>(int);
+double square<double>(double);
+\end{lstlisting}
+\fi
+
+Вопрос мотивирует какие-то способы исследования реального результата работы компилятора в области подстановки шаблонов. Приведенный в ответе:
+
+\begin{verbatim}
+$ objdump -tC square.o
+\end{verbatim}
+
+Это Linux-специфичный способ посмотреть таблицу символов объектного файла.
+
+Но что будет если функция оказалась сразу в двух единицах трансляции?
+
+\begin{lstlisting}
+#ifndef MAX_GUARD_
+#define MAX_GUARD_
+
+template <typename T> T
+max (T x, T y)
+{
+  return (x > y) ? x : y;
+}
+
+extern int foo (int x, int y);
+extern int bar (int x, int y);
+
+#endif
+\end{lstlisting}
+
+и в обоих функциях \lstinline!foo! и \lstinline!bar!, находящихся в модулях maxuser1.cc и maxuser2.cc происходит вызов \lstinline!max(x, y)!?
+
+\begin{verbatim}
+$ g++ maxuser1.cc -c
+$ objdump -tC maxuser1.o
+  w    F .text._Z3maxIiET_S0_S0_
+
+$ g++ maxuser2.cc -c
+$ objdump -tC maxuser2.o
+  w    F .text._Z3maxIiET_S0_S0_
+\end{verbatim}
+
+Видно, что теперь функция с одинаковым именем есть в обоих модулях.
+
+\textbf{Вопрос к студентам:} почему это не нарушение ODR?
+
+\ifanswers
+Верный ответ: в ODR для шаблонных функций слово one означает один на модуль
+\fi
+
+Итак, их все ещё можно слинковать вместе и линкер произвольно выберет одну из них (благо обе идентичны).
+
+Увы, если из этих модулей нужно собрать библиотеку:
+
+\begin{verbatim}
+ar cruv libmax.a maxuser1.o maxuser2.o
+objdump -tC libmax.a
+\end{verbatim}
+
+то в этой библиотеке окажется две копии функции. Хуже того: при компиляции каждого модуля эта функция должна быть N раз независимо построена и соптимизирована. Очень плохо. Ещё хуже если некий модуль собирался с одними опциями оптимизации, а другой с другими.
+
+Можно заблокировать инстанцирование, поместив в один из модулей (например в maxuser2.cc) явное указание, что шаблон уже был инстанцирован с этими параметрами где-то ещё:
+
+\begin{lstlisting}
+extern template int max<int> (int, int);
+\end{lstlisting}
+
+Теперь лишний раз функция инстанцирована не будет:
+
+\begin{verbatim}
+$ g++ --std=c++14 maxuser2.cc -c
+$ objdump -tC maxuser2.o
+g     F .text	0000000000000024 bar(int, int)
+         *UND*	0000000000000000 int max<int>(int, int)
+g     F .text	0000000000000038 main
+         *UND*	0000000000000000 foo(int, int)
+\end{verbatim}
+
+Но конечно неясно что такого особенного в модуле maxuser2. Для того чтобы решить эту проблему в более общем виде, можно заблокировать инстанцирование с этим типом везде кроме принудительной точки инстанцирования:
+
+В max.hpp:
+
+\begin{lstlisting}
+#ifndef MAX_IMPL
+extern template int max<int> (int, int);
+#endif
+\end{lstlisting}
+
+И в новом модуле max.cc
+
+\begin{lstlisting}
+#define MAX_IMPL
+#include "max.hpp"
+template int max<int>(int, int);
+\end{lstlisting}
+
+Эта техника, введенная в С++14 позволяет гибко управлять точками инстанцирования, блокируя или вынуждая компилятор инстанцировать те или иные шаблоны. Здесь речь о шаблонах функций, исследование шаблонов классов -- более тонкое искусство.
+
 \pagebreak
 \subsection{Шаблоны классов\index{class template} и специализация}\label{ClassTemplates}
 
@@ -9838,7 +9981,7 @@ bitvise_or (std::vector <T> a, std::vector <T> b)
 
 При этом сама концепция C-строки в принципе уникальна среди языков программирования. Обычный подход -- заставлять строки в явном виде хранить свою длину и делать их первоклассными объектами.
 
-С ранних версий стандарта C++ перед разработчиками стояла задача -- сохранить эффективность C-строк и совместимость с ними и одновременно сделать нормальные строки для использования вне критичных для производительности констекстов.
+С ранних версий стандарта C++ перед разработчиками стояла задача -- сохранить эффективность C-строк и совместимость с ними и одновременно сделать нормальные строки для использования вне критичных для производительности контекстов.
 
 \subsubsection{От обработки строк в стиле C к C++}\label{CStringToStdString}
 
@@ -11144,12 +11287,259 @@ std::vector<T,tbb::scalable_allocator<T> >
 \pagebreak
 \section{Новые горизонты}
 
-Новый стандарт C++ (речь идёт о 2017 стандарте) предлагает много нововведений. Часть из них относится к тому, чего все давно ждали и успели освоить, что перекочевало из библиотеки boost или из technical reports к C++. Но есть и такие, при работе с которыми требуется оперировать совершенно новыми понятиями и заставлять себя мыслить иначе, мыслить в духе действительно новых возможностей. Весь написанный ниже код пробовался на GCC 4.9.2 и GCC 5.1 с опциями --std=c++11 и --std=c++14 (обычно код валидный в одном стандарте и невалидный в другом помечен в тексте явно).
+TODO: этот раздел был недавно расформирован в пользу других разделов куда были перенесены уже не новые возможности: вывод типов, правые ссылки, прочее. Тут нужно новое вступление, что-нибудь про C++17 и все такое.
+
+Примерный план:
+
+concepts (сюда же contracts)
+
+modules (если войдут в 17-й)
+
+co-routines
+
+SIMD
+
+filesystem
+
+asio
+
+Плюс от C++14 здесь остается многопоточность потому что неясно куда её (возможно asio будет её расширением).
 
 \pagebreak
-\subsection{Констрейнты}
+\subsection{Концепты\index{Concepts}}
 
-TODO: constraints light from gcc
+Почти классический пример обобщенного кода: функция для нахождения элемента в диапазоне.
+
+\begin{lstlisting}
+template<typename R, typename T> bool 
+in (R const& range, T const& value) 
+{
+  for (auto const& x : range)
+    if (x == value)
+      return true;
+  return false;
+}
+\end{lstlisting}
+
+\textbf{Вопрос к студентам}: что будет при попытке использовать этот код неправильно, например ``найти'' число в векторе строк?
+
+\begin{lstlisting}
+vector<string> v { "0", "1", "2" };
+in(v, 0);
+\end{lstlisting}
+
+%\ifanswers
+Очевидно ошибка компиляции. Главная проблема в том, что это будет \textbf{неприятная} ошибка компиляции:
+
+\begin{verbatim}
+In file included from /home/tilir/Applications/gcc-5.2/include
+/c++/5.2.0/bits/stl_algobase.h:67:0,
+                 from /home/tilir/Applications/gcc-5.2/include
+/c++/5.2.0/vector:60,
+                 from constr1.cc:1:
+/home/tilir/Applications/gcc-5.2/include/c++/5.2.0/bits
+/stl_iterator.h:820:5: note: candidate: 
+template<class _IteratorL, class _IteratorR, class _Container> 
+bool __gnu_cxx::operator==(const __gnu_cxx::__normal_iterator
+<_IteratorL, _Container>&, const __gnu_cxx::__normal_iterator
+<_IteratorR, _Container>&)
+     operator==(const __normal_iterator
+<_IteratorL, _Container>& __lhs,
+     ^
+/home/tilir/Applications/gcc-5.2/include/c++/5.2.0/bits
+/stl_iterator.h:820:5: note:   template argument deduction
+/substitution failed:
+constr1.cc:10:11: note:   ‘const std::__cxx11::basic_string<char>’ 
+is not derived from ‘const __gnu_cxx::__normal_iterator
+<_IteratorL, _Container>’
+     if (x == value)
+\end{verbatim}
+
+Это только крошечный кусочек из простыни которую выдаст gcc-5.2
+%\fi
+
+Хочется задавать явные ограничения на статический полиморфизм, например так:
+
+\begin{lstlisting}
+template<typename R, typename T>
+requires Range<R>() 
+         && Equality_comparable<T, Value_type<R>>()
+bool 
+in(R const& range, T const& value);
+\end{lstlisting}
+
+Это конечно светлая мечта, но это мотивирующий пример. Что для этого уже есть в C++ до нового стандарта в 17-м году?
+
+\subsubsection{Способы контроля полиморфизма}
+
+Гораздо более простая функция
+
+\begin{lstlisting}
+template <typename T> T
+gcd (T a, T b)
+{
+  unsigned r = a % b;
+
+  while (r != 0)
+    {
+      a = b;
+      b = r;
+      r = a % b;
+    }
+
+  return b;
+}
+\end{lstlisting}
+
+Её можно использовать правильно:
+
+\begin{lstlisting}
+long
+bar (long x, long y)
+{
+  long z = gcd(x, y);
+  return z + 1;
+}
+\end{lstlisting}
+
+И можно использовать ошибочно:
+
+\begin{lstlisting}
+string
+foo (string u, string v)
+{
+  string s = gcd (u, v);
+  return s + "1";  
+}
+\end{lstlisting}
+
+В случае ошибочного использования, ошибок компиляции немного и их легко читать (увы, так будет не всегда, как было видно из мотивирующего примера выше):
+
+\begin{verbatim}
+enif.cc: In instantiation of ‘T gcd(T, T) 
+[with T = std::__cxx11::basic_string<char>]’:
+enif.cc:31:23:   required from here
+enif.cc:9:18: error: no match for ‘operator%’ 
+(operand types are ‘std::__cxx11::basic_string<char>’ 
+and ‘std::__cxx11::basic_string<char>’)
+   unsigned r = a % b;
+                  ^
+enif.cc:15:13: error: no match for ‘operator%’ 
+(operand types are ‘std::__cxx11::basic_string<char>’ 
+and ‘std::__cxx11::basic_string<char>’)
+       r = a % b;
+\end{verbatim}
+
+Простейший способ который приходит в голову это влепить 
+
+\begin{lstlisting}
+  static_assert (is_integral<T>::value,
+                 "Integral type required");
+\end{lstlisting}
+
+Увы, \lstinline!static_assert! в языке нужен не для этого. Он не мешает компилятору разобрать функцию, а защищает от ошибок, которые вызваны несовпадением статических контрактов.
+
+Гораздо интереснее использовать \lstinline!enable_if!, который даёт возможность выбросить функцию из рассмотрения:
+
+\begin{lstlisting}
+template <typename T>
+typename std::enable_if<is_integral<T>::value, T>::type
+gcd (T a, T b)
+\end{lstlisting}
+
+В \lstinline!enable_if<false, T>! нет зависимого типа \lstinline!enable_if<false, T>::type! и происходит классический случай SFINAE, см. (\ref{SFINAE}).
+
+Ошибка выглядит более вразумительно:
+
+\begin{verbatim}
+enif.cc:28:23: error: no matching function for call 
+to ‘gcd(std::__cxx11::string&, std::__cxx11::string&)’
+   string s = gcd (u, v);
+\end{verbatim}
+
+Инстанцирования такой функции просто не происходит. Тем не менее, сложно не видеть, что синтаксис для вышивания на \lstinline!enable_if! переусложнен и требует для блокирования подстановки завязываться на возвращаемый тип, который в общем не при чём.
+
+\subsubsection{Простые ограничения\index{Constraints}}\label{Constraints}
+
+Введение в новый стандарт синтаксического сахара для таких конструкций было практически неизбежным.
+
+\begin{lstlisting}
+template <typename T>
+requires is_integral<T>::value
+T gcd (T a, T b)
+\end{lstlisting}
+
+Теперь правильное использование всё так же идёт без ошибок, а неправильное выдает простую ошибку:
+
+\begin{verbatim}
+enif.cc:8:3: note:   constraints not satisfied
+ T gcd (T a, T b)
+   ^~~
+enif.cc:8:3: note:   
+‘std::is_integral<_Tp>::value’ evaluated to false
+\end{verbatim}
+
+Явная запись \lstinline!requires! в таком контексте называется ограничением (constraint) и в данном случае использует для проверки ограничения функцию стандартной библиотеки.
+
+Несмотря на то, что в этом разделе ограничения вводятся как ограничения для обобщенного программирования, на самом деле в них нет ничего магического: это обычный C++ и они могут использоваться с обычными функциями:
+
+\begin{lstlisting}
+void f ()
+requires sizeof(int) == 4
+{
+ /* do something */
+}
+\end{lstlisting}
+
+Констрейнты работают лениво: возможное нарушение размера целого будет проверено только в точке вызова этой функции.
+
+\subsubsection{От ограничений к концептам}
+
+Очевидная проблема с простыми ограничениями: они не расширяемы. Если есть некий тип \lstinline!BigInt!, передать его в написанную выше функцию \lstinline!gcd!. На самом деле требования к этой функции проще: у входного объекта должна быть операция деления по модулю и сравнения с нулем.
+
+\begin{lstlisting}
+template <typename T>
+concept bool Numeric = requires (T x, T y)
+{
+  {x % y} -> T;
+  {x != 0} -> bool;
+};
+\end{lstlisting}
+
+Простой концепт, объявленный выше, утверждает, что тип \lstinline!T! может считаться \lstinline!Numeric! если и только если для любых его значений \lstinline!x! и \lstinline!y! результат их деления по модулю приводим к \lstinline!T!, а результат сравнения с нулём приводим к \lstinline!bool!.
+
+Его использование также несложно и приятно:
+
+\begin{lstlisting}
+template <Numeric T>
+T gcd (T a, T b)
+{
+  /* all the same */
+};
+\end{lstlisting}
+
+Попытка использования с типом \lstinline!string! теперь дает простую ошибку, заключающуюся в том, что концепт \lstinline!Numeric! не удовлетворен.
+
+\subsubsection{Контракты\index{Contracts}}\label{Contracts}
+
+Контракты это по сути прокачанные asserts
+
+\begin{lstlisting}
+void 
+MyVector::push_back(Elem e) [[ensures: data != nullptr]]
+{
+    if(size >= capacity)
+    {
+        Data* p = data;
+        data = nullptr; // Just for the sake of the example...
+        data = new Data[capacity*2]; // Might throw an exception
+        // Copy p into data and delete p
+    }
+    // Add the element to the end
+}
+\end{lstlisting}
+
+Если конструтор выбросит исключение, постусловие контракта не будет соблюдено
 
 \pagebreak
 \subsection{Multithreading}
@@ -11487,10 +11877,15 @@ main (void)
 Как видно из примера, \lstinline!std::async! принимает те же аргументы, что и \lstinline!std::thread!. После чего возвращает результат в виде \lstinline!std::future! когда он запрошен. Как именно будет выполнена асинхронная задача -- детали реализации. Скорее всего она будет запущена в несколько потоков.
 Этот пример рекомендуется к изучению и экспериментам.
 
-\subsection{Нововведения в стандартную библиотеку}\label{NewSTL}
+\pagebreak
+\subsection{Работа с файловой системой}\label{NewFS}
 
-До сих пор изложение если и касалось нововведений в библиотеку, то только в контексте нововведений в язык. Настало время обсудить библиотеку отдельно
+TODO: сюда про работу с файловой системой в C++17 на основе \url{http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3505.html}
 
+\pagebreak
+\subsection{Работа с сетью}\label{NewASIO}
+
+TODO: сюда про работу с сетью в C++17 на основе \url{http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4370.html}
 
 \pagebreak
 \section{За пределами беспредельного}
