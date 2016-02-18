@@ -4633,23 +4633,6 @@ template<typename T> void f(const T&& param);
 
 Означает обязательно правую, ни в коем случае не универсальную ссылку. 
 
-\textbf{Вопрос к студентам:} в коде ниже аргумент \lstinline!push_back! это правая или универсальная ссылка?
-
-\begin{lstlisting}
-template <typename T, class Allocator = allocator<T>>
-class vector 
-{
-/* ... */
-  public:
-  /* rvalue reference! */  
-  void push_back(T&& x);
-};
-\end{lstlisting}
-
-\ifanswers
-Правильный ответ -- правая, так как вывод \lstinline!T! для вектора разрешается в точке использования вектора.
-\fi
-
 Здесь также видна существенная разница между \lstinline!auto! и \lstinline!decltype!, поскольку механизм \lstinline!decltype! зависит только от вывода типа внутри выражения:
 
 \begin{lstlisting}
@@ -6889,6 +6872,46 @@ struct FImpl
 
 \textbf{Дискуссия в аудитории:} Вы -- член комитета стандартизации и решаете сделать ли частичную специализацию доступной для функций. Ваши аргументы за и против?
 
+\subsubsection{Вывод типов против подстановки типов}
+
+Ранее (см. \ref{UniversalReferences}) уже обсуждались возможности автоматического вывода типов, в частности для организации универсальных ссылок:
+
+\begin{lstlisting}
+int x;
+auto &&y = x;
+\end{lstlisting}
+
+\textbf{Вопрос к студентам:} вспомнить механизм вывода типов. Какой тип будет выведен для \lstinline!y!?
+
+\ifanswers
+Правильный ответ -- \lstinline!int&! так как для \lstinline!x! будет выведен тип \lstinline!int&!, а потом сработает свертывание ссылок.
+\fi
+
+Подобные техники возможны и для шаблонов:
+
+\textbf{Вопрос к студентам:} в коде ниже аргумент \lstinline!push_back! это правая или универсальная ссылка?
+
+\begin{lstlisting}
+template <typename T, class Allocator = allocator<T>>
+class Stack
+{
+  /* ... */
+  public:
+  void push_back(T&& x);
+};
+
+/* ... */
+int x;
+Stack <int> s;
+s.push_back (x);
+\end{lstlisting}
+
+\ifanswers
+Правильный ответ -- правая, так как вывод \lstinline!T! для вектора подставляется, а не выводится. Таким образом будет ошибка компиляции.
+\fi
+
+Но очень важно отличать механическую \textbf{подстановку} типа в шаблонах от гораздо более сложного \textbf{вывода} типов (который бывает в тех же шаблонах, например шаблонная функция вполне способна вывести тип аргумента без явного указания.
+
 \subsubsection{Исследование инстанцирования шаблонов классов}\label{ControlInstancing}
 
 Сначала про полезную опцию frepo в gcc
@@ -6933,6 +6956,8 @@ A <float, double> b;
 
 a.func(); /* for int */
 b.func(); /* forall */
+a.bar(); /* forall */
+b.bar(); /* forall */
 \end{lstlisting}
 
 \textbf{Вопрос к студентам:} как этого добиться?
@@ -6944,15 +6969,15 @@ b.func(); /* forall */
 template <typename T1, typename T2>
 class A
 {
-  public:
-     void func(void) { T1 dummy; internal_func (dummy); }
-  private:
-    template< class V >
-    void internal_func (V)
-      { printf ("forall\n"); }
+public:
+  void func(void) { 
+    T1 dummy; internal_func (dummy); 
+  }
+private:
+  template< class V >
+  void internal_func (V) { printf ("forall\n"); }
 
-    void internal_func (int)
-      { printf ("forint\n"); }
+  void internal_func (int) { printf ("forint\n"); }
 };
 \end{lstlisting}
 
@@ -6971,15 +6996,15 @@ struct Type2Type {
 template <typename T1, typename T2>
 class A
 {
-  public:
-     void func(void) { internal_func (Type2Type<T1>()); }
-  private:
-    template <class V>
-    void internal_func (Type2Type<V>)
-      { printf ("forall\n"); }
+public:
+  void func(void) { internal_func (Type2Type<T1>()); }
+private:
+  template <class V>
+  void internal_func (Type2Type<V>)
+    { printf ("forall\n"); }
 
-    void internal_func (Type2Type<int>)
-      { printf ("forint\n"); }
+  void internal_func (Type2Type<int>)
+    { printf ("forint\n"); }
 };
 \end{lstlisting}
 
@@ -7470,6 +7495,10 @@ f(const_cast<const T*>(&values)...);
 \begin{lstlisting}
 f(h(args ...) + args ...);
 \end{lstlisting}
+
+\subsubsection{Emplace и доброе волшебство}
+
+TODO: здесь разбор техники проброса и создания пачки параметров через правые ссылки
 
 \subsubsection{Раскрытие с помощью списка инициализации}
 
