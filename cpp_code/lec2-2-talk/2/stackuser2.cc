@@ -1,7 +1,8 @@
 #include "stack.hpp"
 
-void 
-empty_int_stack (Stack<int> &&rvs)
+Stack<double>
+coerce_stack (Stack<float> &s)
 {
+  return s;
 }
 
