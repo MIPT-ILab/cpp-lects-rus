@@ -76,6 +76,31 @@ inputencoding=utf8,
 
 \begin{document}
 
+\begin{titlepage}
+\begin{center}
+
+\large ~ \\[4.5cm]
+
+\huge Конспект лекций\\[0.6cm]
+\large По средствам разработки\\[3.7cm]
+
+\begin{minipage}{0.5\textwidth} % начало маленькой врезки в половину ширины текста
+\begin{flushleft} % выровнять её содержимое по левому краю
+\emph{Автор:} Владимиров К. И.\\
+\end{flushleft} % конец выравнивания по левому краю
+\end{minipage} % конец врезки
+
+\vfill
+
+Страница с последней редакцией: \url{sourceforge.net/p/cpp-lects-rus}\\
+Email автора: \texttt{konstantin.vladimirov@gmail.com}\\
+{\large \today}
+{\large \LaTeX}
+
+\end{center}
+\thispagestyle{empty}
+\end{titlepage}
+
 \tableofcontents
 
 \pagebreak
@@ -1333,7 +1358,104 @@ TODO: тут пояснить алгоритм работы gcov.
 
 \subsubsection{Проверки времени исполнения}
 
-TODO: что-нибудь про санитайзеры и valgrind
+Очень часто самое пристальное вчитывание в код не позвоялет исключить возможных случаев неопределенного поведения:
+
+\begin{lstlisting}
+int foo(int* a, int len) 
+{
+  assert ((a != NULL) && (len > 1));
+  return a[len/2];    /* ORLY? */
+}
+\end{lstlisting}
+
+В этом куске кода никак нельзя прикрыться от ситуации выхода за границы массива.
+
+Некоторые компиляторы (такие как GCC) поддерживают инструментирование кода в местах, где возможно неопределенное поведение. Для GCC доступен вызов с опцией \lstinline!-fsanitize=undefined!, которая включает UndefinedBehaviorSanitizer -- open-source средство определения неопределенного поведения во время исполнения. Он проверяет почти все случаи возможного UB, но существенно замедляет программу, так как по сути генерирует вызов проверяющей функции на каждое знаковое суммирование, доступ по указателю, сдвиг и прочее.
+
+Для того, чтобы проверить конкретный случай UB а не все их сразу, можно подать вместо undefined, одну из её подопций:
+
+\begin{lstlisting}
+-fsanitize=shift
+-fsanitize=integer-divide-by-zero
+-fsanitize=unreachable
+-fsanitize=vla-bound
+-fsanitize=null
+-fsanitize=return
+-fsanitize=signed-integer-overflow
+-fsanitize=bounds
+-fsanitize=bounds-strict
+-fsanitize=alignment
+-fsanitize=object-size
+-fsanitize=float-divide-by-zero
+-fsanitize=float-cast-overflow
+-fsanitize=nonnull-attribute
+-fsanitize=returns-nonnull-attribute
+-fsanitize=bool
+-fsanitize=enum
+-fsanitize=vptr
+\end{lstlisting}
+
+Сама библиотека UBsan, поддерживающая всю эту функциональность перекочевала в GCC из LLVM/Clang поэтому доступна и там.
+
+Очень полезно прогонять программы под санитайзерами на предмет поиска сложных случаев UB которые не всегда легко проверить глазами.
+
+Ещё полезнее использовать специальные средства, такие как valgrind, который позволяет кроме обычных случаев UB ловить, например, такие коварные вещи как data races в многопоточных программах:
+
+\begin{lstlisting}
+#include <thread>
+#include <iostream>
+
+int x = 0;
+
+void
+foo ()
+{
+  std::thread([&] {
+    ++x;
+  }).detach();
+  ++x;
+}
+
+int
+main ()
+{
+  foo ();
+  std::cout << x << std::endl;
+  return 0;
+}
+\end{lstlisting}
+
+Можно скомпилировать, запустить и не заметить подвоха:
+
+\begin{verbatim}
+$ g++ race.cpp -pthread
+$ ./a.out
+1
+\end{verbatim}
+
+Но valgrind исправно отрапортует о возможной проблеме:
+
+\begin{verbatim}
+$ valgrind --tool=helgrind ./a.out
+==4257== Possible data race during write 
+         of size 4 at 0x602548 by thread #1
+==4257==    at 0x400DEF: foo() 
+==4257==    by 0x400E20: main 
+==4257==  This conflicts with a previous write 
+         of size 4 by thread #2
+\end{verbatim}
+
+Различные tools, которые можно указывать для valgrind включают в себя:
+
+\begin{itemize}
+\item Memcheck -- анализирует утечки памяти, неинициализированные переменные, выход за границы массивов
+\item Cachegrind -- профилировщик кэша, указывает источники промахов мимо кэша в вашем коде (что может быть важно для критчиных по производительности частей)
+\item Callgrind -- расширение cachegrind с дополнительным профилем вызовов функций (плюс позволяет их отличную визуализацию с помощью KCachegrind)
+\item Massif -- профилировщик кучи, способен составлять график использования кучи от времени исполнения, находить места наиболее частых выделений памяти
+\item Helgrind -- иллюстрировавшийся выше анализатор многопоточного кода
+\end{itemize}
+
+Но они этим не ограничиваются, на самом деле valgrind это просто океан.
 
 \pagebreak
 \section{Портирование toolchain}
@@ -1356,10 +1478,199 @@ TODO: что-нибудь про санитайзеры и valgrind
 \item Определить простые преобразования инструкций
 \end{itemize}
 
+\pagebreak
 \subsection{GCC machine description}
 
-TODO: здесь про machine description
+Портирование компилятора требует некоторого навыка работы с его структурой папок. Внутри исходников GCC самый верхний уровень занимают папки основных утилит и библиотек, включая папки собственно для gcc, libgcc, libstdc++ и прочих: 
 
+\begin{verbatim}
+> ls -d */
+boehm-gc/
+config/
+contrib/
+fixincludes/
+gcc/
+gnattools/
+....
+\end{verbatim}
+
+Второй уровень (внутри папки gcc первого уровня) занимают файлы компилятора и подпапки фронтендов (таких как Ada, C и Fortran) а также специальная папка config:
+
+\begin{verbatim}
+gcc> ls -ld */
+ada/
+c/
+c-family/
+common/
+config/
+cp/
+doc/
+....
+\end{verbatim}
+
+И наконец в самой папке config (третий уровень) расположены бэкенды для разных архитектур.
+
+\begin{verbatim}
+gcc/config> ls -ld */
+aarch64/
+alpha/
+arc/
+arm/
+avr/
+bfin/
+\end{verbatim}
+
+Обычная задача портирования это задача добавления такой папки для своего бэкенда. Для примеров в этом разделе будет использована папка mips, содержащая бэкенд для mips. Основные его файлы: mips.h, mips.с и mips.md
+
+\subsubsection{Описание инструкций}
+
+Простой паттерн для инструкции add архитектуры mips сначала может выглядеть пугающе:
+
+\begin{verbatim}
+(define_insn "*addsi3_extended"
+  [(set (match_operand:DI 0 "register_operand" "=d,d")
+        (sign_extend:DI
+             (plus:SI (match_operand:SI 1 "register_operand" "d,d")
+                      (match_operand:SI 2 "arith_operand" "d,Q"))))]
+  "TARGET_64BIT && !TARGET_MIPS16"
+  "@
+    addu\t%0,%1,%2
+    addiu\t%0,%1,%2"
+  [(set_attr "alu_type" "add")
+   (set_attr "mode" "SI")])
+\end{verbatim}
+
+Он написан в скобочной нотации, похожей на язык LISP и состоит из следующих основных частей:
+
+\begin{itemize}
+
+\item Названия и заголовка
+
+\begin{verbatim}
+(define_insn "*addsi3_extended"
+....
+)
+\end{verbatim}
+
+\item Собственно паттерна
+
+\begin{verbatim}
+....
+[(set (match_operand:DI 0 "register_operand" "=d,d")
+      (sign_extend:DI
+           (plus:SI (match_operand:SI 1 "register_operand" "d,d")
+                    (match_operand:SI 2 "arith_operand" "d,Q"))))]
+....
+\end{verbatim}
+
+\item Условия применимости
+
+\begin{verbatim}
+....
+  "TARGET_64BIT && !TARGET_MIPS16"
+....
+\end{verbatim}
+
+\item Строчек генерируемого ассемблера
+
+\begin{verbatim}
+....
+  "@
+    addu\t%0,%1,%2
+    addiu\t%0,%1,%2"
+....
+\end{verbatim}
+
+\item Атрибутов
+
+\begin{verbatim}
+....
+  [(set_attr "alu_type" "add")
+   (set_attr "mode" "SI")]
+\end{verbatim}
+
+\end{itemize}
+
+\subsubsection{Предикаты и констрейнты}
+
+В собственно паттерне можно различить предикаты: register\_operand, arith\_operand и констрейнты, записанные сразу справа от предикатов строчками букв (в данном случае d и Q).
+
+register\_operand это стандартный предикат, означающий, что при переводе в машинно-зависимое представление там должен встретиться регистр.
+
+arith\_operand это пользовательский предикат, определенный в predicates.md
+
+\begin{verbatim}
+(define_predicate "const_arith_operand"
+  (and (match_code "const_int")
+       (match_test "SMALL_OPERAND (INTVAL (op))")))
+
+(define_predicate "arith_operand"
+  (ior (match_operand 0 "const_arith_operand")
+       (match_operand 0 "register_operand")))
+\end{verbatim}
+
+Здесь макрос определен в mips.h:
+
+\begin{lstlisting}
+#define SMALL_OPERAND(VALUE) \
+  ((unsigned HOST_WIDE_INT) (VALUE) + 0x8000 < 0x10000)
+\end{lstlisting}
+
+В отличии от предикатов, которые используются для поддержания корректности паттерна в процессе трансформаций, констрейнты являются указаниями распределителю регистров и так же бывают стандартные (например r означает регистр) и пользовательские, как d и Q в данном случае.
+
+Констрейнт d является регистровым констрейнтом и определен в constraints.md
+
+\begin{verbatim}
+(define_register_constraint "d" "TARGET_MIPS16 ? M16_REGS : GR_REGS"
+  "An address register.  This is equivalent to @code{r} unless
+   generating MIPS16 code.")
+\end{verbatim}
+
+Констрейнт Q определен там же так, чтобы соответствовать предикату
+
+\begin{verbatim}
+(define_constraint "Q"
+  "@internal"
+  (match_operand 0 "const_arith_operand"))
+\end{verbatim}
+
+\subsubsection{Перевод в машинно-зависимое представление}
+
+В паттернах, переводящих в машинно-зависимое представление критчино важно их имя, так как именно оно матчится на этапе экспанда.
+
+\begin{verbatim}
+(define_expand "add<mode>3"
+  [(set (match_operand:GPR 0 "register_operand")
+        (plus:GPR (match_operand:GPR 1 "register_operand")
+                  (match_operand:GPR 2 "arith_operand")))]
+  "")
+\end{verbatim}
+
+Итератор mode является стандартным итератором, в то время как составной режим GPR определен в том же файле чуть выше как:
+
+\begin{verbatim}
+(define_mode_iterator GPR [SI (DI "TARGET_64BIT")])
+\end{verbatim}
+
+Это позволяет при обработке такого паттерна сгенерировать из него сразу два: для 32-битного и 64-битного сложения.
+
+\subsubsection{Преобразования инструкций}
+
+\begin{verbatim}
+(define_split
+  [(set (match_operand:DI 0 "register_operand")
+        (and:DI (match_operand:DI 1 "register_operand")
+                (const_int 4294967295)))]
+  "TARGET_64BIT && !ISA_HAS_EXT_INS && reload_completed"
+  [(set (match_dup 0)
+        (ashift:DI (match_dup 1) (const_int 32)))
+   (set (match_dup 0)
+        (lshiftrt:DI (match_dup 0) (const_int 32)))])
+\end{verbatim}
+
+TODO: больше про split
+
+\pagebreak
 \subsection{Calling conventions}
 
 При вызове функции существует много вариантов передачи параметров (для параметров можно использовать какие-то из регистров и стек) а так же много вариантов возврата значений из функции. 
