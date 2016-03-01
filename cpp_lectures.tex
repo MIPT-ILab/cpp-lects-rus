@@ -7502,7 +7502,103 @@ f(h(args ...) + args ...);
 
 \subsubsection{Emplace и доброе волшебство}
 
-TODO: здесь разбор техники проброса и создания пачки параметров через правые ссылки
+Давно, ещё со времен стандартизации библиотеки, перед разработчиками обобщённого кода стояла проблема создания контейнера из тяжело копируемых объектов.
+
+\begin{lstlisting}
+class Heavy {
+  int n;
+  int *t;
+public:
+  explicit Heavy (int sz) : n(sz), t(new int[n]) {
+    cout << "Heavy created" << endl;
+  }
+
+  Heavy(const Heavy &rhs) : n(rhs.n), t(new int[n]) {
+    cout << "Heavy copied" << endl;
+    memcpy (t, rhs.t, n*sizeof(int));
+  }
+};
+\end{lstlisting}
+
+В качестве контейнера можно рассмотреть стек.
+
+\begin{lstlisting}
+template <typename T>
+class Stack {
+  struct StackElem {
+    T elem;
+    StackElem *next;
+    StackElem (T e, StackElem *nxt) : elem (e), next (nxt) {}
+  };
+
+  struct StackElem *top_;
+public:
+  void push_back (const T& elem) {
+    StackElem *newelem = new StackElem (elem, top_);
+    top_ = newelem;
+  }
+};
+\end{lstlisting}
+
+Как создать стек из десяти таких тяжелых неинициализированных объектов, каждый размера 100?
+
+\begin{lstlisting}
+Stack<Heavy> s;
+for (int i = 0; i != 10; ++i)
+  s.push_back(Heavy(100));
+\end{lstlisting}
+
+Легко видеть одно создания и два копирования. На экране:
+
+\begin{verbatim}
+Heavy created
+Heavy copied
+Heavy copied
+Heavy destroyed
+Heavy destroyed
+\end{verbatim}
+
+Проблема может быть решена с помощью идиомы emplace (создания на месте). Для этого вариабельные шаблоны работают вместе с правыми ссылками. Сначала emplace конструктор вводится в структуру элемента списка
+
+\begin{lstlisting}
+struct StackElem {
+.....
+    template< class... Args >
+    StackElem (StackElem *nxt, Args&&... args) : elem(std::forward<Args>(args)...), next (nxt) {}
+  };
+\end{lstlisting}
+
+Далее в сам список вводится метод emplace:
+
+\begin{lstlisting}
+template <typename T>
+template< class... Args >
+void Stack<T>::emplace_back( Args&&... args )
+{
+  StackElem *newelem = new StackElem (top_, std::forward<Args>(args)...);
+  top_ = newelem;
+}
+\end{lstlisting}
+
+И наконец модифицируется место вызова
+
+\begin{lstlisting}
+Stack<Heavy> s;
+for (int i = 0; i != 10; ++i)
+  s.emplace_back(100);
+\end{lstlisting}
+
+Теперь вывод гораздо сильнее радует глаз:
+
+\begin{verbatim}
+Heavy created
+\end{verbatim}
+
+\textbf{Вопрос к студентам:} зачем был использован \lstinline!std::forward! в этом контексте?
+
+\ifanswers
+Ответ: на случай если аргументы конструктора также имеют тяжелые копирующие конструкторы. Обобщённое программирование, что уж тут.
+\fi
 
 \subsubsection{Раскрытие с помощью списка инициализации}
 
@@ -7884,7 +7980,7 @@ void abssort(float *x, unsigned N)
 
 \subsubsection{Generic lambdas}\label{GenericLambdas}
 
-Первое приближение к lambda-функциям в стандарте C++11 позволяло спсики инициализации только с конкретными типами аргументов:
+Первое приближение к lambda-функциям в стандарте C++11 позволяло спиcки инициализации только с конкретными типами аргументов:
 
 \begin{lstlisting}
 auto ifunc = [](int input) { return input * input; };
@@ -8046,6 +8142,8 @@ class Foo
 Кроме простых правил захвата контекста, которые следует знать, есть и несколько более сложные, знание которых также полезно.
 
 TODO: здесь также про улучшенный захват контекста со сменой имени в C++14
+
+TODO: демонстрация рисовалки?
 
 \subsubsection{Элементы высшего пилотажа}
 
