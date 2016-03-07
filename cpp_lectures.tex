@@ -4765,6 +4765,19 @@ h4(x); /* calls 2 */
 
 \textbf{Домашняя наработка:} как все-таки решить проблему перегрузки универсальной ссылки из раздела (\ref{UniversalReferences})?
 
+\subsubsection{Reference qualifiers}
+
+Малоизвестной особенностью современного C++, упоминаемой например в \cite{effmoderncpp}, является наличие у методов классов reference qualifiers. Они похожи на const из (\ref{Selectors}), но не являются частью интерфейса функции, а наоборот позволяют версионировать её вызов для разных объектов:
+
+\begin{lstlisting}
+struct Widget {
+  Data& get_data() &;
+  Data get_data() &&;
+};
+\end{lstlisting}
+
+Здесь первая функция будет вызвана только если объект класса \lstinline!Widget! является lvalue, а вторая если он является rvalue. Перегрузка функции также по типу позволяет в первом случае вернуть ссылку, а во втором случае сконструировать необходимый объект.
+
 \pagebreak
 \subsection{Наследование интерфейса\index{Inheritance}\index{Interface inheritance}}\label{IntfInheritance}
 
@@ -7992,10 +8005,7 @@ auto dfunc = [](double input) { return input * input; };
 
 \begin{lstlisting}
 template <typename T>
-T func(T z) 
-{
-  return z * z;
-}
+T func(T z) { return z * z; }
 \end{lstlisting}
 
 Для того, чтобы lambda-выражения не уступали в выразительной мощности, в стандарте C++14 появились обобщенные lambda-expressions.
@@ -8013,7 +8023,8 @@ std::cout << func(std::complex<double>(2.0, 1.0)) << std::endl;
 Конечно, есть и проблемы. Допустим есть необходимость используя perfect forwarding (см. \ref{PerfectForw}) протащить из полиморфной лямбды параметр в какую-то функцию:
 
 \begin{lstlisting}
-auto forwardingLambda = [](auto&& param) { f(std::forward<T>(param)); };
+auto forwardingLambda = [](auto&& param) 
+  { f(std::forward<T>(param)); };
 \end{lstlisting}
 
 Стоп-стоп, а что такое \lstinline!T!?
@@ -8139,11 +8150,61 @@ class Foo
 };
 \end{lstlisting}
 
-Кроме простых правил захвата контекста, которые следует знать, есть и несколько более сложные, знание которых также полезно.
+При захвате контекста важно избегать возможностей провисания ссылок:
 
-TODO: здесь также про улучшенный захват контекста со сменой имени в C++14
+\begin{lstlisting}
+void foo(int x)
+{
+  auto f = [&](int y) { return x + y;}
+  store_for_later (f);
+} // x lifetime is over here
+\end{lstlisting}
 
-TODO: демонстрация рисовалки?
+Если кто-то попытается вызвать сохранённую функцию \lstinline!f! позже, чем закончится жизнь \lstinline!x!, он получит все радости висячих ссылок (см. \ref{DanglingRefs}).
+
+При захвате \lstinline!m_x! выше на самом деле совершенно нет необходимости захватывать \lstinline!this!, стандарт C++14 позволяет делать локальную копию при захвате:
+
+\begin{lstlisting}
+/* error: non-variable by-copy */
+[m_x] () mutable { m_x += 3; } (); 
+
+/* error: capture of non-variable m_x */
+[&m_x] () mutable { std::cout << m_x; } (); 
+
+/* ok: local copy of m_x */
+[captured_mx = m_x] () mutable { captured_mx += 3; } (); 
+
+/* ok: m_x field captured by reference */
+[&captured_mx = m_x] () mutable { captured_mx += 3; } (); 
+\end{lstlisting}
+
+Здесь амперсанд означает вовсе не взятие адреса. Взятие адреса, кстати, не сработает:
+
+\begin{lstlisting}
+/* error: m_x field address by reference */
+[&captured_mx = &m_x] () mutable { *captured_mx += 3; } ();
+\end{lstlisting}
+
+\textbf{Вопрос к студентам:} что здесь не так?
+
+\ifanswers
+Правильный ответ следует из простого размышления: что вообще синтаксически должна означать запись в такой адрес? Перемещение поля класса, хм?
+\fi
+
+\textbf{Вопрос к студентам:} а если по значению?
+
+\begin{lstlisting}
+/* ok: m_x field address by value */
+[captured_mx = &m_x] () mutable { *captured_mx += 3; } ();
+\end{lstlisting}
+
+\ifanswers
+Правильный ответ: да, по значению все хорошо
+\fi
+
+Возможность захватывать результат выражения в C++14 (generalized capture) даёт ещё более широкие возможности: захват по правой ссылке (через \lstinline!std::move!), захват с конструированием объекта и так далее.
+
+В захвате важно понимать, что захватываются только локальные нестатические переменные. Любая лямбда может свободно оперировать глобальным или статическим контекстом в её области видимости без всякого захвата (можно думать об этом как о захвате всегда по ссылке).
 
 \subsubsection{Элементы высшего пилотажа}
 
@@ -8260,6 +8321,90 @@ int main()
 \end{lstlisting}
 
 Итак, lambda-expressions позволяют (совместно с \lstinline!std::function!) привнести в C++ некоторые полезные особенности функциональных языков, предоставляют удобный синтаксис для объявление функторов и использования алгоритмов стандартной билиотеки, и даже частично совместимы со старыми указателями на функции. Освоение lambda-выражений позволяет сделать код короче, выразительней и проще для поддержки.
+
+\subsubsection{Захват как способ уменьшения связности}
+
+Пусть необходимо разработать класс для отображения произвольной картинки на одном устройстве отображения. Логичная архитектура: отвязать отображение от собственно картинки, сделав перерисовку каждого кадра callback-функцией для пользователя.
+
+Проблема в том какую сигнатуру выбрать для этой функции:
+
+\begin{lstlisting}
+enum class pollres {
+  PROCEED,
+  STOP
+};
+
+class ViewPort {
+  int width, height;
+  SDL_Surface *screen;
+  static ViewPort *v;
+
+  /* ??? */ callback;
+
+  ViewPort (int w, int h, /* ??? */ c)
+    : width (w), height (h), callback(c) {
+    if (SDL_Init(SDL_INIT_VIDEO) != 0)
+      throw runtime_error (SDL_GetError());
+
+    atexit(SDL_Quit);
+    screen = SDL_SetVideoMode(width + 1, 
+      height + 1, 0, SDL_DOUBLEBUF);
+    if (screen == NULL)
+      throw runtime_error (SDL_GetError());
+  }
+
+public:
+  pollres poll ();
+  void dump (const char *name);
+
+  static ViewPort *
+  QueryViewPort (int w, int h, /* ??? */ c) {
+    if (!v)
+      v = new ViewPort(w, h, c);
+    return v;
+  }
+
+  ~ViewPort() {
+    SDL_FreeSurface(screen);
+  }
+};
+
+void putpixel(SDL_Surface *surface, int x, int y, Uint32 color);
+void fillwith (SDL_Surface *screen, Uint32 color);
+\end{lstlisting}
+
+Ясно, что функция рисования должна принимать \lstinline!SDL_Surface!, чтобы рисовать на ней, но какие ещё параметры могут понадобиться пользователю? Правильный ответ -- любые. В этом случае C-style это передавать туда \lstinline!void *! и кастовать его к нужному типу (структуре обычно) каждый раз, когда вызывается callback.
+
+В случае C++ можно использовать лямбды и захват контекста.
+
+\begin{lstlisting}
+std::function<void(SDL_Surface*)> callback;
+\end{lstlisting}
+
+Если пользовательская функция реально берет больше параметров:
+
+\begin{lstlisting}
+static void
+draw_internal (SDL_Surface *s, int delta)
+{
+/* ..... */
+}
+\end{lstlisting}
+
+То ничего страшного:
+
+\begin{lstlisting}
+int delta = 0;
+auto draw_external = [&delta] (SDL_Surface *s) { draw_internal (s, delta); };
+ViewPort *v = ViewPort::QueryViewPort (xsize, ysize, draw_external);
+for (delta = 4; delta < 10; ++delta) {
+ /* ...... */
+}
+\end{lstlisting}
+
+Таким образом развязывание зависимости позволяет сохранить сильную типизацию и избегать передачи чего-либо через \lstinline!void *!
+
+\textbf{Обсуждение в аудитории:} какие ещё методы можно предложить для решения той же архитектурной задачи?
 
 \subsubsection{Variadic lambdas и монады}
 
