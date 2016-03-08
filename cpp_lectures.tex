@@ -2407,15 +2407,11 @@ memset (&p, 0xDA, sizeof(p));
 TODO: сваять нечто на основе http://www.drdobbs.com/when-enum-just-isnt-enough-enumeration-c/184403955
 
 \pagebreak
-\subsection{Автоматический вывод типов}
+\subsection{Автоматический вывод типов}\label{TypeInference}\index{Type inference}
 
-\hfill\textit{А теперь нужно обязательно дунуть,}
+\hfill\textit{Whatever we know without inference is mental}{\vspace{0.5em}}
 
-\hfill\textit{потому, что если не дунуть,}
-
-\hfill\textit{то никакого чуда не произойдет}{\vspace{0.5em}}
-
-\hfill\textit{-- Амаяк Акопян}
+\hfill\textit{-- Bertrand Russel}
 
 Вывод типов это базовое и очень впечатляющее усовершенствование, которое легко понять и легко использовать. Кроме того, некоторый навык работы с системой типов, в особенности с новыми type traits несомненно нужен для понимания нового стандарта.
 
@@ -7971,6 +7967,16 @@ using ElemType = decltype (std::get<i>(std::declval<T>()));
 \pagebreak
 \subsection{Lambda expressions}\label{LambdaExpressions}
 
+\hfill{Greenspun's Tenth Rule of Programming:}
+
+\hfill\textit{Any sufficiently complicated C or Fortran program}
+
+\hfill\textit{contains an ad-hoc, informally-specified bug-ridden}
+
+\hfill\textit{slow implementation of half of Common Lisp}{\vspace{0.5em}}
+
+\hfill\textit{-- Philip Greenspun}
+
 Ещё одной непросто воспринимаемой для программиста с опытом С++ концепцией являются lambda expressions. С одной стороны понять их кажется чуть проще, в конце концов все когда-нибудь писали функторы. С другой стороны, настоящее осознание мощи и гибкости этого инструмента также приходит только с опытом. 
 
 Следующий код с первого взгляда немного шокирует:
@@ -8060,47 +8066,21 @@ auto forwardingLambda = [](auto&& param)
   { f(std::forward<T>(param)); };
 \end{lstlisting}
 
-Стоп-стоп, а что такое \lstinline!T!?
+Проблема в том, что совершенно неясно что подставить в качестве \lstinline!T!?
 
-\textbf{Вопрос к студентам:} можно ли здесь использовать \lstinline!decltype(param)!?
+\textbf{Вопрос к студентам:} что бы вы подставили?
 
 \ifanswers
-Правильный ответ: конечно можно. Даже нужно.
+Правильный ответ: \lstinline!decltype(param)!
 \fi
 
-Также в C++14 обобщенные lambda-выражения могут имитировать перегруженные функции с помощью простого, но иллюстративного трюка:
-
-\begin{lstlisting}
-template <class... F>
-struct overload : F... {
-  overload(F... f) : F(f)... {} 
-};
-\end{lstlisting}
-
-И теперь:
- 
-\begin{lstlisting}
-template <class... F>
-auto make_overload(F... f) {
-  return overload<F...>(f...);  
-}
-\end{lstlisting}
-
-Используется это как-то так:
-
-\begin{lstlisting}
-auto f =
-    make_overload([](int i) { /* print */ },
-                  [](double d) { /* print */ });
-\end{lstlisting}
-
-В этом примере пока не ясно от каких же типов наследует перегруженная структура. Этот вопрос придётся отложить до (\ref{StdFunction}).
-
-Итак, лямбды могут все, что могут обычные функции, а обобщённые лямбды могут всё, что могут шаблонные функции. Но факт в том, что на самом деле лямбды могут больше.
+Итак, лямбды могут все, что могут обычные функции (для них даже можно сделать аналог перегрузки, см. \ref{OverLambdas}), а обобщённые лямбды могут всё, что могут шаблонные функции. Но факт в том, что на самом деле лямбды могут больше.
 
 \subsubsection{Замыкания}\label{Closures}
 
-Можно ли на C++ написать функцию, которая возвращала бы собственный аргумент? Да и легко:
+Можно ли на C++ написать лямбда-функцию, которая возвращала бы собственный аргумент? 
+
+Да и легко:
 
 \begin{lstlisting}
 auto Identity = [](auto x) {
@@ -8108,7 +8088,9 @@ auto Identity = [](auto x) {
 };
 \end{lstlisting}
 
-Можно ли написать более сложную функцию, которая возвращала бы объект класса-функтора, который потом возвращал бы аргумент при каждом вызове? Да, тоже можно:
+Можно ли написать более сложную функцию, которая возвращала бы объект класса-функтора, который потом возвращал бы аргумент при каждом вызове? 
+
+Да, тоже можно:
 
 \begin{lstlisting}
 auto identityf = [](auto x) {
@@ -8123,7 +8105,9 @@ auto identityf = [](auto x) {
 
 Здесь видна одна интересная идея: идея \textbf{захвата контекста}. 
 
-Можно ли написать теперь ещё более сложную функцию, которая возвращала бы другую функцию с тем же свойством что у класса-функтора в примере выше? Оказывается тоже можно. Для этого, сконструированная внутри лямбды, лямбда должна захватить контекст:
+Можно ли написать теперь ещё более сложную функцию, которая возвращала бы другую функцию с тем же свойством что у класса-функтора в примере выше? 
+
+Оказывается тоже можно. Для этого, сконструированная внутри лямбды, лямбда должна захватить контекст:
 
 \begin{lstlisting}
 auto unit = [](auto x) {
@@ -8273,6 +8257,95 @@ void foo(int x)
 
 В захвате важно понимать, что захватываются только локальные нестатические переменные. Любая лямбда может свободно оперировать глобальным или статическим контекстом в её области видимости без всякого захвата (можно думать об этом как о захвате всегда по ссылке).
 
+\subsubsection{Перегруженные лямбда-выражения}\label{OverLambdas}
+
+Могут ли лямбда функции быть перегружены? В наивном виде это не работает:
+
+\begin{lstlisting}
+auto f = [](int i) { /* print forint */ };
+auto f = [](double d) { /* print fordouble */ }; // No
+\end{lstlisting}
+
+Можно ли подойти к вопросу менее наивно? Да, если знать, что замыкание возвращает класс с правильно типизированным оператором круглые скобки. Тогда диспетчинг вызова можно возложить на класс, наследующий от всевозможных таких классов и таким образом содержащий в себе сколько угодно перегруженных круглых скобок (мультифунктор):
+
+\begin{lstlisting}
+template <class... F>
+struct overload : F... {
+  overload(F... f) : F(f)... {} 
+};
+\end{lstlisting}
+
+И теперь:
+ 
+\begin{lstlisting}
+template <class... F>
+auto make_overload(F... f) {
+  return overload<F...>(f...);  
+}
+\end{lstlisting}
+
+Используется это как-то так:
+
+\begin{lstlisting}
+auto f =
+    make_overload([](int i) { /* print forint */ },
+                  [](double d) { /* print fordbl */ });
+
+  f(3);
+  f(3.0);
+\end{lstlisting}
+
+Увы, это не работает. Перегруженные круглые скобки предка должны быть введены в контекст потомка using-объявлением (см. \ref{NameHiding}). Кроме того, здесь явно лишнее копирование в конструкторе.
+
+Интуитивно хочется написать нечто вроде:
+
+\begin{lstlisting}
+template <class... F>
+struct overload : F... {
+  using overload<F...>::operator();
+  overload(F... f) : F(f)... {} 
+};
+\end{lstlisting}
+
+Но так делать нельзя.
+
+Менее наивный подход предполагает раскрытие рекурсии:
+
+\begin{lstlisting}
+template<class F, class... Fs>
+struct overload : F, overload<Fs...>
+{
+    using F::operator();
+    using overload<Fs...>::operator();
+
+    overload(F&& f, Fs&&... fs)
+      : F(std::move(f))
+      , overload<Fs...>(std::move(fs)...)
+    {}
+};
+
+template<class F>
+struct overload<F> : F
+{
+    using F::operator();
+
+    overload(F&& f)
+      : F(std::move(f))
+    {}
+};
+\end{lstlisting}
+
+Очень интересно, что завершение рекурсии это анти-CRTP: тут не база параметризована наследником, а наоборот, наследника приходится специализировать последней базой. Это происходит потому, что в C++ нет перегрузки классов и простая строчка:
+
+\begin{lstlisting}
+template<class F>
+struct overload : F
+\end{lstlisting}
+
+в этом контексте не будет работать: у структуры \lstinline!overload! два шаблонных параметра в точке объявления.
+
+В этом примере пока не ясно от каких же типов наследует перегруженная структура. Пора решить этот вопрос.
+
 \subsubsection{Типизация лямбда выражений: function type}\label{StdFunction}
 
 Теперь пришло время разобраться с тем, как же типизированы lambda-выражения.
@@ -8298,18 +8371,80 @@ int one_more_test(int x, int y)
 }
 \end{lstlisting}
 
-Но что если есть необходимость вернуть не результат вычисления lamda-выражения, а его само, чтобы использовать его (со связанным контекстом) где-то ещё? Это можно сделать использовав \lstinline!auto! на результат функции, но можно выразить эту же идею более явно через \lstinline!std::function! (20.8)
+Но что если есть необходимость вернуть не результат вычисления lamda-выражения, а его само, чтобы использовать его (со связанным контекстом) где-то ещё? Это можно сделать использовав \lstinline!auto! как результат функции, но можно выразить эту же идею более явно через \lstinline!std::function! (20.8)
  
 \begin{lstlisting}
-std::function<int ()> harder_test(int x, int y)
+function<int ()> harder_test(int x, int y)
 {
   return [&x, &y] { return x + y; };
 }
 \end{lstlisting}
 
-Итак, lambda-expressions позволяют (совместно с \lstinline!std::function!) привнести в C++ некоторые полезные особенности функциональных языков, предоставляют удобный синтаксис для объявление функторов и использования алгоритмов стандартной билиотеки, и даже частично совместимы со старыми указателями на функции. Освоение lambda-выражений позволяет сделать код короче, выразительней и проще для поддержки.
+Аналогично благодаря этому типу понятно как именно лямбда-функцию можно сделать рекурсивной
 
-\textbf{Вопрос к студентам:} в примере с имитацией перегрузки (см. \ref{GenericLambdas}), какими все-таки типами инстанцируются классы-предки перегруженных функций?
+\begin{lstlisting}
+function<int (int)> factorial = [&] (int i) 
+{ 
+    return (i == 1) ? 1 : i * factorial(i - 1); 
+};
+\end{lstlisting}
+
+Немного странный в записи тип, которым параметризуется \lstinline!std::function! уже неявно встречался в \lstinline!typedef! и \lstinline!using! выражениях. Так например:
+
+\begin{lstlisting}
+typedef int factorial_t(int);
+\end{lstlisting}
+
+по факту содержит тот же тип \lstinline!int (int)! для которого и вводится синоним (в данном случае \lstinline!factorial_t!.
+
+Но в чем тогда отличие \lstinline!factorial_t! от \lstinline!function<int (int)>!? Фундаментальное отличие в следующем: \lstinline!function<int (int)>! понимает возможный захват контекста. При этом лямбда-функции с захватом разного контекста, будучи приведены к \lstinline!std::function!, оказываются объектами одного типа.
+
+\begin{lstlisting}
+int f(int a) { return -a; }
+
+int main (void)
+{
+  int x = 0;
+
+  function<int(int)> fn1(f),
+                     fn2 ([](int a) {return -a;}),
+                     fn3 ([x](int a) {return x-a;});
+  cout << fn1.target_type().name() << endl
+       << fn2.target_type().name() << endl
+       << fn3.target_type().name() << endl;
+
+...... etc ....
+}
+\end{lstlisting}
+
+Этот пример выводит для GCC 5.3: 
+
+\begin{verbatim}
+PFiiE
+Z4mainEUliE_
+Z4mainEUliE0_
+\end{verbatim}
+
+Это потрясающий хак в систему типов C++, который получит свое развитие дальше.
+
+Тип \lstinline!std::function! переопределяет три ключевых оператора:
+
+\begin{enumerate}
+\item\lstinline!operator=! -- позволяет присвоить объекту класса новое значение
+
+\item\lstinline!operator bool! -- проверяет есть ли вообще значение:
+
+\begin{lstlisting}
+std::function<void()> f1;
+if (!f1) {
+.... // here we are!
+}
+\end{lstlisting}
+
+\item\lstinline!operator()! -- позволяет вызвать функцию.
+\end{enumerate}
+
+\textbf{Вопрос к студентам:} в примере с имитацией перегрузки (см. \ref{OverLambdas}), какими все-таки типами инстанцируются классы-предки перегруженных функций?
 
 \subsubsection{Захват как способ уменьшения связности}
 
@@ -8397,12 +8532,26 @@ for (delta = 4; delta < 10; ++delta) {
 
 \subsubsection{Variadic lambdas и монады}
 
+\hfill\textit{A parser for things}
+
+\hfill\textit{Is a function from strings}
+
+\hfill\textit{To lists of pairs}
+
+\hfill\textit{Of things and strings}{\vspace{0.5em}}
+
+\hfill\textit{-- Graham Hutton}
+
 До сих пор монады были сладким поводом задрать нос для всяких там программистов на языке Haskell. Между тем, монада это просто моноид на категории эндофункторов и такую простую вещь вполне можно нарисовать и на языке C++14. Правда понадобится ещё немного синтаксического сахара, поэтому сначала следует поговорить про вариабельные лямбды.
 
 Поскольку лямбды внутри являются шаблонами, они наверное могут быть и вариабельными шаблонами? Так точно -- отвечают нам создатели языка. В стандарт C++14 введены variadic lambdas -- расширение рассмотренных выше generic lambdas у которых обобщенные параметры ведут себя как если бы они были вариабельными шаблонами.
 
+Изложение в этом разделе в целом следует \url{http://cpptruths.blogspot.ru/2014/08/fun-with-lambdas-c14-style-part-3.html} (TODO: включить в список литературы?)
+
+Сначала конструкторы и голова/хвост списка:
+
 \begin{lstlisting}
-auto list = [](auto ...xs) {
+auto List = [](auto ...xs) {
     return [=](auto access) { return access(xs...); };
 };
 
@@ -8456,6 +8605,79 @@ auto print = [](auto i) { std::cout << i << " "; return i; };
 auto l1 = List(1, 2, 3, 4);
 auto l2 = fmap(twice)(l1);
 auto l3 = fmap(print)(l2);
+\end{lstlisting}
+
+Критичной для монады является операция $flatmap: (a -> list[b]) -> list[a] -> list[b]$ её для простоты можно разложить (для списков) на конкатенацию:
+
+\begin{lstlisting}
+auto concat = [](auto l1, auto l2) {
+    auto access1 = [=](auto... p) {
+      auto access2 = [=](auto... q) {
+        return List(p..., q...);
+      };
+      return l2(access2);
+    };
+    return l1(access1);
+};
+\end{lstlisting}
+
+И флэттенинг:
+ 
+\begin{lstlisting}
+template <class Func>
+auto flatten(Func)
+{
+  return List(); 
+}
+ 
+template <class Func, class A, class... B>
+auto flatten(Func f, A a, B... b)
+{
+  return concat(f(a), flatten(f, b...));
+}
+\end{lstlisting}
+ 
+Вместе собирается как функция высшего порядка:
+
+\begin{lstlisting}
+auto flatmap = [](auto func) {
+   return [func](auto alist) {
+       return alist([func](auto... xs) { return flatten(func, xs...);  });
+};
+\end{lstlisting}
+
+Теперь можно сделать много интересных вещей со списком:
+	
+\begin{lstlisting}
+auto pair = [](auto i) { return list(-i, i); };
+auto count = [](auto... a) { return list(sizeof...(a)); };
+ 
+auto l1 = List(1, 2, 3);
+auto l2 = flatmap(pair)(l1);
+auto l3 = fmap(print)(l2); 
+\end{lstlisting}
+
+По сути fmap и flatmap это уже монадические операции. Осталось привести их к стандартному виду операторов \lstinline!>! и \lstinline!>=!:
+
+\begin{lstlisting}
+template <class LIST, class Func>
+auto operator > (LIST l, Func f)
+{
+  return fmap(f)(l);   
+}
+ 
+template <class LIST, class Func>
+auto operator >= (LIST l, Func f)
+{
+  return flatmap(f)(l);   
+}
+\end{lstlisting}
+
+И вот, монада List получилась не хуже, чем в Haskell.
+
+\begin{lstlisting}
+auto l3 = 
+   List(1, 2, 3) >= pair > print;
 \end{lstlisting}
 
 \pagebreak
@@ -11550,6 +11772,12 @@ std::transform(data_.begin(), data_.end(), data_.begin(),
 
 \pagebreak
 \subsection{Умные и слишком умные указатели}\label{SmartPointers}
+
+\hfill\textit{I'm the one that has to die}
+
+\hfill\textit{when it's time for me to die}{\vspace{0.5em}}
+
+\hfill\textit{-- Jimi Hendrix}
 
 Идиома RAII уже рассматривалась в (\ref{RAII}), и там же была сделана наивная попытка завернуть в класс для управления ресурсами такой классический разделяемый ресурс как дисковый файл. Конечно, идея обобщить RAII для любого \lstinline!T!, используя шаблоны -- приходит на ум почти сразу после знакомства с шаблонами. Паттерн обертки, осуществляющей управление временем жизни объекта умнее, чем это делается через обычный указатель, называется ``smart pointer'' или умный указатель. Таким образом это не какой-то класс, это общая концепция для целого семейства от крайне простых до крайне сложных и интересных классов.
 
