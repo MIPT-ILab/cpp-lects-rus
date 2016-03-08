@@ -1,6 +1,6 @@
 # Drawer makefile
 
-CXXFLAGS += -O2 -W
+CXXFLAGS += -O2 -Wall -Wextra
 
 all : funcbitmap waves
 

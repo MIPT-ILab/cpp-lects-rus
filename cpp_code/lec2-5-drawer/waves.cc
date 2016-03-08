@@ -9,41 +9,19 @@
 
 using namespace std;
 
-const unsigned xsize = 640;
-const unsigned ysize = 480;
-const double PI = 3.14159265;
-
 static void
-putlogpixel (SDL_Surface *s, double x, double y, Uint32 color)
+draw_waves (ISurface *s, double xcenter, double ycenter, double phase)
 {
-  unsigned width = s->w;
-  unsigned height = s->h;
- 
-  int logx = rint ((double) width * (x + 1.0) / 2.0);
-  int logy = rint ((double) height * (y + 1.0) / 2.0);
-
-  if (logx > (int) width) logx = width - 1;
-  if (logx < 0) logx = 0;
-  if (logy > (int) height) logy = height - 1;
-  if (logy < 0) logy = 0;
-
-  putpixel (s, logx, logy, color);
-}
-
-static void
-draw_waves (SDL_Surface *s, double phase)
-{
+  const double PI = 3.14159265;
   const int rmax = 0xff;
   const int bmax = 0xff;
-  const int SCALE = 3000;  
   const double FREQ = 1000.0 * PI / 180.0;
-  int ix;
-  double alpha = PI * 90.0 / 180.0;
-  double alpha_min = - PI * 90.0 / 180.0;
+  double alpha = 0.0;
+  const double alpha_max = 2.0 * PI;
   double a = sin (FREQ * phase);
   int rmask = 0x00, bmask = 0x00;
 
-  fillwith (s, 0xffffffff);
+  s->fillwith (0xffffffff);
 
   if (a > 0.0) 
     {
@@ -54,22 +32,25 @@ draw_waves (SDL_Surface *s, double phase)
       rmask = rint ((-a) * rmax);
     }
 
-  while(alpha > alpha_min)
+  while(alpha < alpha_max)
     {
-      double x = -1.0 + phase * cos (alpha);
-      double y = phase * sin (alpha);
-      putlogpixel (s, x, y, 0xff000000 | (rmask << 16) | bmask);
-      alpha -= 0.1 * PI / 180.0;
+      double x = xcenter + phase * cos (alpha);
+      double y = ycenter + phase * sin (alpha);
+      s->putlogpixel (x, y, 0xff000000 | (rmask << 16) | bmask);
+      alpha += 0.1 * PI / 180.0;
     }
 }
 
 int
 main ()
 {
+  const unsigned xsize = 500;
+  const unsigned ysize = 500;
+
   clock_t start_phase = clock ();
   double dphase = 0.0;
 
-  auto draw_external = [&dphase] (SDL_Surface *s) { draw_waves (s, dphase); };
+  auto draw_external = [&dphase] (ISurface *s) { draw_waves (s, -0.5, 0.3, dphase); };
 
   ViewPort *v = ViewPort::QueryViewPort (xsize, ysize, draw_external);
 

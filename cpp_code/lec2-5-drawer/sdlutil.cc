@@ -4,8 +4,8 @@ ViewPort* ViewPort::v = nullptr;
 
 // standalone ones
 
-void
-putpixel(SDL_Surface *surface, int x, int y, Uint32 pixel)
+static void
+putpixel (SDL_Surface *surface, int x, int y, Uint32 pixel)
 {
     int bpp = surface->format->BytesPerPixel;
     Uint8 *p = (Uint8 *)surface->pixels + y * surface->pitch + x * bpp;
@@ -39,7 +39,7 @@ putpixel(SDL_Surface *surface, int x, int y, Uint32 pixel)
     }
 }
 
-void
+static void
 fillwith (SDL_Surface *screen, Uint32 color)
 {
   int res = SDL_FillRect (screen, nullptr, color);
@@ -47,11 +47,44 @@ fillwith (SDL_Surface *screen, Uint32 color)
     throw runtime_error (SDL_GetError());
 }
 
+// SDLSurface methods
+
+void 
+SDLSurface::putpixel (int x, int y, Uint32 color)
+{
+  ::putpixel (s, x, y, color);
+}
+
+void 
+SDLSurface::fillwith (Uint32 color)
+{
+  ::fillwith (s, color);
+}
+
+void
+SDLSurface::putlogpixel (double x, double y, Uint32 color)
+{
+  unsigned width = s->w;
+  unsigned height = s->h;
+
+  int logx = rint ((double) width * (x + 1.0) / 2.0);
+  int logy = rint ((double) height * (y + 1.0) / 2.0);
+
+  if (logx > (int) width) logx = width - 1;
+  if (logx < 0) logx = 0;
+  if (logy > (int) height) logy = height - 1;
+  if (logy < 0) logy = 0;
+
+  putpixel (logx, logy, color);
+}
+
+
 // ViewPort methods
 
 pollres
 ViewPort::poll ()
 {
+  SDLSurface s(screen);
   SDL_Event event;
   while(SDL_PollEvent(&event))
     {
@@ -59,7 +92,7 @@ ViewPort::poll ()
       return pollres::STOP;
     }
   SDL_LockSurface(screen);
-  callback (screen);
+  callback (&s);
   SDL_UnlockSurface(screen);
   SDL_Flip(screen);
   return pollres::PROCEED;
@@ -79,8 +112,10 @@ ViewPort::dump (const char *name)
   if (layer == nullptr)
     throw runtime_error (SDL_GetError());
 
+  SDLSurface s(layer);
+
   SDL_LockSurface(layer);
-  callback (layer);
+  callback (&s);
   SDL_UnlockSurface(layer);
 
   SDL_SaveBMP(layer, name);

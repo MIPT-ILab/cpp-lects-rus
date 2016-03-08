@@ -21,18 +21,18 @@ f (unsigned x, unsigned y, int delta)
 }
 
 static void
-draw_internal (SDL_Surface *s, int delta)
+draw_internal (ISurface *s, int delta)
 {
   unsigned ix, iy;
-  unsigned width = s->w;
-  unsigned height = s->h;
+  unsigned width = s->w();
+  unsigned height = s->h();
 
-  fillwith (s, white);
+  s->fillwith (white);
 
   for (ix = 0; ix != width; ++ix)
     for (iy = 0; iy != height; ++iy)
       if (f (iy, ix, delta) != 0)
-        putpixel (s, ix, iy, black);
+        s->putpixel (ix, iy, black);
 }
 
 int
@@ -40,7 +40,7 @@ main ()
 {
   int delta = 0;
 
-  auto draw_external = [&delta] (SDL_Surface *s) { draw_internal (s, delta); };
+  auto draw_external = [&delta] (ISurface *s) { draw_internal (s, delta); };
 
   ViewPort *v = ViewPort::QueryViewPort (xsize, ysize, draw_external);
 

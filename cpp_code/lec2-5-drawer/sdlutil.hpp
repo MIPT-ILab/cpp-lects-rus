@@ -15,17 +15,35 @@ enum class pollres
   STOP
 };
 
-void putpixel(SDL_Surface *surface, int x, int y, Uint32 color);
-void fillwith (SDL_Surface *screen, Uint32 color);
+struct ISurface
+{
+  virtual void putpixel(int x, int y, Uint32 color) = 0;
+  virtual void putlogpixel (double x, double y, Uint32 color) = 0;
+  virtual void fillwith (Uint32 color) = 0;
+  virtual unsigned w () const = 0;
+  virtual unsigned h () const = 0;
+};
+
+class SDLSurface : public ISurface
+{
+  SDL_Surface *s;
+public:
+  SDLSurface (SDL_Surface *surface) : s (surface) {}
+  unsigned w() const override { return s->w; }
+  unsigned h() const override { return s->h; }
+  void putpixel (int x, int y, Uint32 color) override;
+  void putlogpixel (double x, double y, Uint32 color) override;
+  void fillwith (Uint32 color) override;
+};
 
 class ViewPort
 {
   int width, height;
   SDL_Surface *screen;
-  std::function<void(SDL_Surface*)> callback;
+  std::function<void(ISurface*)> callback;
   static ViewPort *v;
 
-  ViewPort (int w, int h, std::function<void(SDL_Surface*)> c) 
+  ViewPort (int w, int h, std::function<void(ISurface*)> c) 
     : width (w), height (h), callback(c)
   {   
     if (SDL_Init(SDL_INIT_VIDEO) != 0)
@@ -42,7 +60,7 @@ public:
   void dump (const char *name);
 
   static ViewPort *
-  QueryViewPort (int w, int h, std::function<void(SDL_Surface*)> c)
+  QueryViewPort (int w, int h, std::function<void(ISurface*)> c)
   {
     if (!v)
       v = new ViewPort(w, h, c);
