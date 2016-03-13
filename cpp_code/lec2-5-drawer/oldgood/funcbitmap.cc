@@ -23,7 +23,7 @@ and_or_carpet (unsigned x, unsigned y)
 using ftype_t = unsigned (unsigned, unsigned);
 
 static void
-draw_internal (ISurface *s, ftype_t f,  unsigned delta)
+draw_internal (ISurface *s, ftype_t *f,  unsigned delta)
 {
   unsigned ix, iy;
   unsigned width = s->w();
@@ -41,19 +41,30 @@ draw_internal (ISurface *s, ftype_t f,  unsigned delta)
       }
 }
 
+struct data_internal
+{
+  unsigned delta;
+  ftype_t *f;
+};
+
+static void
+draw_external (ISurface *s, void *data)
+{
+  struct data_internal *d = (struct data_internal *) data;
+  draw_internal (s, d->f, d->delta);
+}
+
 int
 main ()
 {
-  unsigned delta = 0;
+  data_internal data = {0, &and_or_carpet};
 
-  auto draw_external = [=, &delta] (ISurface *s) { draw_internal (s, and_or_carpet, delta); };
+  ViewPort *v = ViewPort::QueryViewPort (xsize, ysize, draw_external, (void *)&data);
 
-  ViewPort *v = ViewPort::QueryViewPort (xsize, ysize, draw_external);
-
-  for (delta = 4; delta < 10; ++delta)
+  for (data.delta = 4; data.delta < 10; ++data.delta)
     {
       std::ostringstream oss;
-      oss << "funcmap" << delta << ".bmp";
+      oss << "funcmap" << data.delta << ".bmp";
       string s = oss.str();
       v->dump(s.c_str());
     }
