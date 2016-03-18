@@ -19,15 +19,16 @@ operator != (const OperatorMixin<T>& o1, const OperatorMixin<T>& o2)
 {
     return !(o1 == o2);
 }
-  
-struct Pair : public OperatorMixin<Pair> 
+
+template <typename T, typename U>  
+struct Pair : public OperatorMixin<Pair<T, U>> 
 { 
-  int m_x, m_y; 
-  Pair (int x, int y = 0): m_x(x), m_y(y) {}  
+  T m_x; U m_y; 
+  Pair (T x, U y = 0): m_x(x), m_y(y) {}  
 };  
 
 bool 
-operator < (const Pair &lhs, const Pair &rhs) 
+operator < (const Pair<int, int> &lhs, const Pair<int, int> &rhs) 
 { 
   return (lhs.m_x < rhs.m_x) || ((lhs.m_x == rhs.m_x) && (lhs.m_y < rhs.m_y)); 
 }  
@@ -35,13 +36,13 @@ operator < (const Pair &lhs, const Pair &rhs)
 int 
 main (void) 
 { 
-  Pair a (2);  
-  Pair b (2, 1);  
+  Pair <int, int> a (2);  
+  Pair <int, int> b (2, 1);  
   int c = 2, d = 2; 
   /* 1 */ assert (b != a);  
   /* 2 */ assert (c == d);
-  /* 3 */ assert (a == Pair(c));
-  /* 4 */ assert (Pair(d) == b); 
+  /* 3 */ assert ((a == Pair<int, int>(c)));
+  /* 4 */ assert ((Pair<int, int>(d) == b)); 
   return 0; 
 }
 
