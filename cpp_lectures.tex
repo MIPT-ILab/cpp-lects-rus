@@ -8654,9 +8654,9 @@ f_call (); //Equivalent to f (1,2,3)
 
 \begin{lstlisting}
 struct Foo {
-    Foo(int num) : num_(num) {}
-    void print_add(int i) const { std::cout << num_+i << '\n'; }
-    int num_;
+  Foo(int num) : num_(num) {}
+  void print_add(int i) const { std::cout << num_+i << '\n'; }
+  int num_;
 };
 \end{lstlisting}
 
@@ -8682,8 +8682,8 @@ reordered_call (3, 2, 1); // Same as f( 1 , 2 , 3 );
 
 \begin{lstlisting}
 void f(int n1, int n2, int n3, const int& n4, int n5) {
-    cout << n1 << ' ' << n2 << ' ' << n3 << ' ' 
-         << n4 << ' ' << n5 << endl;
+  cout << n1 << ' ' << n2 << ' ' << n3 << ' ' 
+       << n4 << ' ' << n5 << endl;
 }
 \end{lstlisting}
 
@@ -8774,27 +8774,27 @@ y = buz (foo(), bar());
 Сначала конструкторы и голова/хвост списка:
 
 \begin{lstlisting}
-auto List = [](auto ...xs) {
+auto List = [](auto ... xs) {
     return [=](auto access) { return access(xs...); };
 };
 
 auto head = [](auto xs) {
-    return xs([](auto first, auto ...rest) { return first; });
+    return xs([](auto first, auto ... rest) { return first; });
 };
 
 auto tail = [](auto xs) {
-    return xs([](auto first, auto ...rest) { return list(rest...); });
+    return xs([](auto first, auto ... rest) { return List(rest...); });
 };
 
 auto length = [](auto xs) {
-    return xs([](auto ...z) { return sizeof...(z); });
+    return xs([](auto ... z) { return sizeof...(z); });
 };
 \end{lstlisting}
 
 Это позволяет создавать списки ``как в SICP'' и делать над ними привычные операции:
 
 \begin{lstlisting}
-auto three = length(list(1, '2', "3")); 
+auto three = length(List(1, '2', "3")); 
 cout << three << endl;
 \end{lstlisting}
 
@@ -8815,9 +8815,14 @@ fmap: (a -> b) -> list[a] -> list[b]
 \begin{lstlisting}
 auto fmap = [](auto func) {
     return [func] (auto alist) {
-        return alist([func](auto... xs) { return List(func(xs)...); });
+      return alist(
+        [func](auto ... xs)
+          {
+            return List(func(xs)...);  
+          }
+      );
     };
-};
+  };
 \end{lstlisting}
 
 Например:
@@ -8829,6 +8834,14 @@ auto l1 = List(1, 2, 3, 4);
 auto l2 = fmap(twice)(l1);
 auto l3 = fmap(print)(l2);
 \end{lstlisting}
+
+\textbf{Вопрос к студентам:} в каком порядке будут выведены элементы списка?
+
+\ifanswers
+Правильный ответ: практически в любом. Внутри \lstinline!fmap! будет сгенерирован вызов конструктора списка, который берет на вход вызовы функций вывода.
+\fi
+
+\textbf{Домашняя наработка:} сделать \lstinline!fmap! с упорядоченными побочными эффектами.
 
 Критичной для монады является операция $flatmap: (a -> list[b]) -> list[a] -> list[b]$ её для простоты можно разложить (для списков) на конкатенацию:
 
@@ -8864,20 +8877,24 @@ auto flatten(Func f, A a, B... b)
 
 \begin{lstlisting}
 auto flatmap = [](auto func) {
-   return [func](auto alist) {
-       return alist([func](auto... xs) { return flatten(func, xs...);  });
+  return [func](auto alist) {
+    return alist(
+      [func](auto... xs) { 
+        return flatten(func, xs...);  
+      });
+  };
 };
 \end{lstlisting}
 
 Теперь можно сделать много интересных вещей со списком:
 	
 \begin{lstlisting}
-auto pair = [](auto i) { return list(-i, i); };
-auto count = [](auto... a) { return list(sizeof...(a)); };
+auto pair = [](auto i) { return List(-i, i); };
+auto count = [](auto... a) { return List(sizeof...(a)); };
  
-auto l1 = List(1, 2, 3);
-auto l2 = flatmap(pair)(l1);
-auto l3 = fmap(print)(l2); 
+auto l4 = List(1, 2, 3);
+auto l5 = flatmap(pair)(l4);
+auto l6 = fmap(print)(l5); 
 \end{lstlisting}
 
 По сути fmap и flatmap это уже монадические операции. Осталось привести их к стандартному виду операторов \lstinline!>! и \lstinline!>=!:
@@ -8899,9 +8916,15 @@ auto operator >= (LIST l, Func f)
 И вот, монада List получилась не хуже, чем в Haskell.
 
 \begin{lstlisting}
-auto l3 = 
+auto l7 = 
    List(1, 2, 3) >= pair > print;
 \end{lstlisting}
+
+\textbf{Домашняя наработка:} монадический подъём вычислений определяется как:
+$liftM2 :: Monad m => (a -> b -> c) -> m a -> m b -> m c$.
+Ваша задача сделать версию \lstinline!liftM2! для монады \lstinline!List! из этого примера.
+
+В эпиграф этого подраздела вынесена цитата из \url{http://eprints.nottingham.ac.uk/223/1/pearl.pdf} где рассматривается монадический подход к синтаксическому разбору программ.
 
 \pagebreak
 \subsection{Правила инстанцирования и SFINAE\index{SFINAE}}\label{SFINAESection}
