@@ -8,11 +8,36 @@ max (const T a, const T b)
   return (a > b) ? a : b;
 } 
 
+template<typename T>
+typename T::ElementT at (T const& a, int i) {
+  return a[i];
+}
+
+#if 0
+template <class T>
+struct item_return{ typedef typename T::ElementT type; };
+
+template <>
+struct item_return<int*> { typedef int type; };
+
 template<typename T> 
-typename T::ElementT at (T const& a, int i) 
+typename item_return<T>::type at (const T a, int i) 
 { 
     return a[i]; 
 } 
+
+template <>
+int at (int *a, int i)
+{
+  return a[i];
+}
+#endif
+
+template<typename T>
+auto at (T const& a, int i) -> decltype(a[i]) {
+  return a[i];
+}
+
 
 int
 f (int *p)
