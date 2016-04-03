@@ -1,0 +1,5 @@
+#include <metashell/scalar.hpp>
+#include "fact-simple.hpp"
+#msh mdb Simple::factorial<6>::value
+ft
+quit
