@@ -1,21 +1,21 @@
 namespace Iter {
 
-template <int n, int idx, int product>
-struct fact_rec
+template <unsigned n, unsigned idx, unsigned product>
+struct Fact_rec
 {
-  enum { value = fact_rec <n, idx + 1, product * idx>::value };
+  enum { value = Fact_rec <n, idx + 1, product * idx>::value };
 };
 
-template <int n, int product>
-struct fact_rec <n, n, product>
+template <unsigned n, unsigned product>
+struct Fact_rec <n, n, product>
 {
   enum { value = product * n };
 };
 
-template <int n>
-struct factorial
+template <unsigned n>
+struct Factorial
 {
-  enum { value = fact_rec <n, 1, 1> :: value };
+  enum { value = Fact_rec <n, 1, 1> :: value };
 };
 
 }

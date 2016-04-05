@@ -1,40 +1,45 @@
-#include <cstdio>
+#include <iostream>
 #include <utility>
+
+using std::cout; 
+using std::endl;
 
 struct Complex
 {
-public:
   constexpr Complex(double r = 0.0, double i = 0.0) : re(r), im(i) { }
 
-  class Imaginary {}; /* tag */
-  explicit constexpr Complex(Imaginary, double i) : re (0.0), im (i) {}
+  constexpr double real() const { return re;}
+  constexpr double imag() const { return im;}
 
-  constexpr double real() { return re;}
-  constexpr double imag() { return im;}
-
-  friend constexpr Complex operator+ (const Complex lhs, const Complex rhs);  
+  constexpr Complex& operator+= (const Complex &rhs) 
+  {
+    re += rhs.re;
+    im += rhs.im;
+    return *this;
+  }  
 
 private:
   double re;
   double im;
 };
 
-constexpr Complex operator+ (const Complex lhs, const Complex rhs)
+constexpr Complex operator+ (const Complex &lhs, const Complex &rhs)
 {
-  return Complex(lhs.re+rhs.re, lhs.im+rhs.im);
+  Complex tmp = lhs;
+  tmp += rhs;
+  return tmp;
 }
 
 constexpr Complex operator "" _i( long double i )
 {
-  return Complex{Complex::Imaginary{}, static_cast<double>(i)};
+  return Complex (0.0, i);
 }
 
 int 
 main (void)
 {
   constexpr Complex c = 0.0 + 1.0_i;
-
-  std::printf ("c: (%g, %g)\n", c.real(), c.imag());
+  cout << "c = " << c.real() << " + " << c.imag() << "i" << endl;
   return 0;
 }
 

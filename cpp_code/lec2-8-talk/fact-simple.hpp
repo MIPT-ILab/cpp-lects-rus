@@ -1,13 +1,13 @@
 namespace Simple {
 
-template <int n>
-struct factorial 
+template <unsigned n>
+struct Factorial 
 {
-  enum { value = n * factorial<n - 1>::value };
+  enum { value = n * Factorial<n - 1>::value };
 };
  
 template <>
-struct factorial<0> {
+struct Factorial<0> {
   enum { value = 1 };
 };
 
