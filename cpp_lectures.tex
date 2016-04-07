@@ -6191,7 +6191,9 @@ int main() {
 \pagebreak
 \section{Особая шаблонная магия}
 
-Шаблоны, введённые в C++ были в своё время введены туда экспериментально. Их не было ни в одном другом языке и никто по настоящему не знал, что из этого получится. Поэтому большинство интересных и важных свойств шаблонов не были разработаны. Они были открыты. На этой лекции нас тоже ожидают открытия.
+Шаблоны, введённые в C++ были в своё время введены туда экспериментально. Их не было ни в одном другом языке и никто по настоящему не знал, что из этого получится. Поэтому большинство интересных и важных свойств шаблонов не были разработаны. Они были открыты. В этом разделе читателя тоже ожидают открытия.
+
+Многие небезосновательно считают шаблонную подсистему языка C++ самой развитой и сложной в мире современного программирования (по крайней мере -- мейнстримного). Ещё интереснее взаимодействие этой подсистемы с объектно-ориентированными возможностями языка, а также потрясающие средства (такие как вариабельные шаблоны, кортежи и лямбда-выражения) которые становятся доступны для улучшения абстракций и порождения более компактного и быстрого кода. Но даже простые шаблоны функций, с которых и начинается изложение, таят в себе массу сюрпризов.
 
 \subsection{Шаблоны функций\index{function template}}\label{FunctionTemplates}
 
@@ -6255,29 +6257,29 @@ assert(test_minmax (3.0, 7.2));
 /* ... */
 \end{lstlisting}
 
-Положившись на аргументов шаблонными функциями. Он похож на вывод в \lstinline!auto! (\ref{DecltypeAuto}), но исторически он появился раньше и работает несколько слабее. Например:
+Положившись на аргументов шаблонными функциями. Он похож на вывод в \lstinline!auto! (\ref{DecltypeAuto}), но исторически он появился раньше и работает несколько слабее. Можно рассмотреть шаблонную функцию, принимающую указатель на некую функцию произвольного типа.
 
 \begin{lstlisting}
 template <typename Func> Func 
 deduce(const Func & f)
 \end{lstlisting}
 
-Здесь есть возможность вывести только тип функции, например для \lstinline!void f() {}! выведенным типом будет \lstinline!void(*)()!.
+Здесь для \lstinline!void f() {}! выведенным типом при вызове \lstinline!deduce(f)! будет \lstinline!void(*)()!. Но что если нужно вывести не тип указателя на функцию, а возвращаемый тип функции? Увы, с классическими шаблонами это сделать нелегко: тип выводится из типа аргумента и только. 
 
 \textbf{Вопрос к студентам:} какие новые возможности даёт здесь использование \lstinline!decltype!?
 
 \ifanswers
-Новый стандарт даёт вывести тип возвращаемого значения функции:
+Правильный ответ: способ довольно очевиден.
 
 \begin{lstlisting}
 template <typename Func>
 auto deduce(const Func & f) -> decltype(f())
 \end{lstlisting}
 
-В данном случае это будет \lstinline!void!
+В данном случае типом возвращаемого значения для \lstinline!deduce(f)! будет \lstinline!void!
 \fi 
 
-Шаблоны в современном C++ способны сворачивать ссылки так же как это делает \lstinline!auto!.
+При выводе типов шаблоны сворачивают ссылки (левые и правые) так же, как это делает \lstinline!auto!.
 
 \begin{lstlisting}
 template <typename T>
@@ -6303,11 +6305,11 @@ inline DstT implicit_cast (SrcT const& x)
 double value = implicit_cast<double>(-1); 
 \end{lstlisting}
 
-В 2017 году вывод введут также и для шаблонов классов. Вернее для конструкторов шаблонных классов, но это одно и то же с практической точки зрения.
+При этом второй тип легко выводится из типа аргумента и его можно не указывать.
 
 \subsubsection{Обобщенность и неожиданности}\label{GenericCode}
 
-Пока всё хорошо. Но обобщённые функции могут принимать переменные любого рода. Пусть имеется очень простая структура, определяющая имя и возраст человека
+Пока что с функциями \lstinline!max! и \lstinline!min! всё было хорошо -- все три теста проходят, в чем несложно убедиться. Но обобщённые функции могут принимать переменные любого рода. Пусть имеется очень простая структура, определяющая имя и возраст человека
 
 \begin{lstlisting}
 struct Person
@@ -6464,7 +6466,7 @@ max (T const& a, T const& b) { /* ... */ }
 
 \subsubsection{Управление инстанцированием шаблонов функций}\label{InstancingFuncs}
 
-Довольно простая функция с довольно простым использованием:
+Пусть задана довольно простая шаблонная функция с довольно простым использованием -- возведение в квадрат чисел разных типов.
 
 \begin{lstlisting}
 template<class T>
@@ -6507,7 +6509,7 @@ double square<double>(double);
 \end{lstlisting}
 \fi
 
-Вопрос мотивирует какие-то способы исследования реального результата работы компилятора в области подстановки шаблонов. Приведенный в ответе:
+Вопрос мотивирует какие-то способы исследования реального результата работы компилятора в области подстановки шаблонов. Приведенный в ответе вызов
 
 \begin{verbatim}
 $ objdump -tC square.o
@@ -6646,9 +6648,8 @@ get_distance (const T &lhs, const T & rhs)
 Для примера:
 
 \begin{lstlisting}
-class Pred
+struct Pred 
 {
-public:
   int operator()(int x);
 };
 \end{lstlisting}
@@ -6700,8 +6701,8 @@ filtered_sum (nums, 10, p); // ok;
 Ответ: стандарт языка C99 регламентирует (пункт 7.20.5.2) следующую сигнатуру:
 
 \begin{lstlisting}
-void qsort(void *base, size_t nmemb, size_t size, 
-           int (*compar)(const void *, const void *));
+void qsort (void *base, size_t nmemb, size_t size, 
+            int (*compar)(const void *, const void *));
 \end{lstlisting}
 \fi
 
@@ -6718,7 +6719,7 @@ void qsort(void *base, size_t nmemb, size_t size,
 /* we suppose that Element class have 
    operator< () redefinition */
 template <typename Element>
-void qsortpp(Element *base, size_t nmemb);
+void qsortpp (Element *base, size_t nmemb);
 \end{lstlisting}
 
 Это лучше, проще, более безопасно относительно типов и это гораздо эффективнее. Платой за это является объём кода, который компилятор теперь сгенерирует для каждой инстанциации \lstinline!qsort!, но это недорого.
@@ -6726,8 +6727,9 @@ void qsortpp(Element *base, size_t nmemb);
 На самом деле стандарт C++98 регламентирует (\cite{stdcpp98} 25.3.1.1) даже более изящную сигнатуру для стандартной сортировки:
 
 \begin{lstlisting}
-template<class RandomAccessIterator>
-void sort(RandomAccessIterator first, RandomAccessIterator last);
+template <class RandomAccessIterator>
+void sort (RandomAccessIterator first, 
+           RandomAccessIterator last);
 \end{lstlisting}
 
 Но вся её мощь, красота и обобщённость проявятся позже, когда речь пойдёт о стандартной библиотеке.
@@ -6808,7 +6810,7 @@ template <>
 class Stack<int> { ... };
 \end{lstlisting}
 
-Такая запись создаёт отдельное поведение для стеков, инстанцированных целыми числами. Реализация и поведение такого шаблона могут не иметь вообще ничего общего с исходным. Это создаёт почти такую же радость при чтении кода на C++ как перегрузка операторов и неявные приведения.
+Такая запись создаёт отдельное поведение для стеков, параметризованных целыми числами. Реализация и поведение такого шаблона могут не иметь вообще ничего общего с исходным. Это создаёт почти такую же радость при чтении кода на C++ как перегрузка операторов и неявные приведения.
 
 Важным является тот факт, что специализация всегда должна физически в коде следовать общему шаблону (The declaration of a specialization must always follow the declaration of the template which is being specialized (14.7.3/3)) и поэтому нельзя сначала написать специализированную версию, а потом общую -- общая версия долна быть хотя бы \textbf{объявлена} раньше.
 
@@ -6819,7 +6821,7 @@ template <typename T> void foo(T);
 template <typename T> void foo(T*); 
 
 // specialization of both foo(T) and foo(T*)
-template <>           void foo<int>(int*); 
+template <> void foo<int>(int*); 
 
 foo(new int); // calls foo<int>(int*);
 \end{lstlisting}
@@ -6829,7 +6831,7 @@ foo(new int); // calls foo<int>(int*);
 \begin{lstlisting}
 template <typename T> void foo(T);
 // specialization of foo(T)
-template <>           void foo<int*>(int*); 
+template <> void foo<int*>(int*); 
 template <typename T> void foo(T*);
 
 foo(new int); // calls foo(T*) !!!
@@ -6849,39 +6851,40 @@ foo(new int); // calls foo(T*) !!!
 
 \subsubsection{Частичная специализация\index{partial specialization}}\label{PartialSpec}
 
-Суть частичной специализации в том, что вы пишете отдельный код для определённых обстоятельств инстанциирования, но часть параметров этого кода всё ещё задаёт шаблон. При исходном шаблоне
+Суть частичной специализации в том, что вы пишете отдельный код для случая когда только часть параметров исходного шаблона зафиксирована в некоторых значениях (или ограниченая некоторыми условиями). При исходном шаблоне
 
 \begin{lstlisting}
 template <typename T, typename U> class MyClass { ... };
 \end{lstlisting}
 
-Мы можем написать например такие специализации
+Возможно написать, например, такие специализации
 
 \begin{lstlisting}
-/* partial specialization: both template parameters have same type */ 
+/* partial specialization: T = U */ 
 template <typename T> class MyClass<T,T> { ... }; 
-/* partial specialization: second type is int template <typename T> */ 
+/* partial specialization: U = int */ 
 class MyClass<T,int> { ... }; 
-/* partial specialization: both template parameters are pointer types */
-template <typename T1, typename T2> class MyClass<T1*,T2*> { ... };
+/* partial specialization: T = T1*, U = T2* */
+template <typename T1, typename T2> 
+class MyClass<T1*,T2*> { ... };
 \end{lstlisting}
 
-И далее посмотрим как конкретные объявления будут раскрыты.
+И далее при подстановке конкретных типов будет инстанцирована та или иная специализация.
 
 \begin{lstlisting}
-MyClass<int,float> mif;    /* uses MyClass<T1,T2> */ 
-MyClass<float,float> mff;  /* uses MyClass<T,T> */ 
-MyClass<float,int> mfi;    /* uses MyClass<T,int> */ 
-MyClass<int*,float*> mp;   /* uses MyClass<T1*,T2*> */
+MyClass<int,float> mif;   /* uses MyClass<T1,T2> */ 
+MyClass<float,float> mff; /* uses MyClass<T,T> */ 
+MyClass<float,int> mfi;   /* uses MyClass<T,int> */ 
+MyClass<int*,float*> mp;  /* uses MyClass<T1*,T2*> */
 \end{lstlisting}
 
 Учтите, что если под некое объявление подходят сразу два варианта частичной специализации, то это ошибка
 
 \begin{lstlisting}
-MyClass<int,int> m;        // ERROR: matches MyClass<T,T> 
-                           //        and MyClass<T,int> 
-MyClass<int*,int*> m;      // ERROR: matches MyClass<T,T> 
-                           //        and MyClass<T1*,T2*>
+MyClass<int,int> m;   // ERROR: matches MyClass<T,T> 
+                      //        and MyClass<T,int> 
+MyClass<int*,int*> m; // ERROR: matches MyClass<T,T> 
+                      //        and MyClass<T1*,T2*>
 \end{lstlisting}
 
 Можно исправить ошибку сделав уникально подходящий шаблон
@@ -6957,7 +6960,57 @@ s.push_back (x);
 
 \subsubsection{Разрешение имён}
 
-Следующий пример из \cite{vandervoord} показывает, что особенности разрешения имён шаблонами могут требовать явного указания какая функция вызывается:
+Шаблоны имеют дело с именами -- заменой имени для типа, выводом имени, разрешением имени. Очень сложные и очень тонкие баги связаны с разрешением имен шаблонами и почти все эти баги основываются на том, что программист не видит тонкого различия между зависимым и независимым именем.
+
+Зависимое имя -- это имя, которое семантически зависит от шаблонного параметра. Шаблонный параметр может быть его типом, он может участвовать в формировании типа и так далее.
+
+Золотыми буквами в памяти надо выбить фразу: \textbf{Разрешение зависимых имен откладывается до подстановки шаблонного параметра}.
+
+Потренируемся:
+
+\begin{lstlisting}
+// template for foo
+template<typename T> void 
+foo (T) 
+{ 
+  cout << "T"; 
+}
+
+struct S { };
+
+// t is dependent from T, s -- not
+template<typename T> void 
+call_foo (T t) 
+{
+  S x;
+  foo (x);
+  foo (t); 
+}
+
+// non-template overload
+void 
+foo (S) 
+{   
+  cout << "S"; 
+}
+
+int 
+main () 
+{
+  S x; 
+  call_foo (x); 
+}
+\end{lstlisting}
+
+\textbf{Вопрос к студентам:} что на экране?
+
+\ifanswers
+Правильный ответ: TS. 
+
+Более специальная функция \lstinline!foo! просто ещё не объявлена в точке вызова \lstinline!foo(x)!, а вот разрешение вызова \lstinline!foo(t)! откладывается до подстановки \lstinline!t!, которая происходит после объявления более специальной функции.
+\fi
+
+Полезный пример из \cite{vandervoord} даёт обратную картину: здесь \lstinline!Base::exit! ещё не существует, а имя функции \lstinline!exit! независимо от шаблонного параметра, поэтому оно ``схватит'' первую попавшуюся, скорее всего глобальную функцию \lstinline!exit!.
 
 \begin{lstlisting}
 template <typename T> 
@@ -6978,7 +7031,15 @@ public:
 }; 
 \end{lstlisting}
 
-TODO: больше о разрешении имён?
+\textbf{Вопрос студентам:} что же делать.
+
+\ifanswers
+Правильный ответ: сделать \lstinline!exit! зависимым именем, например явно употребив \lstinline!Base::exit()!
+\fi
+
+Итак, я надеюсь, теперь все стало понятнее. Если нет, то вам не повезло.
+
+В последнем примере говорилось про \lstinline!Base::exit!, а не про \lstinline!Base<T>::exit!, потому что для удобного оперирования именами в специализациях и шаблонах разрешено их сокращенное употребление:
 
 \begin{lstlisting}
 template <class T> class A {
@@ -6990,15 +7051,11 @@ template <class T> class A<T*> {
 };
 \end{lstlisting}
 
+К счастью, классы нельзя перегружать, иначе все вообще бы запуталось.
+
 \subsubsection{Исследование инстанцирования шаблонов классов}\label{ControlInstancing}
 
-TODO: Сначала про полезную опцию frepo в gcc
-
-Далее про то, как зафорсить и запретить инстанцирование конкретного метода
-
-Далее про то, как сделать это с целым классом
-
-Ну и можно ещё немного про новую возможность: инстанцирование безымянными типами и исследование их имен.
+TODO: на примере Stack
 
 \pagebreak
 \subsection{Шаблоны и ООП}
