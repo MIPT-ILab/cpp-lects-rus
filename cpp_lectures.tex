@@ -12806,7 +12806,18 @@ asio
 
 \hfill\textit{-- Immanuel Kant}
 
-Почти классический пример обобщенного кода: функция для нахождения элемента в диапазоне.
+Любая компьютерная программа, если рассматривать её просто как текст, имеет двух читателей: 
+
+\begin{itemize}
+\item
+Во-первых программу читает (и иногда пишет) разработчик, который, используя \textit{интерпретационную семантику} того или иного языка, оперирует смыслом (семантическим смыслом) его правильно сформированных выражений. Так смыслом выражения \lstinline!a+b! в терминах Фреге является ``сложение величин a и b'', а денотатом этого выражения -- численное значение их суммы. Есть очень большое количество корректных и разных синтаксических форм для семантически эквивалентных конструкций (пример: бесконечный цикл).
+\item
+Во-вторых, программу читает (обрабатывает) компилятор. Компилятор пользуется \textit{операционной семантикой}, сопоставляя операциям высокого уровня более низкоуровневые способы их выполнения, отчего эту семантику часто так же называют \textit{трансформационной}. В трансформационной семантике очень важны типы. Так выражению имеющему смысл сложения величин могут быть сопоставлены принципиально разные инструкции целевой архитектуры в зависимости от того являются эти числа целыми или с плавающей точкой.
+\end{itemize}
+
+Именно тот факт, что интерпретация выражений высокоуровневых языков часто совершенно не зависит от типов этих выражений, позволяет обобщенное программирование как таковое.
+
+Почти классический пример обобщенного кода: функция для нахождения элемента в диапазоне (диапазон здесь может быть вектором, списком, декой, множеством, пользовательским типом, согласующимся с сокращенным синтаксисом \lstinline!for!). Это (а также тип элемента) серьёзно повлияет на конкретный сгенерированный код, но совсем не повлияет на смысл и интерпретацию следующей простой конструкции:
 
 \begin{lstlisting}
 template<typename R, typename T> bool 
@@ -12823,7 +12834,7 @@ in (R const& range, T const& value)
 
 \begin{lstlisting}
 vector<string> v { "0", "1", "2" };
-in(v, 0);
+bool is_in = in (v, 0);
 \end{lstlisting}
 
 %\ifanswers
@@ -12856,93 +12867,106 @@ is not derived from ‘const __gnu_cxx::__normal_iterator
 Это только крошечный кусочек из простыни которую выдаст gcc-5.2
 %\fi
 
-Хочется задавать явные ограничения на статический полиморфизм, например так:
+\textbf{Домашняя наработка:} попробуйте скомпилировать ещё более простой код:
 
 \begin{lstlisting}
-template<typename R, typename T>
-requires Range<R>() 
-         && Equality_comparable<T, Value_type<R>>()
-bool 
-in(R const& range, T const& value);
+class X {};
+std::set<X> x;
+x.insert(X{});
 \end{lstlisting}
 
-Это конечно светлая мечта, но это мотивирующий пример. Что для этого уже есть в C++ до нового стандарта в 17-м году?
+В своё время обобщенное программирование на C++ сильно споткнулось об это. Эти знаменитые простыни ошибок, которые заставляли даже опытных разработчиков кричать и плакать как детей.
 
-\subsubsection{Способы контроля полиморфизма}
+И, конечно, все всегда понимали, что с этим надо что-то делать.
 
-Гораздо более простая функция
+\subsubsection{Добрые старые способы контроля полиморфизма}
+
+В этом разделе будут рассмотрены методы, работающие для C++14. Поскольку это часто связано с написанием большого количества кода, лучше в качестве рабочего примера рассмотреть очень простую обобщенную функцию проверки значений двух разных типов на равенство.
 
 \begin{lstlisting}
-template <typename T> T
-gcd (T a, T b)
-{
-  unsigned r = a % b;
-
-  while (r != 0)
-    {
-      a = b;
-      b = r;
-      r = a % b;
-    }
-
-  return b;
+template <typename T, typename U> bool
+check_eq (T &&lhs, U &&rhs) {
+  return (lhs == rhs);
 }
 \end{lstlisting}
 
-Её можно использовать правильно:
+Её также можно использовать правильно или ошибочно.
 
 \begin{lstlisting}
-long
-bar (long x, long y)
-{
-  long z = gcd(x, y);
-  return z + 1;
+// no operator ==  here
+struct noeq {
+  noeq (int x) {}
+};
+
+int main (void) {
+  check_eq (1, 1);       // ok
+  check_eq (1, 1.0);     // ok
+  check_eq (1, noeq(1)); // problems
+  return 0;
 }
 \end{lstlisting}
 
-И можно использовать ошибочно:
-
-\begin{lstlisting}
-string
-foo (string u, string v)
-{
-  string s = gcd (u, v);
-  return s + "1";  
-}
-\end{lstlisting}
-
-В случае ошибочного использования, ошибок компиляции немного и их легко читать (увы, так будет не всегда, как было видно из мотивирующего примера выше):
+В случае ошибочного использования, ошибка компиляции выглядит очень простой:
 
 \begin{verbatim}
-enif.cc: In instantiation of ‘T gcd(T, T) 
-[with T = std::__cxx11::basic_string<char>]’:
-enif.cc:31:23:   required from here
-enif.cc:9:18: error: no match for ‘operator%’ 
-(operand types are ‘std::__cxx11::basic_string<char>’ 
-and ‘std::__cxx11::basic_string<char>’)
-   unsigned r = a % b;
-                  ^
-enif.cc:15:13: error: no match for ‘operator%’ 
-(operand types are ‘std::__cxx11::basic_string<char>’ 
-and ‘std::__cxx11::basic_string<char>’)
-       r = a % b;
+eqcomp00.cc: In instantiation of 
+  ‘bool check(T&&, U&&) [with T = int; U = noeq]’:
+eqcomp00.cc:13:20:   required from here
+eqcomp00.cc:3:15: error: no match for 
+  ‘operator==’ (operand types are ‘int’ and ‘noeq’)
+   return (lhs == rhs);
 \end{verbatim}
 
-Простейший способ который приходит в голову это влепить 
+Но, тем не менее, хотелось бы вместо неё иметь нечто осмысленное.
+
+Простейший способ, и, обычно, первый, который приходит в голову новичку, это влепить статическую проверку.
 
 \begin{lstlisting}
-  static_assert (is_integral<T>::value,
-                 "Integral type required");
+static_assert (is_equality_comparable<T, U>::value, 
+              "Comparable types required");
 \end{lstlisting}
 
-Увы, \lstinline!static_assert! в языке нужен не для этого. Он не мешает компилятору разобрать функцию, а защищает от ошибок, которые вызваны несовпадением статических контрактов.
+Для этого надо сначала понять, что такое \lstinline!is_equality_comparable!. В стандарте C++14 ничего такого нет, но хороший программист без труда спляшет это ограничение на SFINAE в C++14.
+
+\begin{lstlisting}
+template <typename T, typename U, typename = void>
+struct is_equality_comparable : std::false_type {};
+
+// I feel really C++ here
+template <typename T, typename U>
+struct is_equality_comparable <T, U,
+    decltype ((void)(std::declval<T&>() == std::declval<U&>()))
+  > : std::true_type {};
+\end{lstlisting}
+
+Стало ли лучше?
+
+\begin{verbatim}
+eqcomp00.cc: In instantiation of 
+  ‘bool check(T&&, U&&) [with T = int; U = noeq]’:
+eqcomp00.cc:28:27:   required from here
+eqcomp00.cc:16:3: error: static assertion failed: 
+   Comparable types required
+   static_assert (is_equality_comparable<T, U>::value, 
+   ^
+eqcomp00.cc:18:15: error: no match for 
+   ‘operator==’ (operand types are ‘int’ and ‘noeq’)
+   return (lhs == rhs);
+\end{verbatim}
+
+Стало хуже. Мы получили static assertion failure и \textbf{вдобавок} instantiation failure.
+
+Проблема в том, что эти ошибки проявляются \textbf{поздно}. Компилятор уже начал инстанцирование шаблона и он уже прошел по этому пути достаточно далеко. Наличие или отсутствие failures далее ничего не значат. Таким образом, \lstinline!static_assert! в языке нужен не для этого. Он не мешает компилятору разобрать функцию, а защищает от ошибок, которые вызваны несовпадением статических контрактов.
 
 Гораздо интереснее использовать \lstinline!enable_if!, который даёт возможность выбросить функцию из рассмотрения:
 
 \begin{lstlisting}
-template <typename T>
-typename std::enable_if<is_integral<T>::value, T>::type
-gcd (T a, T b)
+// Wow, I am even MORE C++ now
+template <typename T, typename U,
+          typename = std::enable_if_t <
+             is_equality_comparable<T, U>::value>
+          >
+bool check (T &&lhs, U &&rhs);
 \end{lstlisting}
 
 В \lstinline!enable_if<false, T>! нет зависимого типа \lstinline!enable_if<false, T>::type! и происходит классический случай SFINAE, см. (\ref{SFINAE}).
@@ -12950,34 +12974,50 @@ gcd (T a, T b)
 Ошибка выглядит более вразумительно:
 
 \begin{verbatim}
-enif.cc:28:23: error: no matching function for call 
-to ‘gcd(std::__cxx11::string&, std::__cxx11::string&)’
-   string s = gcd (u, v);
+eqcomp01.cc:27:20: error: 
+  no matching function for call to ‘check(int, noeq)’
+   check (1, noeq(1));
+
+eqcomp01.cc:18:6: note: candidate: 
+  template<class T, class U, class> bool check(T&&, U&&)
+  bool check (T &&lhs, U &&rhs);
+       ^
+eqcomp01.cc:18:6: note:   
+  template argument deduction/substitution failed
 \end{verbatim}
 
-Инстанцирования такой функции просто не происходит. Тем не менее, сложно не видеть, что синтаксис для вышивания на \lstinline!enable_if! переусложнен и требует для блокирования подстановки завязываться на возвращаемый тип, который в общем не при чём.
+Инстанцирования такой функции просто не происходит. Тем не менее, сложно не заметить, что синтаксис для вышивания на \lstinline!enable_if! переусложнен и требует для блокирования подстановки завязываться на третий шаблонный параметр, который в общем не при чём.
 
 \subsubsection{Простые ограничения\index{Constraints}}\label{Constraints}
 
 Введение в новый стандарт синтаксического сахара для таких конструкций было практически неизбежным.
 
 \begin{lstlisting}
-template <typename T>
-requires is_integral<T>::value
-T gcd (T a, T b)
+template <typename T, typename U>
+requires is_equality_comparable<T, U>::value
+bool check (T &&lhs, U &&rhs);
 \end{lstlisting}
 
 Теперь правильное использование всё так же идёт без ошибок, а неправильное выдает простую ошибку:
 
 \begin{verbatim}
-enif.cc:8:3: note:   constraints not satisfied
- T gcd (T a, T b)
-   ^~~
-enif.cc:8:3: note:   
-‘std::is_integral<_Tp>::value’ evaluated to false
+eqcomp01s.cc: In function ‘int main()’:
+eqcomp01s.cc:27:20: error: cannot call function 
+  ‘bool check(T&&, U&&) [with T = int; U = noeq]’
+   check (1, noeq(1));
+                    ^
+eqcomp01s.cc:18:6: note:   constraints not satisfied
+ bool check (T &&lhs, U &&rhs);
+      ^~~~~
+eqcomp01s.cc:18:6: note:   
+   ‘is_equality_comparable<T, U>::value’ evaluated to false
 \end{verbatim}
 
+Главное в этой ошибке то, что она, как и в случае \lstinline!enable_if!, выдается \textbf{рано}, то есть задолго до того, как компилятор реально полез инстанцировать что бы то ни было. Sutton сообщал об уменьшении времени компиляции хорошо ограниченного таким образом кода на десятки процентов.
+
 Явная запись \lstinline!requires! в таком контексте называется ограничением (constraint) и в данном случае использует для проверки ограничения функцию стандартной библиотеки.
+
+Также это является \textit{requires-clause} -- собственно ограничением. Немного позже будут введены \textit{requires-expressions} -- то, что будет называться ограничивающими выражениями. Уже сейчас хочется предупредить, что их нельзя путать.
 
 Несмотря на то, что в этом разделе ограничения вводятся как ограничения для обобщенного программирования, на самом деле в них нет ничего магического: это обычный C++ и они могут использоваться с обычными функциями:
 
@@ -12989,34 +13029,454 @@ requires sizeof(int) == 4
 }
 \end{lstlisting}
 
-Констрейнты работают лениво: возможное нарушение размера целого будет проверено только в точке вызова этой функции.
-
-\subsubsection{От ограничений к концептам}
-
-Очевидная проблема с простыми ограничениями: они не расширяемы. Если есть некий тип \lstinline!BigInt!, передать его в написанную выше функцию \lstinline!gcd!. На самом деле требования к этой функции проще: у входного объекта должна быть операция деления по модулю и сравнения с нулем.
+И даже более того, нешаблонные функции могут быть ограничены охватывающими шаблонными параметрами:
 
 \begin{lstlisting}
 template <typename T>
-concept bool Numeric = requires (T x, T y)
-{
-  {x % y} -> T;
-  {x != 0} -> bool;
+class vector {
+  // ....
+  // we have copy ctor only if T copyable
+  requires std::is_copyable<T>::value
+  vector (const vector&);
 };
 \end{lstlisting}
 
-Простой концепт, объявленный выше, утверждает, что тип \lstinline!T! может считаться \lstinline!Numeric! если и только если для любых его значений \lstinline!x! и \lstinline!y! результат их деления по модулю приводим к \lstinline!T!, а результат сравнения с нулём приводим к \lstinline!bool!.
+\textbf{Домашняя наработка:} попробуйте такое сделать на \lstinline!enable_if! просто чтобы понять масштаб упрощения.
 
-Его использование также несложно и приятно:
+Констрейнты работают лениво: возможное нарушение размера целого будет проверено только в точке вызова этой функции. Нет вызова -- нет проблем.
+
+\textbf{Вопрос к студентам:} кстати об ограничениях на ограничения. А как вы думаете, виртуальные функции могут быть ограничены подобным образом?
+
+\subsubsection{Пример -- перегрузка конструкторов}
+
+Во многих случаях даже простых констрейнтов достаточно, чтобы чудесно упрощать код. Типичная задача -- внутри обобщенного класса иметь отдельно конструктор из плавающих и отдельно из целочисленных типов (пример взят из доклада Роджера Орра на ACCU 2016). 
+
+Если решать эту задачу на бумажке, на ум приходит решение в старом добром стиле.
 
 \begin{lstlisting}
-template <Numeric T>
-T gcd (T a, T b)
-{
-  /* all the same */
+struct Foo {
+  enum {int_like, float_like} type_;
+
+  template <typename Int, 
+            typename = std::enable_if_t<
+              std::is_integral<Int>::value>
+            >
+  Foo (Int x) : type_(int_like) { 
+    std::cout << "int like: " << x; 
+  }
+
+  template <typename Float, 
+            typename = std::enable_if_t<
+              std::is_floating_point<Float>::value>
+            >
+  Foo (Float x) : type_(float_like)  { 
+    std::cout << "float like: " << x; 
+  }
+};
+
+int main () {
+  Foo (1);
+  Foo (5.0);
+  return 1;
+}
+\end{lstlisting}
+
+Увы, у него есть небольшой недостаток -- оно не скомпилируется.
+
+\begin{verbatim}
+ctorex01.cc:13:3: error: 
+  ‘template<class Float, class> Foo::Foo(Float)’ 
+   Foo (Float x) : type_(float_like)     
+   ^~~
+ctorex01.cc:9:3: error: with 
+  ‘template<class Int, class> Foo::Foo(Int)’
+   Foo (Int x) : type_(int_like)
+\end{verbatim}
+
+Шаблонные функции просто не могут быть перегружены по имени шаблонного параметра. Впрочем, танки грязи не боятся и немного времени в отладчике приводит к более интересному решению.
+
+\begin{lstlisting}
+struct Foo {
+
+  enum {int_like, float_like} type_;
+
+  template <int> struct dummy { dummy(int) {} };
+
+  template <typename Int,
+            typename = std::enable_if_t<
+              std::is_integral<Int>::value>
+            >
+  Foo (Int x, dummy<0> = 0) : type_(int_like)
+  {
+    std::cout << "int like: " << x << std::endl;
+  }
+
+  template <typename Float,
+            typename = std::enable_if_t<
+              std::is_floating_point<Float>::value>
+            >
+  Foo (Float x, dummy<1> = 0) : type_(float_like)
+  {
+    std::cout << "float like: " << x << std::endl;
+  }
 };
 \end{lstlisting}
 
-Попытка использования с типом \lstinline!string! теперь дает простую ошибку, заключающуюся в том, что концепт \lstinline!Numeric! не удовлетворен.
+Теперь все хорошо, но опять ценой некоторой избыточности. В то же время даже с самыми простыми ограничениями та же задача решается как персик.
+
+\begin{lstlisting}
+struct Foo {
+
+  enum {int_like, float_like} type_;
+
+  template <typename Int>
+  requires std::is_integral<Int>::value
+  Foo (Int x) : type_(int_like)
+  {
+    std::cout << "int like: " << x << std::endl;
+  }
+
+  template <typename Float>
+  requires std::is_floating_point<Float>::value
+  Foo (Float x) : type_(float_like)
+  {
+    std::cout << "float like: " << x << std::endl;
+  }
+
+};
+\end{lstlisting}
+
+Со скромной точки зрения автора, даже если бы ограничения ввели только в виде простых ограничений, это серьёзно разгрузило бы метапрограммирование во многих практически важных контекстах.
+
+\subsubsection{Сложные ограничения}
+
+Простыми ограничениями можно написать три вида выражений: предикаты, конъюнкции предикатов и дизъюнкции предикатов.
+
+\textbf{Вопрос к студентам:} пусть задан предикат:
+
+\begin{lstlisting}
+template <typename T>
+constexpr int somepred() {
+  return 14;
+}
+\end{lstlisting}
+
+выполняются или нет указанные констрейнты для функции \lstinline!check! если первый терм ложен?
+
+\begin{lstlisting}
+template <typename T, typename U>
+requires is_equality_comparable<T, U>::value &&
+         (somepred<T>() == 14) || 
+         (somepred<U>() == 88)
+bool check (T &&lhs, U &&rhs);
+\end{lstlisting}
+
+\ifanswers
+Правильный ответ: конечно нет, так как \lstinline!false && true || false! по обычной схеме дает false
+\fi
+
+К сожалению, это не всё, что может быть нужно от ограничений. Простой пример: как избавиться от шаблонного определения \lstinline!is_equality_comparable!? Для этого может быть использовано сложное ограничение, использующее ограничивающие выражения (requires-expressions).
+
+\begin{lstlisting}
+template <typename T, typename U>
+requires requires(T t, U u) { t == u; }
+bool check (T&& lhs, U&& rhs);
+\end{lstlisting}
+
+Ключевое слово \lstinline!requires! упомянутое дважды делает именно это -- открывает ограничение, после чего вместо предиката использует в нем ограничивающее выражение.
+
+Ограничивающие выражения похожи на константно-выраженные функции. Но в них есть своя магия. Есть три основных типа сложных ограничивающих выражений:
+
+\begin{enumerate}
+\item Базовые ограничивающие выражения -- проверяют наличие операции и на этом всё.
+
+\begin{lstlisting}
+template <typename T>
+requires requires (T a, T b) {
+           a + b;
+         }
+T test1 (T, T);
+\end{lstlisting}
+
+Такое же было использовано выше в примере с \lstinline!check!
+
+\item Ограничивающие выражения для типов -- проверяют наличие типа.
+
+\begin{lstlisting}
+template <typename T>
+requires requires() {
+           typename T::inner;
+         }
+T test2 (T, T);
+\end{lstlisting}
+
+\item Составные ограничивающие выражения -- проверяют и операцию и выводимый тип.
+
+\begin{lstlisting}
+template <typename T>
+requires requires(T x) {
+           {*x} -> typename T::inner;
+         }
+T test3 (T, T);
+\end{lstlisting}
+
+\end{enumerate}
+
+Немножко практики. Пусть даны структуры, отвечающие некоторым из упомянутых выше требований.
+
+\begin{lstlisting}
+struct HasInner {
+  using inner = int;
+};
+
+struct HasDeref {
+  using inner = int;
+  inner operator*();
+};
+\end{lstlisting}
+
+Можно посмотреть какие выполняются и не выполняются в каких случаях.
+
+\begin{lstlisting}
+int
+main (void) {
+  test1(1, 1);
+  test1(HasInner{}, HasInner{}); // no +
+  test2(HasInner{}, HasInner{});
+  test2(1, 1); // no inner
+  test3(HasDeref{}, HasDeref{});
+  test3(HasInner{}, HasInner{}); // no deref
+}
+\end{lstlisting}
+
+Разумеется сложные ограничивающие выражения можно комбинировать.
+
+\begin{lstlisting}
+template <typename T>
+requires requires(T x) {
+           {*x} -> typename T::inner;
+         } &&
+         requires() {
+           typename T::inner;
+         } &&
+         requires (T a, T b) {
+           a + b;
+         }
+T test4 (T, T);
+\end{lstlisting}
+
+\textbf{Вопрос к студентам:} написать тип, который подойдет под такое ограничение.
+
+\ifanswers
+Вариант ответа:
+\begin{lstlisting}
+struct HasPlus {
+  using inner = int;
+  inner operator*();
+  void operator+(HasPlus x);
+};
+\end{lstlisting}
+\fi
+
+Сложные ограничения позволяют очень многое (неожиданно многое) но они имеют несколько сложный синтаксис, поэтому сложные примеры следует отложить до введения простого способа выносить сложные ограничения в общую часть -- собственно концептов (мы до них добрались, да).
+
+\subsubsection{Простые концепты}
+
+Выше уже можно было увидеть, что сложные ограничения могут быть очень сложны, а главное -- всегда есть желание их переиспользовать, а не писать каждый раз заново.
+
+Например, каким ограничениям может удовлетворять тип, чтобы быть последовательностью с обратной вставкой (Sequence)? Он должен иметь следующее:
+
+\begin{enumerate}
+\item тип \lstinline!T::element_type! для указания своего типа элементов
+\item метод \lstinline!size()! для проверки размера, возвращающая \lstinline!size_t!
+\item метод \lstinline!empty()! для проверки пустоты, возвращающий \lstinline!bool!
+\item метод \lstinline!back()! для получения последнего элемента, возвращающий \lstinline!T::element_type!
+\item метод \lstinline!push_back()! для вставки в конец последовательности
+\end{enumerate}
+
+Простой концепт для такого класса типов можно определить как (это можно пошагово разобрать у доски).
+
+\begin{lstlisting}
+template <typename T>
+concept bool Sequence() {
+  return
+    requires { typename T::element_type; } &&
+    requires (T t, typename T::element_type x) {
+      { t.size() } -> size_t;
+      { t.empty() } -> bool;
+      { t.back() } -> typename T::element_type;
+      { t.push_back(x) } // not specified (!)
+    };
+}
+\end{lstlisting}
+
+Далее весь этот концепт можно использовать внутри ограничения
+
+\begin{lstlisting}
+template <typename T> 
+requires Sequence<C>
+void fill_with_random (C &x, int n);
+\end{lstlisting}
+
+Есть некие ограничения на то, как могут быть устроены простые концепты-функции: они всегда возвращают \lstinline!bool!, никогда не принимают аргументов, состоят только из одного \lstinline!return! (похоже на старые добрые константно-выраженные функции в C++11) и не могут быть ни объявлены а позже определены, ни сделаны функциями-членами, ни быть друзьями классов. И конечно, в отличии от аргументов \lstinline!constexpr! функций, аргументы концептов не могут быть ограничены в свою очередь концептами.
+
+Концепты вовсе не обязаны быть функциями. Самые простые концепты получаются из шаблонных переменных.
+
+\begin{lstlisting}
+template <typename C> 
+concept bool Int = std::is_integral<C>::value;
+\end{lstlisting}
+
+Это работает так же как обычные шаблонные переменные. Можно записать даже проще.
+
+\begin{lstlisting}
+template <typename C> 
+concept bool Int = std::experimental::is_integral_v<C>;
+\end{lstlisting}
+
+Здесь явный синтаксис присваивания шаблонной переменной концепту.
+
+Простые концепты можно писать в терминах ещё более простых. Например для уже рассматривавшейся проверки на сравнимость на равенство можно соорудить вот такое:
+
+\begin{lstlisting}
+template <typename T, typename U>
+concept bool Weak_equality_comparable() {
+  return requires(T t, U u) {
+    {t == u} -> bool;
+  };
+}
+
+template <typename T, typename U = T>
+concept bool Equality_comparable() {
+  return Weak_equality_comparable<T, U>() &&
+         Weak_equality_comparable<U, T>();
+}
+\end{lstlisting}
+
+Есть несколько форм эквивалентного синтаксиса, в которых можно использовать получившийся концепт:
+
+\begin{enumerate}
+
+\item Базовый синтаксис -- явное использование в ограничении
+
+\begin{lstlisting}
+template <typename T>
+requires Equality_comparable<T>()
+bool check(T, T);
+\end{lstlisting}
+
+\item Упрощенный синтаксис -- вынос констрейнта в шаблонный параметр
+
+\begin{lstlisting}
+template <Equality_comparable T>
+bool check(T, T);
+\end{lstlisting}
+
+\item Синтаксис с выводом типов:
+
+\begin{lstlisting}
+bool check(Equality_comparable, Equality_comparable);
+\end{lstlisting}
+
+\end{enumerate}
+
+К сожалению, в последнем варианте синтаксиса нельзя сэмулировать два разных типа, которые возможны во втором варианте
+
+\begin{lstlisting}
+template <Equality_comparable T,
+          Equality_comparable U>
+bool check(T, U);
+\end{lstlisting}
+
+Более сложный вопрос: можно ли во втором варианте использовать \lstinline!Equality_comparable! с двумя аргументами? Ответ на него -- да, ещё через один синтаксический выверт -- введение шаблона.
+
+\begin{lstlisting}
+Equality_comparable{T, U}
+bool check(T, U);
+\end{lstlisting}
+
+Эта запись является сокращением для
+
+\begin{lstlisting}
+template <typename T, typename U>
+requires Equality_comparable<T, U>()
+bool check(T, U);
+\end{lstlisting}
+
+И выглядит довольно интересно. Также столь удобный синтаксис позвоялет заменить \lstinline!auto! на концепт:
+
+\begin{lstlisting}
+template <typename C> 
+concept bool Int = std::is_integral<C>::value;
+
+// ...
+
+Int x = f(x); // auto x = f(x);
+\end{lstlisting}
+
+Благодря концепту теперь в коде будет яснее чего ожидать от вывода типов (ну и усилится проверка от человеческих ошибок).
+
+\subsubsection{Концепты с огоньком}
+
+Ещё один пример использования получившегося ограничения \lstinline!Sequence! это подсчет количества элементов, удовлетворяющих предикату. Первый вариант может выглядеть как-то так.
+
+\begin{lstlisting}
+template <Sequence S, typename P>
+int count (S const& seq, P pred) {
+  int n = 0;
+  for (auto const &x : seq)
+    if (pred(x)) ++n;
+  return n;
+}
+\end{lstlisting}
+
+Увы, он очевидно underconstrained (русское слово недоограничен звучит не менее ужасно). Вместо второго параметра может быть передано все что угодно. Чтобы это исправить, нужно ввести явное ограничение, например так:
+
+\begin{lstlisting}
+template <Sequence S, typename P>
+  requires Predicate<P, typename S::element_type>()
+int count (S const& seq, P pred) {
+  int n = 0;
+  for (auto const &x : seq)
+    if (pred(x)) ++n;
+  return n;
+}
+\end{lstlisting}
+
+Но что такое \lstinline!Predicate!? Очевидно это функция, которая может быть вызвана с аргументом, заданного типа. Идея заключается в том, что аргументов может быть сколько угодно, поэтому можно воспользоваться вариабельными шаблонами:
+
+\begin{lstlisting}
+template <typename P, typename ... Args>
+concept bool Predicate() {
+  return requires (P pred, Args ... args) {
+    { pred(args...) } -> bool;
+  };
+}
+\end{lstlisting}
+
+Эта идея показывает гибкость концептов, в которых возможны даже вариабельные шаблоны. Более того: синтаксис введения шаблонов также вполне уживается с троеточиями.
+
+\begin{lstlisting}
+template<typename T, int N, typename... Xs> 
+concept bool C1 = true;
+
+C1{A, B, ...C} struct S1
+\end{lstlisting}
+
+Увы, сами концепты не поддерживают рекурсию и поэтому не Тьюринг-полны. Также их нельзя специализировать. Зато возможна частичная специализация по констрейнту:
+
+\begin{lstlisting}
+template <typename T>
+class complex;
+
+template <Float T>
+class complex { /* complex numbers */ };
+
+template <Int T>
+class complex { /* gaussian integers */ };
+\end{lstlisting}
+
+Это похоже на пример с конструкторами, но выглядит ещё более симпатично. Самое интересное: любой (даже тривиальный как C1 выше) констрейнт ограничивая шаблон делает его более специализированным, чем не ограниченный шаблон.
 
 \subsubsection{Контракты\index{Contracts}}\label{Contracts}
 
