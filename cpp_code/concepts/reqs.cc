@@ -30,6 +30,18 @@ requires requires(T x) {
          }
 T test4 (T, T);
 
+template <typename T>
+requires requires(T x) {
+           {*x} -> typename T::inner;
+         } &&
+         requires() {
+           typename T::inner;
+         } ||
+         requires (T a, T b) {
+           a + b;
+         }
+T test5 (T, T);
+
 
 struct HasInner {
   using inner = int;
@@ -56,4 +68,8 @@ main (void) {
   // test3(HasInner{}, HasInner{}); // no deref
   test4(HasPlus{}, HasPlus{});
   // test4(HasDeref{}, HasDeref{});
+
+  // test5(HasInner{}, HasInner{}); // no (+ or deref)
+  test5(HasDeref{}, HasDeref{});
+  test5(HasPlus{}, HasPlus{});
 }
