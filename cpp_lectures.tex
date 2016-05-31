@@ -13656,7 +13656,64 @@ Requires с непустым телом трансформируется в па
 
 После такого разбиения, концепт P переводится в дизъюнктивную, а Q в конъюнктивную нормальную форму. Если в конъюнкте Pi каждая переменная поглощает все переменные дизъюнкта Qj, то Pi поглощает Qj. Если каждый коньюнкт из ДНФ для P поглощает любой дизъюнкт из КНФ для Q, то P поглощает Q.
 
-TODO: примеры!
+Пример двух концептов, один из которых поглощает другой.
+
+\begin{lstlisting}
+template<typename T>
+concept bool Subsumed() {
+    return requires () { typename T::type1; };
+}
+
+template<typename T>
+concept bool Subsuming() {
+    return Subsumed<T>()
+        && requires () { typename T::type2; };
+}
+\end{lstlisting}
+
+\textbf{Вопрос к студентам:} как будет выглядеть Subsuming после нормализации?
+
+\ifanswers
+Ответ довольно очевиден:
+
+\begin{lstlisting}
+template<typename T>
+concept bool Subsuming() {
+    return requires () { typename T::type1; }
+        && requires () { typename T::type2; };
+}
+\end{lstlisting}
+\fi
+
+Сплиттинг типа по этим концептам.
+
+\begin{lstlisting}
+template<typename T>
+struct TM;
+
+template<Subsumed T>
+struct TM<T> { TM() {std::cout << "Subsumed!\n";}  };
+
+template<Subsuming T>
+struct TM<T> { TM() {std::cout << "Subsuming!\n";}  };
+\end{lstlisting}
+
+Применение (весьма условно полезное)
+
+\begin{lstlisting}
+struct M {
+    using type1 = int;
+    using type2 = int;
+};
+
+TM<M> X{};
+\end{lstlisting}
+
+\textbf{Вопрос к студентам:} что будет на экране?
+
+\ifanswers
+Разумеется на экране будет subsuming. Поглотивший констрейнт как более мощный имеет приоритет при разрешении перегрузки.
+\fi
 
 \subsubsection{Критика концептов}\label{WhyNotConstraints}
 
@@ -13692,7 +13749,32 @@ constexpr auto v = V*2;
 
 Концепты в текущей ревизии не зря называются concepts \textbf{lite}. Изначально концепты рассматривались как гораздо более тяжелая и мощная надстройка над языком.
 
-TODO: аксиомы, проверка семантики и все такое на базе http://www.stroustrup.com/sle2011-concepts.pdf
+Вот пример из статьи Страуструпа и Саттона 2011 года, показывающий концепты мечты
+
+\begin{lstlisting}
+concept Comparable<typename T> {
+  // syntax of equality
+  requires constraint Equal<T>; 
+
+  // semantics of equivalence
+  requires axiom Equivalence_relation<Equal<T>, T>; 
+
+  // if x == y then for any Predicate p, p(x) == p(y)
+  template<Predicate P>
+  axiom Equality(T x, T y, P p) {
+    x == y => p(x) == p(y); 
+  }
+
+  // inequality is the negation of equality
+  axiom Inequality(T x, T y) {
+    (x!=y) == !(x==y); 
+  }
+}
+\end{lstlisting}
+
+Концепт comparable определяет понятие равенства. Он требует оператор \lstinline!==! через констрейнт \lstinline!Equal!, а семантическое значение этого предиката задается аксиомой \lstinline!Equivalence_relation!. Дополнительные две аксиомы определяют семантический смысл равенства и обратного ему неравенства.
+
+Конечно, это никто никогда не мог реализовать.
 
 Также в раздел не сбывшихся пока мечт (но уже близких к), можно добавить контракты.
 
