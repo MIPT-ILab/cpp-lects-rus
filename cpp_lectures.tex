@@ -3876,11 +3876,22 @@ foo (int n)
 
 Но сначала немного теории. Интересный объект рассмотрения -- пустой, сферический класс в вакууме.
 
-\lstinputlisting[firstline=3,lastline=3]{cpp_code/p2s10.cpp}
+\begin{lstlisting}
+class Empty {};
+\end{lstlisting}
 
 Так ли он пуст, как это кажется на первый взгляд? Совершенно очевидно, что даже объект такого совершенно пустого класса в программе на C++ может быть создан, создан по образцу, скопирован и разрушен. Всю эту обвязку, если её не предоставляет программист, предоставляет компилятор C++. То есть написанное определение эквивалентно следующему:
 
-\lstinputlisting[firstline=7,lastline=14]{cpp_code/p2s10.cpp}
+\begin{lstlisting}
+/* There is nothing empty in C++ */
+class Empty {
+public:
+  Empty() { /* default implementation */ }
+  Empty(const Empty &rhs) { /* default implementation */ }
+  ~Empty() { /* default implementation */ }
+  Empty& operator=(const Empty &rhs) { /* default implementation */ }
+};
+\end{lstlisting}
 
 Конструктор и деструктор должны быть к этому моменту уже понятны. Но оказывается, что C++ генерирует ещё две функции специального вида – копирующий конструктор\index{copy constructor}, отвечающий за создание объекта по образцу такого же и оператор присваивания\index{assignment operator}, который будет вызван при присваивании объекта в выражениях вида \lstinline!a=b!.
 
@@ -3912,13 +3923,21 @@ foo (int n)
 \begin{lstlisting}
 class CCopyableBuffer {
 public:
-  CCopyableBuffer(int size) { m_size = size; m_buffer = new char[size]; }
-  ~CCopyableBuffer() { delete[] m_buffer; }
+  CCopyableBuffer(int size) : 
+    m_size (size) m_buffer (new char[size]) {
+  }
+  ~CCopyableBuffer() { 
+    delete[] m_buffer; 
+  }
   CCopyableBuffer(const CCopyableBuffer& rhs) { 
-    m_size = rhs.m_size; m_buffer = new char[m_size];
+    m_size = rhs.m_size; 
+    m_buffer = new char[m_size];
     memcpy(m_buffer, rhs.m_buffer, m_size);
   } 
-  char &get(int x) { assert(x >= 0 && x < m_size); return m_buffer[x]; } 
+  char &get(int x) { 
+     assert(x >= 0 && x < m_size); 
+     return m_buffer[x]; 
+  } 
 private:
   char *m_buffer;
   int m_size;
@@ -3927,9 +3946,51 @@ private:
 
 Так всё будет работать. Но иногда копирование не нужно и его проще запретить, объявив собственные конструктор копирования и оператор присваивания в закрытой части класса.
 
-\lstinputlisting[firstline=67,lastline=77]{cpp_code/p2s10.cpp}
+\begin{lstlisting}
+class NCBuffer {
+public:
+  NCBuffer(int size) : 
+    m_size (size) m_buffer (new char[size]) {
+  }
+  ~NCBuffer() { 
+    delete[] m_buffer; 
+  }
+  char &get(int x) { 
+    assert(x >= 0 && x < m_size); 
+    return m_buffer[x]; 
+  }
+private:
+  char *m_buffer;
+  int m_size;
+  NCBuffer(const NCBuffer& rhs);
+  NCBuffer& operator= (const NCBuffer& rhs);
+};
+\end{lstlisting}
 
 Теперь компилятор не сгенерирует за вас неправильные варианты и копирование просто не будет скомпилировано.
+
+Начиная с 2011 года, существует более цивилизованный способ запретить любой генерируемый по умолчанию метод или явно сгенерировать его -- ключевые слова \lstinline!default! и \lstinline!delete!.
+
+\begin{lstlisting}
+class NCBuffer {
+public:
+// .....
+  NCBuffer(const NCBuffer& rhs) = delete;
+  NCBuffer& operator= (const NCBuffer& rhs) = delete;
+// .....
+};
+\end{lstlisting}
+
+Человечное определение класса наподобие \lstinline!Empty!, которое не требует от программиста волшебных очков.
+
+\begin{lstlisting}
+struct Empty {
+  Empty() = default;
+  ~Empty() = default;
+  Empty(const Empty &rhs) = delete;
+  Empty& operator=(const Empty &rhs) = delete;
+};
+\end{lstlisting}
 
 \textbf{Домашняя наработка:} поясните или опровергните мысль: ``именно из-за проблемы двойного освобождения, в C++ нет и не может быть простого аналога realloc''
 
@@ -5507,8 +5568,7 @@ class Vector : public IVector
 public: 
   Vector (const Vector &rhs); // copy ctor
   void operator+= (const IVector &lhs); // add any vector to given
-  IVector *clone() override
-  {
+  IVector *clone() {
     return new Vector(*this);
   }
 };
@@ -5518,8 +5578,7 @@ class SparceVector : public IVector
 public: 
   SparceVector (const SparceVector &rhs); // copy ctor
   void operator+= (const IVector &lhs); // add any vector to given
-  IVector *clone() override
-  {
+  IVector *clone() {
     return new SparceVector(*this);
   }
 };
@@ -5784,7 +5843,6 @@ struct Engine
 \begin{lstlisting}
 class SpaceShip_p
 {
-private: 
   Engine e;
 public:
   int start (double dt) const { e.start(); } 
@@ -5839,13 +5897,75 @@ public:
 
 Начиная с C++11 в язык было введено несколько дополнительных возможностей, которых часто действительно не хватало и которые будут рассмотрены ниже.
 
-override
+В разделе (\ref{NameHiding}) уже рассматривалась возможность неявных ошибок из-за разрешения имен в стиле C++. Теперь настало время рассмотреть ещё одну ошибку такого рода и что с этим делать. Итак, всё те же матрицы.
 
-Тут подробно остановится на том почему override is so awesome.
+\begin{lstlisting}
+struct Matrix
+{
+  virtual void pow(int x);
+};
+\end{lstlisting}
 
-final
-default
-delete
+И тут программист совершает обычную человеческую ошибку.
+
+\begin{lstlisting}
+struct SparceMatrix : Matrix
+{
+  void pow (long x); // oops
+};
+\end{lstlisting}
+
+Увы, эта функцию вовсе не перегружает исходную функцию \lstinline!pow! и в каком-нибудь сложном динамическом контексте могут быть неприятные сюрпризы. 
+
+\begin{lstlisting}
+Matrix *m = new SpaceMatrix;
+// .....
+m->pow(1); // calls Matrix::pow!
+\end{lstlisting}
+
+Действительно, разные сигнатуры засчитываются как разные функции, перегрузки не происходит, всё плохо. Застраховаться от таких ошибок помогает спецификатор \lstinline!override!.
+
+\begin{lstlisting}
+struct SparceMatrix : Matrix
+{
+  void pow (long x) override; // BOOM!
+};
+\end{lstlisting}
+
+Теперь класс-наследник сообщает компилятору, что он хочет именно переопределять функцию из предка и спасительная ошибка компиляции оповещает, что что-то пошло не так. Это, пожалуй, самое полезное из нововведений 2011-го года и использование его обязательно для всех живых существ, которые не хотят проблем и неприятностей.
+
+Ещё один спецификатор, тоже полезный в этом случае, но кроме того вообще запрещающий дальнейшее переопределение это \lstinline!final!.
+
+\begin{lstlisting}
+struct SparceMatrix : Matrix
+{
+  void pow (long x) final; // BOOM!
+};
+\end{lstlisting}
+
+и одновременно
+
+\begin{lstlisting}
+struct SparceMatrix : Matrix
+{
+  void pow (int x) final; // Ok
+};
+
+struct MySparceMatrix : SparceMatrix
+{
+  void pow (int x) override; // BOOM!
+};
+\end{lstlisting}
+
+
+Ещё одно ограничение языка -- невозможность запретить наследование тоже долго преследовало программистов. Долгое время действовало неформальное правило -- нельзя наследоваться если нет виртуального деструктора, но все очень любили его нарушать. К счастью, эту проблему тоже решает модификатор \lstinline!final!.
+
+\begin{lstlisting}
+struct Matrix final;
+struct SparceMatrix : Matrix; // BOOM!
+\end{lstlisting}
+
+Использование \lstinline!final! служит непреодолимым барьером в абстракции, поэтому им не следует злоупотреблять, а следует применять только когда он необходим.
 
 \pagebreak
 \subsection{Множественное наследование}\label{MultipleInheritance}
@@ -6001,7 +6121,7 @@ IOFile* ptrIO = static_cast<IOFile*>(ptrF3); // Error
 Правильный ответ: потому что для реконструкции объекта с виртуальным наследованием, компилятор должен пройти по каждой из возможных цепочек виртуального наследования и создать каждый из подобъектов. Это неконстантный оверхед по времени и памяти и разработчики языка не стали его закладывать в обычное преобразование.
 \fi
 
-Для того, чтобы выполнять понижающее преобразование, следует воспользоваться
+Для того, чтобы выполнять понижающее преобразование, следует воспользоваться специально введенным для этого в язык динамическим приведением типа.
 
 \subsubsection{Динамическое приведение\index{dynamic\_cast} и RTTI\index{RTTI}}\label{DynCastRTTI}
 
@@ -6048,7 +6168,37 @@ IOFile* ptrIO = dynamic_cast<IOFile*>(ptrF3); // Ok
 
 \subsubsection{Информация о типах и идентификаторы типов\index{type\_info}}\label{TypeInfo}
 
-TODO: typeid и его сравнительные преимущества перед \lstinline!dynamic_cast!
+Каждому типу в C++ соотнесен дескриптор, имеющий тип \lstinline!type_info!. Этот дескриптор для любого типа можно получить вызвовом функции \lstinline!typeid!. Такие объекты содержащие информацию о динамических типах можно сравнивать. Можно также, начиная с 2011, сравнивать их хеш-коды.
+
+Таким образом, есть два варианта сравнения совпадает ли динамический тип с заданным.
+
+\begin{enumerate}
+
+\item Использовать dynamic cast
+
+\begin{lstlisting}
+if (dynamic_cast<A*> someVar != 0) { 
+  //it is of class A, or X, inherited from A 
+}
+\end{lstlisting}
+
+\item Использовать typeid
+
+\begin{lstlisting}
+if (typeid(someVar) == typeid(A)) {
+   //it is of class A
+}
+\end{lstlisting}
+
+\end{enumerate}
+
+Первый способ позволяет сравнить нечетко, динамический тип может быть приведен к \lstinline!A! из любого наследника. Во втором случае сравнение будет четким, а главное -- дешевым. Сравнить идентификаторы типов имеет постоянную сложность. Динамическое приведение типов требует обхода деревьев RTTI и может работать непредсказуемо долго.
+
+\textbf{Вопрос к студентам:} зачем же вообще нужен \lstinline!dynamic_cast! если есть \lstinline!typeid!?
+
+\ifanswers
+Правильный ответ: в первую очередь из-за сложностей приведения в связке \lstinline!typeid! + \lstinline!static_cast! (см. выше разговор о том почему в иерархиях множественного наследования нам вообще не хватает статического приведения).
+\fi
 
 \subsubsection{Сюрпризы в конструкторах при виртуальном наследовании}\label{VirtualBaseClassConstr}
 
