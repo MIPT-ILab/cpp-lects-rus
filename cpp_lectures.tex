@@ -1269,6 +1269,14 @@ x = y;
 \pagebreak
 \subsection{Массивы и указатели}\label{ArrPointers}
 
+\hfill\textit{Should array indices start at 0 or 1?}
+
+\hfill\textit{My compromise of 0.5 was rejected without,} 
+
+\hfill\textit{I thought, proper consideration}{\vspace{0.5em}}
+
+\hfill\textit{-- Stan Kelly-Bootle}
+
 Многие программисты заучивают правило для новичка: массивы в C это указатели и наоборот. Это правило, пожалуй, действительно полезно для новичка. Но в общем случае это не так. В этом разделе будут проведены чёткие разграничения. 
 
 \subsubsection{Вспоминаем указатели}
@@ -6295,23 +6303,116 @@ public:
 Каждый вложенный класс определяет область видимости своих имён. Таким образом, можно создать отдельный объект типа \lstinline!DeathStar::DartVeider!, но можно и запретить это, поместив его в \lstinline!private!. Это существенное преимущество
 
 \pagebreak
-\subsection{Скажи мне кто твой друг}\label{WhosYourFriend}
+\subsection{Скажи мне кто твой друг}\label{WhosYourFriend}\index{Friend}
+
+\hfill\textit{C++ : Where friends have access to your private members}{\vspace{0.5em}}
+
+\hfill\textit{-- Gavin Russell Baker}
 
 Модель инкапсуляции C++ логична и стройна (общий смех). В общем случае закрытые члены класса формируют его состояние и недоступны извне, иначе, чем через его методы, отражающие поведение -- это хорошо и правильно. Но в некоторых случаях, разработчик хотел бы дать некоему классу эксклюзивный доступ к закрытым членам другого класса. Например для того, чтобы не писать кучу геттеров и в то же время сохранить консистентность абстракции. Для этого язык C++ предусматривает механизм друзей (\lstinline!friend!) класса.
 
-\lstinputlisting[firstline=8,lastline=16]{cpp_code/p2s16.cpp}
+\subsubsection{Обычная дружба}
+
+Наиболее типичным применением дружбы является дружба между классами. Для этого объявление класса, которому хочется открыть внутреннее состояние должно быть предварено ключевым словом \lstinline!friend!.
+
+\begin{lstlisting}
+class Node
+{
+  int data;
+  int key;
+  /* ..... */
+
+  /* class BinaryTree can access data directly */
+  friend class BinaryTree; 
+};
+\end{lstlisting}
+
 
 Класс \lstinline!Node!, назначив себе друга \lstinline!BinaryTree!, открыл ему всё свое закрытое состояние, но, при этом, сам не получил никакого доступа к \lstinline!BinaryTree!. Теперь внутри BinaryTree можно написать код вида:
 
-\lstinputlisting[firstline=32,lastline=49]{cpp_code/p2s16.cpp}
+\begin{lstlisting}
+class BinaryTree
+{
+  Node *root;
+
+public:
+  int find(int key);
+};
+
+int BinaryTree::find(int key)
+{
+  /* check root */
+  if(root->key == key)
+    {
+      /* no need to go through an accessor function */
+      return root->data;
+    }
+  /* rest of find */
+}
+\end{lstlisting}
+
 
 Класс может открывать своё состояние не только классам, но и функциям. Скажем, не открывая доступ всему \lstinline!BinaryTree!, можно открыть его только методу \lstinline!find!:
 
-\lstinputlisting[firstline=20,lastline=28]{cpp_code/p2s16.cpp}
+\begin{lstlisting}
+class Node
+{
+  int data;
+  int key;
+  /* ..... */
+
+  /* BinaryTree::find can access data directly */
+  friend int BinaryTree::find();
+};
+\end{lstlisting}
+
+Открыть внутреннее состояние можно и отдельной функции. Как дополнительный плюс -- в этом случае функция считается объявленной.
+
+\begin{lstlisting}
+struct Node
+{
+  // declaration
+  friend int find();
+};
+
+
+// find declared and can be used
+int t = find();
+
+// definition
+int
+find() 
+{
+  /* ..... */
+}
+\end{lstlisting}
+
+Благодаря такому свойству объявлений, дружба может быть полезна во многих неожиданных контекстах при работе с шаблонами (см. \ref{BartonNackman}).
 
 \subsubsection{Адвокат дружбе не помеха}
 
-TODO: \url{https://en.wikibooks.org/wiki/More_C%2B%2B_Idioms/Friendship_and_the_Attorney-Client}
+К сожалению, в языке не реализовано полноценное открытие части состояния. Семантика дружбы диктует ``все или ничего''. Но редко когда нужно, чтобы друзья имели доступ ко всему подряд. Пусть рассмотренный выше класс \lstinline!Node! согласен открыть классу \lstinline!BinaryTree! только свои поля \lstinline!data! и \lstinline!key!, оставив все остальные закрытыми. В этом случае классу \lstinline!Node! следует прибегнуть к услугам адвоката (английское слово attorney означает скорее ``поверенный'').
+
+Игра слов дат название идиоме attorney-client (адвокат-клиент). Адвокат, которым мог бы обзавестить \lstinline!Node! может выглядеть вот так
+
+\begin{lstlisting}
+class NodeAttorney {
+private:
+  static int& data(Node &c) {
+    return c.data;
+  } 
+  static int& key(Node &c) {
+    return c.key;
+  } 
+  friend class BinaryTree;
+};
+\end{lstlisting}
+
+Теперь внутри \lstinline!Node! можно оставить только объявление дружбы со своим адвокатом, прочие же объявления дружбы вынести в класс-attorney.
+
+Особо параноидальный дизайн иерархии классов может предоставлять много адвокатов на каждое закрытое поле популярного клиента, каждого со своим списком пользователей.
+
+Нужно очень хорошо понимать, что все эти игры свидетельствуют о наличии некоей проблемы между креслом и компьютером.
 
 \subsubsection{Дружба в иерархиях классов}
 
@@ -6323,9 +6424,56 @@ TODO: \url{https://en.wikibooks.org/wiki/More_C%2B%2B_Idioms/Friendship_and_the_
 
 \subsubsection{Дружба и виртуальные вызовы}
 
-TODO: здесь про то, что дружба связывается статически, но можно симулировать Virtual Friend Function
+Часто хочется, чтобы функция-друг была виртуальной. К сожалению это невозможно, так как в таблице виртуальных методов на друзей нет места, к тому же у друзей нет неявного полиморфного аргумента, так что они не могут быть полиморфными функциями.
 
-Также, дружба может быть полезна во многих неожиданных контекстах при работе с шаблонами (см. \ref{BartonNackman}).
+Предположим, что функция \lstinline!find! должна уметь работать как с \lstinline!Node! так и с его потомками.
+
+\begin{lstlisting}
+class Node
+{
+public:
+  friend int find(Node& n);
+};
+
+class SparceNode : public Node
+{
+public:
+  friend int find(Node& n);
+};
+
+SparceNode t;
+find(t); // oops, we shall use 
+         // another approach here
+\end{lstlisting}
+
+Классическим выходом из положения является реализация такой функции через закрытую действительно виртуальную функцию.
+
+\begin{lstlisting}
+class Node
+{
+protected:
+  virtual int find();
+public:
+  friend int find(Node& n);
+};
+
+class SparceNode : public Node
+{
+protected:
+  virtual int find();
+public:
+  friend int find(Node& n);
+};
+
+int find(Node& n) {
+  return n.find(); // virtual call
+}
+
+SparceNode t;
+find(t); // ok
+\end{lstlisting}
+
+Идея здесь в том, что каждый класс знает как лучше искать свои объекты, а общая функция друг выполняет роль прозрачного интерфейса.
 
 \pagebreak
 \subsection{Принципы объектно-ориентированного программирования}\index{SOLID}\label{SOLID}
