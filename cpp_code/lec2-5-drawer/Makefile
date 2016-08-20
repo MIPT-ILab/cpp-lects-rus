@@ -2,7 +2,10 @@
 
 CXXFLAGS += -O2 -Wall -Wextra
 
-all : funcbitmap waves
+all : funcbitmap waves julia
+
+julia : julia.cc sdlutil.o
+	${CXX} julia.cc sdlutil.o ${CXXFLAGS} -lSDL -o $@
 
 waves : waves.cc sdlutil.o
 	${CXX} waves.cc sdlutil.o ${CXXFLAGS} -lSDL -o $@
