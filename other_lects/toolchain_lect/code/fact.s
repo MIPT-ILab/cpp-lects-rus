@@ -22,5 +22,5 @@ fact:
 	.cfi_endproc
 .LFE0:
 	.size	fact, .-fact
-	.ident	"GCC: (GNU) 6.1.0"
+	.ident	"GCC: (GNU) 6.0.0 20160402 (experimental)"
 	.section	.note.GNU-stack,"",@progbits
