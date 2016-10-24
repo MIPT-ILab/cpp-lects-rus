@@ -15,6 +15,9 @@
 \newif\ifanswers
 \answerstrue
 
+\overfullrule=2cm
+\righthyphenmin=2
+
 \hypersetup{
 %bookmarks=true,            % show bookmarks bar?
 %unicode=false,             % non-Latin characters in Acrobat’s bookmarks
@@ -215,20 +218,17 @@ C++ (произносится ``си плас плас'')\index{C++} это яз
 Любой код, подаваемый на вход удовлетворяющего стандарту компилятора, принадлежит к одной из следующих категорий:
 
 \begin{itemize}
-\item
- \textbf{Syntax violation}\index{Syntax violation} -- нечто, вообще не являющееся кодом на языке C++. Это наиболее распространённый вид кода, производимого программистами.
-\item
- \textbf{Implementation defined}\index{Implementation defined} – зависящий от разработчика и документации конкретного компилятора. Пример – как ведёт себя знаковое целое при сдвиге вправо.
-\item
- \textbf{Unspecified}\index{Unspecified} – поведение корректного кода, не регламентированное стандартом. 
- Пример – порядок выполнения аргументов у функции.
-\item
- \textbf{Undefined behavior}\index{Undefined behavior} – поведение некорректного кода, не запрещённое стандартом. 
- Пример – поведение знакового целого числа при переполнении.
-\item
- \textbf{Strictly conforming}\index{Strictly conforming} – хороший, полностью удовлетворяющий стандарту код, не выходящий за пределы стандарта. ``In anima vili'' редко встречается за пределами hello world у профессионалов и никогда не встречается у новичков.
-\item
- \textbf{Conforming}\index{Conforming} – код удовлетворяющий стандарту + использующий implementation defined features.
+\item \textbf{Syntax violation}\index{Syntax violation} -- нечто, вообще не являющееся кодом на языке C++. Это наиболее распространённый вид кода, производимого программистами.
+
+\item \textbf{Implementation defined}\index{Implementation defined} -- зависящий от разработчика и документации конкретного компилятора. Пример -- как ведёт себя знаковое целое при сдвиге вправо.
+
+\item \textbf{Unspecified}\index{Unspecified} -- поведение корректного кода, не регламентированное стандартом. Пример -- порядок выполнения аргументов у функции.
+
+\item \textbf{Undefined behavior}\index{Undefined behavior} -- поведение некорректного кода, не запрещённое стандартом. Пример – поведение знакового целого числа при переполнении.
+
+\item \textbf{Strictly conforming}\index{Strictly conforming} -- отличный код, полностью удовлетворяющий стандарту и не выходящий за пределы стандарта. Редко встречается in anima vili и никогда у новичков.
+
+\item \textbf{Conforming}\index{Conforming} -- код удовлетворяющий стандарту + использующий implementation defined features.
 \end{itemize}
 
 У разных компиляторов есть своя стратегия выдачи диагностических сообщений. Для компиляции большинства примеров из этих лекций, будет использован компилятор g++ версии 5.2.0 или выше, входящий в GNU Compiler Collection. Рекомендуемые опции: 
@@ -248,9 +248,11 @@ C++ (произносится ``си плас плас'')\index{C++} это яз
 \pagebreak
 \subsection{Неопределенное поведение}\label{UB}
 
-Изо всех рассмотренных выше видов поведения программы, самое страшное это неопределённое поведение (undefined behavior или для краткости UB). Обратите внимание: аббревиатура UB здесь и далее употребляется только для undefined behavior, но никогда для unspecified, хотя там сокращение такое же.
+Изо всех рассмотренных выше видов поведения программы, самое страшное это неопределённое поведение (undefined behavior, UB). Обратите внимание: аббревиатура UB здесь и далее употребляется только для undefined behavior, но никогда для unspecified, хотя там сокращение такое же.
 
-Любой программист на языках C и C++ с некоторым опытом развивает чутьё на неопределённые ситуации, но даже профессионалы часто попадаются на эту удочку. В этих лекциях я предпочитаю остановиться на этой теме с самого начала, поскольку упомянутое выше чутьё надо развивать сразу. Сначала эффектный пример.
+Неопределённое поведение \textbf{не является злом:} отказ определять поведение в граничных ситуациях даёт компилятору возможность генерировать гораздо более оптимальный код. Иногда программист закладывает логический аналог неопределенного поведения в свою программу сознательно Например при удалении односвязного списка вы можете сказать, что поведение процедуры удаления не определено если в списке есть петля и именно это ограничение позволит написать удаление эффективно. Аналогично и стандарт каждым своим UB-clause оставляет компилятору свободу для маневра.
+
+Тем не менее, UB является опасностью. Любой программист на языках C и C++ с некоторым опытом развивает чутьё на неопределённые ситуации, но даже профессионалы часто попадают в ловушки. В этих лекциях я предпочитаю остановиться на этой теме с самого начала, поскольку упомянутое выше чутьё надо развивать сразу. Сначала эффектный пример.
 
 \subsubsection{Неявное UB как путь к проклятию}\label{HiddenUB}
 
@@ -271,7 +273,7 @@ for (dd = d[k = 0]; k < 16; dd = d[++k])
 
 \subsubsection{Типичные случаи неопределённого поведения}\label{TypicalUB}
 
-Здесь будет рассмотрен только язык C и C-подмножество C++. Неопределённое поведение возникающее при работе с ООП и шаблонами будет рассмотрено в конце соответствующих частей, а вот C вы уже должны знать. Типичными случаями, когда вы можете ожидать неопределённого поведения являются:
+Здесь будет рассмотрен только язык C и C-подмножество C++. Проблемы, возникающие при работе с ООП и шаблонами будут рассмотрены в конце соответствующих частей. Типичными случаями неопределённого поведения являются:
 
 \begin {itemize}
 \item \textbf {Арифметика}
@@ -2016,7 +2018,21 @@ template <typename T, class U, int x>
 
 Для управления динамической памятью в языке C использовались библиотечные функции \lstinline!malloc! и \lstinline!free!. Они остались в C++, но их использование во многих случаях не рекомендовано и иногда считается дурным тоном, поскольку C++ предоставляет гораздо более гибкие возможности с помощью ключевых слов \lstinline!new!, \lstinline!delete! и \lstinline!delete[]!.
 
-\lstinputlisting[firstline=87,lastline=90]{cpp_code/p1s2.cpp}
+\begin{lstlisting}
+struct S {}; 
+
+// Was: t = (struct S*) malloc (sizeof(struct S));
+struct S *t = new S; 
+
+// Was: free(t);
+delete t; 
+
+// Was: t = (struct S*) malloc (sizeof(struct S) * 5);
+struct S *a = new S[5]; 
+
+// Was: free(a);
+delete[] a; 
+\end{lstlisting}
 
 Следует оговориться, что для C-подмножества эти возможности пожалуй менее гибкие и более ограничивающие. Нужно помнить о парности \lstinline!new!/\lstinline!delete! и \lstinline!new a[]!/\lstinline!delete[] a! и нет возможности сделать \lstinline!realloc!. Вся сила новых ключевых слов раскроется позже, когда будут рассматриваться элементы ООП (см. например \ref{PodNpod}). Пока что можно просто запомнить их и начинать применять. Впрочем и в C-подмножестве можно найти плюсы.
 
@@ -2026,7 +2042,7 @@ template <typename T, class U, int x>
 typedef int dimensions[3][4];
 
 dimensions * dim = new dimensions[10];
-dim[/* from 0 to 9 */][/* from 0 to 2 */][/* from 0 to 3 */] = 42;
+dim[/* 0 to 9 */][/* 0 to 2 */][/* 0 to 3 */] = 42;
 delete [] dim;
 \end{lstlisting}
 
@@ -4217,7 +4233,7 @@ assert (a + b == b + a); /* ORLY? */
 
 Всё усугубляется тем, что общий список операторов, которые можно переопределить, крайне внушающ. Его всегда можно посмотреть в стандарте, но кроме основных арифметических и логических операций, определение которых довольно таки прямолинейно, перегрузке могут подвергаться совершенно экзотические вещи – сравнение, присваивание, приведение к типу (любому, включая встроенные), обращение по указателю и даже выделение памяти с помощью new и её освобождение. Давайте побеседуем об нескольких специальных и проблематичных случаях переопределённых операторов.
 
-\subsubsection{Переопределение операций, формирующих цепочки}\label{ChainOps}
+\subsubsection{Операторы, формирующие цепочки}\label{ChainOps}
 
 Первый особый случай, это операторы, которые могут быть записаны цепочками (обычно -- правоассоциативными). Скажем, пользователь оператора \lstinline!=!, скорее всего ожидает корректной работы строчки:
 
@@ -4244,7 +4260,7 @@ x = y = z = w;
 
 Большинство цепочечных операций: \lstinline!+=!, \lstinline!*=! и так далее, являются прямыми модификаторами состояния класса и должны быть определены в классе, чтобы у них был \lstinline!this! для возврата.
 
-\subsubsection{Переопределение симметричных бинарных операций}\label{SymmBinary}
+\subsubsection{Симметричные бинарные операторы}\label{SymmBinary}
 
 Можно рассмотреть ещё один пример -- разработку класса, реализующего абстракцию комплексных чисел.
 
@@ -4277,7 +4293,7 @@ Complex operator+ (Complex a, Complex b)
 
 На самом деле, это предпочтительный метод. Он кроме всего прочего позволяет естественным образом сохранить когерентность \lstinline!+! и \lstinline!+=! или в общем случае -- цепочечной и соответствующей ей бинарной операции.
 
-\subsubsection{Переопределение инкремента и декремента}\label{IncrOverload}
+\subsubsection{Инкремент и декремент}\label{IncrOverload}
 
 Язык C++ получил своё название от унарной операции \lstinline!x++!, которая увеличивает значение переменной в данном случае x, и возвращает старое значение. Такая операция называется постинкрементом. Известен также прединкремент \lstinline!++x!, который увеличивает свой аргумент и возвращает увеличенное значение.
 
@@ -4319,7 +4335,7 @@ for (Complex t = 1.0; t < 5.0; t++) { ... }
 
 Обычно замеры показывают что такая запись не несет какого-то особого выигрыша. Она просто показывает, что человек знает внутреннюю механику языка.
 
-\subsubsection{Перегрузка операций вызова и индексации}\label{BracketOverloading}
+\subsubsection{Вызов и индексация}\label{BracketOverloading}
 
 Эта перегрузка позволяет объекту быть вызванным как функция (с круглыми скобками и передачей аргументов).
 
@@ -4369,7 +4385,7 @@ assert (3 == t[0] + t[1]);
 
 Если не знать, невозможно догадаться, что реально никакого массива никто не выделяет.
 
-\subsubsection{Перегрузка разыменования и разыменования по указателю}\label{DereferenceOverloading}
+\subsubsection{Разыменование и его варианты}\label{DereferenceOverloading}
 
 Если есть классы, которые ведут себя как функции и массивы, логично предположить, что возможны классы, которые ведут себя как указатели. Для примера, можно рассмотреть так называемые умные указатели, о которых речь пойдет чуть дальше (см. \ref{SmartPointers}). Пусть есть несложная структура
 
@@ -4392,7 +4408,7 @@ public:
 };
 \end{lstlisting}
 
-В этом классе перегружены оператор разыменования и разыменования с доступом к полю. Использование несложно.
+В этом классе перегружены оператор разыменования и оператор разыменования с доступом к полю (часто для краткости его называют ``стрелкой''). Использование несложно.
 
 \begin{lstlisting}
 T t;
@@ -4401,10 +4417,63 @@ pt->x = 6;
 (*pt).foo();
 \end{lstlisting}
 
+Одной из важных особенностей перегрузки оператора стрелки является drill-down behaviour \index{Drill-Down behaviour} -- зарывающееся поведение: результат стрелки используется для разрешения имени, но если этого имени нет, то вместо него снова может быть выбран вызов стрелки.
+
+\begin{lstlisting}
+struct client { int a; };
+
+struct proxy {
+  client *target;
+  client *operator->() const { return target; }
+};
+
+struct proxy2 {
+  proxy *target;
+  proxy &operator->() const { return * target; }
+};
+
+void f() {
+  client x = { 42 };
+  proxy y = { & x };
+  proxy2 z = { & y };
+
+  // prints 42 42 42
+  printf ("%d %d %d\n", x.a, y->a, z->a);    
+}
+\end{lstlisting}
+
 \textbf{Домашняя наработка:} в самой структуре \lstinline!T! теперь можно перегрузить \lstinline!operator&! который мог бы возвращать \lstinline!Tptr!, и таким образом, переписать код использования ещё проще. Попробуйте заставить это заработать.
 
+В любом языке есть элементы бессмысленной джигитовки. В частности в C++ есть вызов по указателю на функцию:
+
+\begin{lstlisting}
+struct foo {
+  int bar() { printf ("bar\n"); }
+};
+
+template <typename T>
+void Apply (T* t, int (T::*bar)() ) {
+  (t ->* bar) ();
+}
+
+int main (void) {
+  int (foo::*pbar)() = &foo::bar;
+  foo f;
+
+  Apply (&f, pbar);
+
+  return 0;
+}
+\end{lstlisting}
+
+Скобки необходимы в \lstinline!Apply! поскольку приоритет \lstinline!->*! меньше, чем приоритет вызова функции.
+
+Этот оператор тоже можно перегрузить. В перегрузке он самый неинтересный из всех операторов разыменования и ведет себя просто как произвольная бинарная операция. На самом деле он даже не обязан быть нестатическим!
+
+Но помните: если вы обнаруживаете, что вы перегрузили \textbf{это}, значит у вас точно что-то пошло не так.
+
 \pagebreak
-\subsection{Управление выделением и освобождением памяти}\label{MemManage}
+\subsection{Выделение и освобождение динамической памяти}\label{MemManage}
 
 Переопределение \lstinline!new! и \lstinline!delete! это всегда отдельная и крайне неприятная тема. Она связана с несколькими неочевидными ограничениями и десятком подводных камней. В общем случае, если вам понадобилось переопределять \lstinline!new! и \lstinline!delete!, подумайте ещё раз, может быть вы что-то сделали не так.
 
@@ -4519,7 +4588,7 @@ Widget *w = new (WidgetPool, WidgetLogStream) Widget;
 
 Обратите внимание -- деструктор может быть вызван явно.
 
-\subsubsection{Переопределение new и delete}\label{NewOverloading}
+\subsubsection{Список нормальных форм}\label{NewOverloading}
 
 Ниже приведен класс для которого объявлены переопределения всех нормальных форм \lstinline!new!/\lstinline!delete! как это сделано в \cite{effcpp3d}.
 
@@ -4538,11 +4607,11 @@ static void *operator new(std::size_t size, void *ptr);
 C++ предоставляет достаточно тонкий инструментарий для работы с памятью, который необходимо использовать с осторожностью. Переопределяя каждый оператор не забывайте о возможном пользовательском вызове \lstinline!set_new_handler!. Переопределяя \lstinline!new! не забывайте переопределять соответсвующий \lstinline!delete!. Работайте с памятью осторожно и внимательно. И главное -- трижды подумайте нужно ли вам это вообще.
 
 \pagebreak
-\subsection{Rvalue references и управление перемещением}
+\subsection{Правые ссылки и семантика перемещения}
 
 Ссылки (references) это то, что наиболее сложно воспринимается при переходе с C на C++. Человеку с опытом программирования на C, может быть непонятно, зачем они нужны, когда уже есть такие удобные и привычные указатели, которые позволяют делать всё то же самое только лучше... Подлинное осознание того, каким именно инструментом являются ссылки и как ими оперируют, приходит с опытом C++. При переходе на новый стандарт C++11, идея о том, что теперь есть ещё один вид ссылок -- ссылки на rvalue (rvalue references) кажется новаторской и неочевидной (особенно неочевидна её полезность). Скорее всего, многим придётся преодолеть внутреннее сопротивление, прежде чем rvalue references станут удобным и привычным инструментом. 
 
-\subsubsection{Ещё раз про rvalue и lvalue}\label{LRvaluesAgain}
+\subsubsection{Ещё раз про категории значений}\label{LRvaluesAgain}
 
 Прежде, чем переходить к описанию rvalue references, есть смысл немного вспомнить о том, что такое rvalue и lvalue.
 
@@ -4621,7 +4690,7 @@ int &lref = lval;
 
 Первые три категории являются базовыми. Чуть ниже будет предъявлен способ различить к какой категории относится объект на этапе выполнения, но чтобы это сделать, сначала необходимо поговорить о том, чем же все таки являются правые ссылки.
 
-\subsubsection{Отличаем rvalue refernces от lvalue references}\label{RvalueRefs}
+\subsubsection{Отличия правых и левых ссылок}\label{RvalueRefs}
 
 В C++11, если X это тип, то \lstinline!X&! это lvalue reference, а \lstinline!X&&! это rvalue reference для этого типа (8.3.2.2). При этом важно понимать -- \lstinline!X&, X&&! -- это разные типы, но семантически они эквивалентны и о них можно вместе говорить как о ``ссылках вообще''. Тем не менее, поскольку это разные типы, для них работает перегрузка:
 
@@ -5506,7 +5575,7 @@ detect_collision (struct icelestial_body lhs, struct icelestial_body rhs)
 
 Теперь самое время разобрать несколько хитрых вопросов, относящихся к наследованию интерфейса:
 
-\subsubsection{Параметры по умолчанию\index{default arguments} и чисто виртуальные функции\index{virtual}}\label{DefArguments}
+\subsubsection{Параметры по умолчанию\index{default arguments}}\label{DefArguments}
 
 Тонкий вопрос, который многие программисты на C++ часто упускают из виду это то, как ведут себя виртуальные функции с параметрами по умолчанию. Если параметр по умолчанию в интерфейсе изменён в одном из его наследников:
 
@@ -5540,7 +5609,7 @@ CelestialBody t;
 forcesApply (&t, fs, 5);
 \end{lstlisting}
 
-Казалось бы -- реально будет вызвана функция \lstinline!CelestialBody::apply_force! и логично ожидать значение аргумента по умолчанию как он выставлен там. Но в реальности эта функция будет вызвана со значением аргумента по умолчанию, выставленного в интерфейсе.
+Казалось бы -- реально будет вызвана функция \lstinline!apply_force! из класса \lstinline!CelestialBody! и логично ожидать значение аргумента по умолчанию таким, как он выставлен там. Но в реальности эта функция будет вызвана со значением аргумента по умолчанию, выставленным в интерфейсе.
 
 Дело в том, что функции в C++ связываются динамически, а аргументы по умолчанию – статически. Если вернуться к сишному аналогу, можно легко увидеть, что в таблице виртуальных функций нет места для хранения и перезаписи аргументов по умолчанию.
 
@@ -7204,7 +7273,19 @@ inline T const& max (T const& a, T const& b)
 
 Это объясняет проблему с перегрузкой по универсальной ссылке (см. \ref{UniversalReferences}). При разрешении универсальной ссылки как в правую, так и в левую, получившаяся конструкция становится perfect match, что и эксплуатирует второй добавленный шаг.
 
-Однако в обобщённом коде, обобщённые типы можно уточнять квалификаторами, и вот в этом случае неизбежны приключения. Предположим у нас есть три кандидата на вызов:
+Однако в обобщённом коде, обобщённые типы можно уточнять квалификаторами. В этом случае общее правило состоит в том, что более специальный вариант всегда выигрывает у менее специального.
+
+\begin{lstlisting}
+template <typename T> void f(T*); // (1)
+template <typename T> void f(T**); // (2)
+
+int ****a;
+f(a); // calls (2)
+\end{lstlisting}
+
+Второй вариант более специален, поэтому там, где он может быть использован, он выигрывает у первого.
+
+Можно потренировать интуицию. Есть три кандидата на вызов.
 
 \begin{lstlisting}
 template <typename T1, typename T2> void f( T1, T2 ); /* (1) */
@@ -7212,7 +7293,7 @@ template <typename T> void f( T, T* ); /* (2) */
 template <typename T> void f( double, double* ); /* (3) */
 \end{lstlisting}
 
-и вызов функции, который подходит под все эти шаблоны:
+И вызов функции, который подходит под все эти шаблоны:
 
 \begin{lstlisting}
 double t, s;
@@ -8866,6 +8947,20 @@ int b;
 std::tie(a,b)=foo();
 \end{lstlisting}
 
+Кроме \lstinline!tie!, кортеж можно создать также функцией \lstinline!make_tuple!. Между ними есть существенная разница: если \lstinline!tie! используется в основном для распаковки возвращаемых параметров, то \lstinline!make_tuple! делает деградацию и развертывание ссылочных обёрток (unrefwrapping) своих аргументов.
+
+Стандартная функция \lstinline!std::tuple_cat! позволяет конкатенировать произвольное количество кортежей в один кортеж
+
+\begin{lstlisting}
+std::tuple<int, std::string, float> t1(10, "Test", 3.14);
+int n = 7;
+auto t2 = std::tuple_cat(t1, std::make_pair("Foo", "bar"), t1, std::tie(n));
+\end{lstlisting}
+
+Следует обратить внимание на запись \lstinline!std::make_pair! -- единственный способ создать нечто похожее на кортеж в C++98 вполне принимается как способ создать кортеж в C++14.
+
+\subsubsection{Отложенное исполнение на кортежах}\label{DelayedExec}
+
 Ещё одна интересная задача: создание отложенного исполнения (для C++11)
 
 Для примера какой-нибудь простой функции:
@@ -8921,17 +9016,7 @@ struct save_it_for_later
 };
 \end{lstlisting}
 
-Здесь функция \lstinline!std::make_tuple! исполняет ту же роль, что и \lstinline!ctmap! в прошлом примере (только создает стандартный кортеж, а не самописный \lstinline!ctmap_t!).
-
-Стандартная функция \lstinline!std::tuple_cat! позволяет конкатенировать произвольное количество кортежей в один кортеж
-
-\begin{lstlisting}
-std::tuple<int, std::string, float> t1(10, "Test", 3.14);
-int n = 7;
-auto t2 = std::tuple_cat(t1, std::make_pair("Foo", "bar"), t1, std::tie(n));
-\end{lstlisting}
-
-Следует обратить внимание на запись \lstinline!std::make_pair! -- единственный способ создать нечто похожее на кортеж в C++98 вполне принимается как способ создать кортеж в C++14.
+В этом примере можно заменить сложный \lstinline!gens! на появившийся в C++14 \lstinline!index_sequence!.
 
 \subsubsection{Кортежи для обработки вариабельных шаблонных параметров}\label{ExpandTuple}
 
@@ -8941,7 +9026,8 @@ auto t2 = std::tuple_cat(t1, std::make_pair("Foo", "bar"), t1, std::tie(n));
 template <class... Types> tuple<Types&&...> 
 forward_as_tuple (Types&&... args)
 {
-  return tuple<Types&&...>(std::forward<Types>(args)...);
+  return tuple<Types&&...>(
+     std::forward<Types>(args)...);
 } 
 \end{lstlisting}
 
@@ -8949,9 +9035,12 @@ forward_as_tuple (Types&&... args)
 
 \begin{lstlisting}
 template <class ... Args>
-auto third_arg (Args&& ... args) -> ElemType <2, std::tuple<Args ...> >
+auto third_arg (Args&& ... args) 
+   -> ElemType <2, std::tuple<Args ...> >
 {
-  return std::get<2>(std::forward_as_tuple (std::forward<Args>(args)...));
+  return std::get<2>(
+     std::forward_as_tuple(
+        std::forward<Args>(args)...));
 }
 \end{lstlisting}
 
@@ -8962,9 +9051,38 @@ auto third_arg (Args&& ... args) -> ElemType <2, std::tuple<Args ...> >
 
 \begin{lstlisting}
 template <size_t i, class T>
-using ElemType = decltype (std::get<i>(std::declval<T>()));
+using ElemType = decltype (
+   std::get<i>(std::declval<T>()));
 \end{lstlisting}
 \fi
+
+Важные правила: не задавать шаблонных параметров для \lstinline!make_tuple! и не сохранять на будущее значение возвращенное \lstinline!forward_as_tuple!
+
+Ещё один красивый пример: как получить хвост кортежа? Для этого понадобиться стандартный шаблон \lstinline!std::tuple_size! и немножко магии.
+
+\begin{lstlisting}
+template <typename Tuple>
+decltype(auto) get_back (tuple &&t) {
+  return get < 
+    tuple_size <
+      remove_reference_t <Tuple>
+    >::value - 1> (forward<Tuple>(t));
+}
+\end{lstlisting}
+
+
+
+При работе с парами, начиная с C++14 возможно конcтруирование по частям, и есть надежды, что скоро его распространят и на шаблоны:
+
+\begin{lstlisting}
+pair<vector<int>, vector<int>> p (
+   piecewise_construct,
+   forward_as_tuple(),
+   forward_as_tuple(1, 2, 3));
+\end{lstlisting}
+
+Создаёт пару из двух векторов.
+
 
 \pagebreak
 \subsection{Lambda expressions}\label{LambdaExpressions}
@@ -9357,7 +9475,7 @@ struct overload : F
 
 Теперь пришло время разобраться с тем, как же типизированы $\lambda$-выражения.
 
-$\lambda$-выражение с пустой спецификацией захвата считается обычной функцией и может присваиваться указателям на функции в стиле C:
+$\lambda$-выражение с пустой спецификацией захвата неявно приводится к обычному указателю на функцию в стиле C.
 
 \begin{lstlisting}
 int test(void)
@@ -9368,7 +9486,24 @@ int test(void)
 }
 \end{lstlisting}
 
-Пусть теперь есть необходимость создать $\lambda$-выражение с захватом контекста. Можно создать его использовав auto переменную:
+При необходимости использовать лямбду в шаблонном контексте, неявное приведение не работает для вывода типов. В этом случае используется унарный плюс для того, чтобы форсировать приведение.
+
+\begin{lstlisting}
+template <typename R, typename A>
+void foo (R, (*fptr)(A)) {
+   // .... do smth.
+}
+
+// error call:
+foo ( [](double x) { return int(x); } );
+
+// working call:
+foo ( +[](double x) { return int(x); } );
+\end{lstlisting}
+
+Без унарного плюса здесь не сработает вывод типов, потому что для вывода типов шаблонной функцией неявное приведение не считается.
+
+Пусть теперь есть необходимость создать $\lambda$-выражение с захватом контекста. Можно создать его использовав \lstinline!auto! переменную:
 
 \begin{lstlisting}
 int one_more_test(int x, int y)
@@ -9500,7 +9635,8 @@ public:
   }
 };
 
-void putpixel(SDL_Surface *surface, int x, int y, Uint32 color);
+void putpixel(SDL_Surface *surface, 
+              int x, int y, Uint32 color);
 void fillwith (SDL_Surface *screen, Uint32 color);
 \end{lstlisting}
 
@@ -9526,8 +9662,13 @@ draw_internal (SDL_Surface *s, int delta)
 
 \begin{lstlisting}
 int delta = 0;
-auto draw_external = [&delta] (SDL_Surface *s) { draw_internal (s, delta); };
-ViewPort *v = ViewPort::QueryViewPort (xsize, ysize, draw_external);
+auto draw_external = [&delta] (SDL_Surface *s) { 
+    draw_internal (s, delta); 
+};
+
+ViewPort *v = ViewPort::QueryViewPort (xsize, ysize, 
+    draw_external);
+
 for (delta = 4; delta < 10; ++delta) {
  /* ...... */
 }
@@ -9584,7 +9725,9 @@ function<void()> f;
 
 {
   Monitor m;
-  auto k = [nocopy, &mref = m] { cout << "may use m here" << endl; };
+  auto k = [nocopy, &mref = m] { 
+      cout << "may use m here" << endl; 
+  };
   k ();
   // f = k; // compilation error
 }
@@ -9613,7 +9756,9 @@ f_call (); //Equivalent to f (1,2,3)
 \begin{lstlisting}
 struct Foo {
   Foo(int num) : num_(num) {}
-  void print_add(int i) const { std::cout << num_+i << '\n'; }
+  void print_add(int i) const { 
+    std::cout << num_+i << std::endl; 
+  }
   int num_;
 };
 \end{lstlisting}
@@ -9623,7 +9768,8 @@ struct Foo {
 \begin{lstlisting}
 const Foo foo(314159);
 using std::placeholders::_1;
-function<void(int)> f_add_display2 = bind( &Foo::print_add, foo, _1);
+function<void(int)> f_add_display2 = 
+    bind( &Foo::print_add, foo, _1);
 \end{lstlisting}
 
 Функция \lstinline!f_add_display2! это функция, которая получилась из метода класса, связанного со своим объектом и первым аргументом этой функции как заместителем. Термин placeholder (заместитель) отображает семантику происходящего: даёт способ заместить аргумент в вызове. Цифра в заместителе это номер аргумента при вызове который будет подставлен в эту позицию при связывании.
@@ -9632,7 +9778,9 @@ function<void(int)> f_add_display2 = bind( &Foo::print_add, foo, _1);
 function<void(int,int,int)> f_call = bind (f, _1, _2, _3);
 f_call (1, 2, 3); //Same as f (1, 2, 3)
 
-function<void(int,int,int)> reordered_call = bind (f, _3, _2, _1);
+function<void(int,int,int)> reordered_call = 
+    bind (f, _3, _2, _1);
+
 reordered_call (3, 2, 1); // Same as f( 1 , 2 , 3 );
 \end{lstlisting}
 
@@ -9648,7 +9796,7 @@ void f(int n1, int n2, int n3, const int& n4, int n5) {
 Ну и чтобы было интереснее, вызов можно несколько запутать:
 
 \begin{lstlisting}
-using namespace std::placeholders;  // for _1, _2, _3...
+using namespace std::placeholders;  // for _1, _2, ...
 int n = 7;
 auto f1 = std::bind(f, _2, _1, 42, std::cref(n), n);
 n = 10;
@@ -9733,15 +9881,21 @@ y = buz (foo(), bar());
 
 \begin{lstlisting}
 auto List = [](auto ... xs) {
-    return [=](auto access) { return access(xs...); };
+    return [=](auto access) { 
+        return access(xs...); 
+    };
 };
 
 auto head = [](auto xs) {
-    return xs([](auto first, auto ... rest) { return first; });
+    return xs([](auto first, auto ... rest) { 
+        return first; 
+    });
 };
 
 auto tail = [](auto xs) {
-    return xs([](auto first, auto ... rest) { return List(rest...); });
+    return xs([](auto first, auto ... rest) { 
+       return List(rest...); 
+    });
 };
 
 auto length = [](auto xs) {
@@ -10348,8 +10502,8 @@ public:
 /* Transport<service> is implementation detail */
 template<template<typename> class Transport>
 class service : private Transport<service> {
-    /* since we derive privately, make the transport layer a friend of us, 
-       so that it can cast its this pointer down to us */
+    /* since we derive privately, make the transport layer a 
+       friend, so that it can cast its this pointer down */
     friend class Transport<service>;
 public:
     typedef Transport<service> transport_type;
@@ -10591,7 +10745,9 @@ factorial<6>::value
 template <int n, int idx, int product>
 struct fact_rec
 {
-  enum { value = fact_rec <n, idx + 1, product * idx>::value };
+  enum { 
+    value = fact_rec <n, idx + 1, product * idx>::value
+  };
 };
 
 template <int n, int product>
@@ -10631,7 +10787,8 @@ factorial2<6>::value
 Обычная шаблонная специализация позволяет проверять только равенство. В метапрограммах можно делать также ветвления if-then-else\index{if-then-else template} с любыми, сколь угодно сложными условиями. Напишем простой шаблон:
 
 \begin{lstlisting}
-/* primary template: yield second or third argument depending on first argument */
+/* primary template: yield second or third argument, 
+   depending on first argument */
 template<bool C, typename Ta, typename Tb> 
 struct IfThenElse; 
 
@@ -10781,17 +10938,24 @@ struct integral_constant;
 \begin{lstlisting}
 typedef integral_constant<int, 2> two_t;
 typedef integral_constant<int, 4> four_t;
-static_assert (two_t::value * two_t::value == four_t::value, "2*2 != 4");
+static_assert (two_t::value * two_t::value == four_t::value, 
+               "2*2 != 4");
 \end{lstlisting}
 
 Метапрограммирование на интегральных константах выглядит небезынтересно:
 
 \begin{lstlisting}
 template<size_t N>
-struct fibonacci : integral_constant<size_t, fibonacci<N-1>{} + fibonacci<N-2>{}> {};
+struct fibonacci : 
+    integral_constant< size_t, 
+                       fibonacci<N-1>{} + 
+                       fibonacci<N-2>{}> {};
 
-template<> struct fibonacci<1> : integral_constant<size_t,1> {};
-template<> struct fibonacci<0> : integral_constant<size_t,0> {};
+template<> struct fibonacci<1> : 
+    integral_constant<size_t,1> {};
+
+template<> struct fibonacci<0> : 
+    integral_constant<size_t,0> {};
 \end{lstlisting}
 
 Используя закодированные интегральными константами истину и ложь, можно сварганить простейший из определителей типов: является ли анализируемый тип интегральным (это такие типы как \lstinline!bool!, \lstinline!char!, \lstinline!short!, \lstinline!int!, \lstinline!long!, \lstinline!long long! и все их cv-квалификации). Как пример использования: можно потребовать интегрального \lstinline!T! в шаблонной функции (пока нет концептов, вполне себе концепт для бедных).
@@ -10822,7 +10986,10 @@ struct is_arithmetic : std::integral_constant<bool,
 \begin{lstlisting}
 template <typename T> 
 struct is_pointer_helper : std::false_type {};
-template <typename T> struct is_pointer_helper<T*> : std::true_type {};
+
+template <typename T> 
+struct is_pointer_helper<T*> : std::true_type {};
+
 template <typename T> struct is_pointer : 
     is_pointer_helper <typename std::remove_cv<T>::type> {};
 \end{lstlisting}
@@ -10856,8 +11023,11 @@ using MyInt = int;
 Эти две строчки совершенно эквивалентны. Зачем же нужно было вводить новое ключевое слово? Потому что \lstinline!using! умеет больше:
 
 \begin{lstlisting}
-template <typename T> using MyType = AnotherType< T, MyAllocatorType >; 
-template <typename T> using ptr = T*;
+template <typename T> 
+using MyType = AnotherType< T, MyAllocatorType >; 
+
+template <typename T> 
+using ptr = T*;
 ...
 MyType<int> a;
 ptr<int> x;
@@ -11084,14 +11254,14 @@ public:
 constexpr int S::sz = 256;
 enum DataPacket
 {
-  Small=S::two(), //error. S::two() called before it was defined
+  Small=S::two(), // error (call before def)  
   Big=1024
 };
 
 constexpr int S::two() { return sz*2; }
 constexptr S s;
 
-int arr[s.two()]; //OK, s.two() called after its definition
+int arr[s.two()]; // ok (call after def)
 \end{lstlisting}
 
 Видно, что по существу они мало чем отличаются от обычных данных. Но компилятор имеет насчёт них точную гарантию что их значения при компиляции уже известны.
@@ -11101,7 +11271,7 @@ int arr[s.two()]; //OK, s.two() called after its definition
 В отличии от C++11, в C++14 разрешено делать шаблонными не только классы и функции, но и переменные:
 
 \begin{lstlisting}
-template<typename T> T n = T(5);
+template <typename T> T n = T(5);
 
 int 
 main()
@@ -11115,7 +11285,8 @@ main()
 Вместе с \lstinline!constexpr! аннотацией переменных, это позволяет вводить гораздо более симпатичные определители типов, рассмотренные в (\ref{TypeTraits}).
 
 \begin{lstlisting}
-template <class T> constexpr bool is_void_v = is_void<T>::value;
+template <typename T> 
+constexpr bool is_void_v = is_void<T>::value;
 \end{lstlisting}
 
 Записывать \lstinline!is_void_v<T>! конечно гораздо проще и приятней, чем \lstinline!is_void<T>::value! (общий смех).
@@ -11129,7 +11300,8 @@ template <class T> constexpr bool is_void_v = is_void<T>::value;
 \begin{lstlisting}
 struct Complex
 {
-  constexpr Complex(double r, double i) : re(r), im(i) { }
+  constexpr Complex(double r, double i) : 
+    re(r), im(i) { }
 
   constexpr double real() const { return re;}
   constexpr double imag() const { return im;}
@@ -11148,7 +11320,8 @@ constexpr complex c(0.0, 1.0);
 \begin{lstlisting}
 struct Complex
 {
-  constexpr Complex(double r = 0.0, double i = 0.0) : re(r), im(i) { }
+  constexpr Complex(double r = 0.0, double i = 0.0) : 
+    re(r), im(i) { }
 
   constexpr double real() const { return re;}
   constexpr double imag() const { return im;}
@@ -11165,7 +11338,8 @@ private:
   double im;
 };
 
-constexpr Complex operator+ (const Complex &lhs, const Complex &rhs)
+constexpr Complex operator+ (const Complex &lhs, 
+                             const Complex &rhs)
 {
   Complex tmp = lhs;
   tmp += rhs;
@@ -11240,10 +11414,10 @@ constexpr Value<Second2> operator"" s2(long double d)
 Написав соответствующие перегрузки операторов деления, далее можно добиться статической проверки типов в удобной форме:
 
 \begin{lstlisting}
-Speed sp1 = 100_m/9.8_s; // very fast for a human 
-Speed sp2 = 100_m/9.8_s2; // error (m/s2 is acceleration)  
-Speed sp3 = 100/9.8_s; // error (speed is m/s and 100 has no unit) 
-Acceleration acc = sp1/0.5_s; // too fast for a human
+Speed sp1 = 100_m/9.8_s;  // ok
+Speed sp2 = 100_m/9.8_s2; // error (m/s2 is acceleration)
+Speed sp3 = 100/9.8_s;    // error (100 has no unit)
+Acceleration acc = sp1/0.5_s; // ok again
 \end{lstlisting}
 
 \textbf{Домашняя наработка:} добейтесь работы строчки \lstinline!constexpr Kilogramm mass = 5_kg + 3_lb!, где lb это фунты, на этапе компиляции строящей преобразование фунтов в килограммы.
@@ -11471,7 +11645,7 @@ void foo()
 Важно понимать, что обработчики проверяются по порядку перечисления. Поэтому ставить обработчик \lstinline!MathErr! выше чем \lstinline!Overflow!, означает сделать последний чуть более чем бесполезным.
 
 \pagebreak
-\subsubsection{Иерархия обработки исключений в стандартной библиотеке}\label{ExceptionHierarchy}
+\subsubsection{Стандартные типы для исключений}\label{ExceptionHierarchy}
 
 Хороший тон это генерировать потомка \lstinline!std::exception! или одного из его потомков в иерархии стандартной библиотеки.
 
@@ -11542,8 +11716,14 @@ void foo()
 Иногда перехват всевозможных исключений срабатывает неожиданно
 
 \begin{lstlisting}
-struct my_exc1 : std::exception { char const* what() const throw(); };
-struct my_exc2 : std::exception { char const* what() const throw(); };
+struct my_exc1 : std::exception { 
+    char const* what() const throw(); 
+};
+
+struct my_exc2 : std::exception { 
+    char const* what() const throw(); 
+};
+
 struct your_exc3 : my_exc1, my_exc2 {};
 
 int main()
@@ -11649,9 +11829,10 @@ T *safe_copy(const T* src, size_t srcsize, size_t destsize)
 
 \begin{lstlisting}
 template <typename T>
-Stack<T>::Stack(const Stack& rhs) : m_v(safe_copy(rhs.m_v, rhs.m_vsize, rhs.m_vsize)), 
-                                 m_vsize(rhs.m_vsize), 
-                                 m_vused(rhs.m_vused) 
+Stack<T>::Stack(const Stack& rhs) : 
+    m_v(safe_copy(rhs.m_v, rhs.m_vsize, rhs.m_vsize)),
+    m_vsize(rhs.m_vsize), 
+    m_vused(rhs.m_vused) 
 {
 }
 \end{lstlisting}
@@ -11806,20 +11987,28 @@ void destroy( FwdIter first, FwdIter last )
 template <typename T>
 class StackImpl
 {
+  StackImpl(const StackImpl &);
+  StackImpl& operator= (const StackImpl &);
+
 protected:
-  StackImpl(size_t size = 0): m_v(operator new (sizeof(T) * size)), m_vsize(size), m_vused {}
-  ~StackImpl() { destroy(m_v, m_v + m_vused); operator delete(m_v); }
-  void Swap(StackImpl<T> &other) 
-  {
+  StackImpl(size_t size = 0): 
+      m_v(operator new (sizeof(T) * size)), 
+      m_vsize(size), 
+      m_vused {
+  }
+
+  ~StackImpl() { 
+    destroy(m_v, m_v + m_vused); 
+    ::operator delete(m_v); 
+  }
+
+  void Swap(StackImpl<T> &other) {
     swap( m_v, other.m_v );
     swap( m_vsize, other.m_vsize );
     swap( m_vused, other.m_vused );
   }
   T *m_v;
   size_t m_vsize, m_vused;
-private:
-  StackImpl(const StackImpl &);
-  StackImpl& operator= (const StackImpl &);
 };
 \end{lstlisting}
 
@@ -11827,9 +12016,8 @@ private:
 
 \begin{lstlisting}
 template<typename T> 
-class Stack : private StackImpl<T>
+struct Stack : private StackImpl<T>
 {
-public:
   Stack( size_t size = 0 ) : StackImpl<T>(size) {}
   Stack( const Stack& other ) : StackImpl<T>(other.m_vused)
   {
@@ -12014,13 +12202,16 @@ bitvise_or (std::vector <T> a, std::vector <T> b)
   if ((a.size () == 0) || (b.size () == 0))
     std::cout << "Nothing to or with" << std::endl;
   else if (a.size () != b.size ())
-    std::cout << "Can not process arrays of inequal size" << std::endl;
+    std::cout << "Can not process arrays of inequal size" 
+              << std::endl;
   else if (a.size () > 10)
     std::cout << "Arrays too large" << std::endl;
   else
     {
       std::vector <T> ret (a.size ());
-      for (std::vector <T>::iterator i = a.begin (), j = b.begin (), k = ret.begin (); 
+      for (auto i = a.begin(), 
+                j = b.begin(), 
+                k = ret.begin();
            i != a.end (); 
            i++, j++, k++)
         *k = *i | *j;
@@ -12164,7 +12355,23 @@ TODO: требует написания
 Дополнительно locale и strcoll.
 
 \pagebreak
+\subsection{Случайные числа}\label{RandomNumbers}
+
+Здесь описание хедера \lstinline!<random>!
+
+\pagebreak
+\subsection{Время}\label{Chrono}
+
+Здесь описание хедера \lstinline!<chrono>!
+
+\pagebreak
 \subsection{Последовательные контейнеры}\label{SeqContainers}
+
+\hfill\textit{Good surgeon knows when not to cut}
+
+\hfill\textit{Good programmer should know when not to code}{\vspace{0.5em}}
+
+\hfill\textit{-- Walter Brown}
 
 Контейнеры STL отражают абстракцию структур данных. Все практически важные структуры уже представлены или могут быть представлены контейнерами. Наиболее известны следующие последовательные контейнеры:
 
