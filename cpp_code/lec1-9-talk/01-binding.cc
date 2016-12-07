@@ -25,8 +25,8 @@ main (void)
   cout << a << " " <<  b << " " << c << endl;
   cout << &a << " " << &b << " " << &c << endl;
 
-  int &&e = x + 0;
-  int &&d = x + 1;
+  int &&e = a + 1;
+  int &&d = e * 3;
   d += 1;
   cout << d << " " << e << endl;
 

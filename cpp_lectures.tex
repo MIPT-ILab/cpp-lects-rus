@@ -4482,6 +4482,66 @@ int main (void) {
 
 Но помните: если вы обнаруживаете, что вы перегрузили \textbf{это}, значит у вас точно что-то пошло не так.
 
+\subsubsection{Приведение типов}\label{CastOverloading}
+
+Самый простой и в то же время самый богатый набор операторов это операторы приведения типов.
+
+Пока что тут просто механическая копия с cppreference, TODO: расписать.
+
+\begin{lstlisting}
+struct X {
+    //implicit conversion
+    operator int() const { return 7; }
+ 
+    // explicit conversion
+    explicit operator int*() const { return nullptr; }
+ 
+//   Error: array operator not allowed in conversion-type-id
+//   operator int(*)[3]() const { return nullptr; }
+    using arr_t = int[3];
+    operator arr_t*() const { return nullptr; } // OK if done through typedef
+//  operator arr_t () const; // Error: conversion to array not allowed in any case
+};
+ 
+int main()
+{
+    X x;
+ 
+    int n = static_cast<int>(x);   // OK: sets n to 7
+    int m = x;                     // OK: sets m to 7
+ 
+    int* p = static_cast<int*>(x);  // OK: sets p to null
+//  int* q = x; // Error: no implicit conversion
+ 
+    int (*pa)[3] = x;  // OK
+}
+\end{lstlisting}
+
+\begin{lstlisting}
+struct To {
+    To() = default;
+    To(const struct From&) {} // converting constructor
+};
+ 
+struct From {
+    operator To() const {return To();} // conversion function
+};
+ 
+int main()
+{
+    From f;
+    To t1(f); // direct-initialization: calls the constructor
+// (note, if converting constructor is not available, implicit copy constructor
+//  will be selected, and conversion function will be called to prepare its argument)
+    To t2 = f; // copy-initialization: ambiguous
+// (note, if conversion function is from a non-const type, e.g.
+//  From::operator To();, it will be selected instead of the ctor in this case)
+    To t3 = static_cast<To>(f); // direct-initialization: calls the constructor
+    const To& r = f; // reference-initialization: ambiguous
+}
+\end{lstlisting}
+
+
 \pagebreak
 \subsection{Выделение и освобождение динамической памяти}\label{MemManage}
 
@@ -6478,6 +6538,41 @@ public:
 \end{itemize}
 
 Вид наследования (открытое, закрытое или защищённое) не влияет на порядок инициализации.
+
+\subsubsection{Делегация сестринскому типу}
+
+Сложности, вносимые множественным наследованием в механизм виртуальных функций, частично окупаются теми возможностями, которые они предоставляют.
+
+Пусть задана ромбовидная иерархия, в которой виртуальная функция определена в одной, но не в другой ветке:
+
+\begin{lstlisting}
+struct VBase {
+  virtual void foo () = 0;
+  virtual void bar () = 0;
+  virtual ~VBase () = 0 {}
+};
+
+struct Base1 : virtual public VBase {
+  // do not override bar
+  // but CALL it
+  void foo() override { bar(); }  
+};
+
+struct Base2 : virtual public VBase {
+  void bar() override {}
+};
+
+struct S : Base1, Base2 {}
+\end{lstlisting}
+
+На что может рассчитывать пользователь такого класса, вызывая метод \lstinline!foo! объекта класса \lstinline!S!?
+
+\begin{lstlisting}
+S x;
+x.foo();
+\end{lstlisting}
+
+Происходит интересная вещь: поскольку \lstinline!foo! не переопределена в \lstinline!Base2!, будет без вариантов вызвана \lstinline!Base1::foo! из которой (!) будет вызвана \lstinline!Base2::bar!. Несмотря на то, что классы \lstinline!Base1! и \lstinline!Base2! находятся на одном уровне, механизм виртуальных функций позвоялет такие братские делегации.
 
 \subsubsection{Вложенные классы и снова о пространствах имён}\label{InnerClasses}
 
