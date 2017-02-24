@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 
 using std::cout;
 using std::endl;
@@ -9,5 +10,7 @@ int main (void)
 	cout << n << endl;
 	cout << std::hex << n << endl;
 	cout << std::oct << n << endl;
+  std::dec(cout);
+  cout << std::setfill ('.') << std::setw (10) << 42 << endl;
 	return 0;
 }
