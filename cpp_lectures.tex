@@ -9123,8 +9123,8 @@ decltype(auto) transparent(Fun fun, Args&&... args) {
 template<typename T>
 struct tag{using value_type=T;};
 
-static struct:tag<int>{} age;
-static struct:tag<std::string>{} last_name;
+static struct: tag<int>{} age;
+static struct: tag<std::string>{} last_name;
 /* ... */
 \end{lstlisting}
 
@@ -13753,7 +13753,7 @@ typedef basic_istream<wchar_t> wistream;
 
 По умолчанию характеристики определены для каждого из стандартно поддержанных символов, но никто не ограничивает в том, чтобы определить и передать свои.
 
-\subsubsection{Локали}
+\subsubsection{Локали}\label{subsubsec:locales}
 
 Локали инкапсулируют национальные и культурные конвенции. Самый простой способ идентификации локали это идентификация текстовой строкой в формате ``lang[\_area[.code]][@modifier]'', например валидная локаль для POSIX это: ``de\_DE.ISO-8859-1''.
 
@@ -13814,6 +13814,13 @@ if (cin >> value) cout << value << endl;
 \end{lstlisting}
 
 Теперь ввод в локали по умолчанию (например ``47.11'') будет сопровождаться выводом в немецкой локали ``47,11''.
+
+\subsubsection{Фасеты}\label{subsubsec:facets}
+
+Назначаемость локалей это уже неплохо, но пока что назначались те же локали, идентифицируемые строками. Что насчет изменения и построения собственных? В языке C++ предусмотрена эта возможность.
+
+Дело в том, что локаль это ни что иное как просто контейнер фасетов. Фасет это наследник класса \lstinline!std::locale::facet!, который не так уж и сложен. По сути он только запрещает конструктор копирования. Так что можно сказать, что фасет это просто нечто не копируемое.
+
 
 \pagebreak
 \subsection{Итераторы}\label{Iterators}
