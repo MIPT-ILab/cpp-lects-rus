@@ -196,7 +196,23 @@ C++ (произносится ``си плас плас'')\index{C++} это яз
 
 В качестве примера, вы пишете следующий код на чем-то, что кажется вам языком программирования C:
 
-\lstinputlisting{cpp_code/p0-inline.c}
+\begin{lstlisting}
+inline int my_assert (int b, const char *str) 
+{
+  if (!b) {
+    fprintf (stderr, "Assertion failed: %s\n", str);
+    exit (-1);
+  }
+  return 0;
+}
+
+int
+main (int argc, char **argv)
+{
+  my_assert (argc > 0, "argc <= 0");
+  return 0;
+}
+\end{lstlisting}
 
 \textbf{Вопрос к студентам:} видите ли вы какие-нибудь проблемы в этом коде?
 
@@ -242,7 +258,13 @@ C++ (произносится ``си плас плас'')\index{C++} это яз
 
 Пример conforming кода на C-подмножестве C++:
 
-\lstinputlisting{cpp_code/p0s1.cpp}
+\begin{lstlisting}
+int main(void) 
+{ 
+  (void) printf("biggest int is %d\n", INT_MAX);
+  return 0;
+}
+\end{lstlisting}
 
 Приведённый выше код является conforming но не strictly conforming из-за использования \lstinline!INT_MAX!, являющегося implementation-defined. Тем не менее, нет способа заставить GCC выдать такое диагностическое предупреждение и этот код проходит компиляцию без ошибок, так что можно считать уровень conforming достаточным.
 
@@ -531,7 +553,14 @@ Exceptional C++ – исключения, гарантии исключений,
 \item
 Пусть дан код на C:
 
-\lstinputlisting{cpp_code/p0s2.cpp}
+\begin{lstlisting}
+foo(const char **p) { }
+
+main(int argc, char **argv)
+{
+  foo(argv);
+}
+\end{lstlisting}
 
 Задача: охарактеризовать этот код с точки зрения стандарта C99, указать причины, по которым могут возникнуть проблемы.
 
@@ -540,14 +569,26 @@ Exceptional C++ – исключения, гарантии исключений,
 \item
 Пусть дан код на C:
 
-\lstinputlisting[firstline=1,lastline=5]{cpp_code/p0s3.cpp}
+\begin{lstlisting}
+int foo(int x) 
+{
+  int a = (x += 0) + 3;
+  return a;
+}
+\end{lstlisting}
 
 Задaча: охарактеризовать этот код с точки зрения стандарта C99, указать причины, по которым могу возникнуть проблемы.
 
 \item
 Пусть дан код на C:
 
-\lstinputlisting[firstline=7,lastline=11]{cpp_code/p0s3.cpp}
+\begin{lstlisting}
+int bar(int x) 
+{
+  int a = x +++++ x;
+  return a;
+}
+\end{lstlisting}
 
 Задaча: охарактеризовать этот код с точки зрения стандарта C99, указать причины, по которым могу возникнуть проблемы.
 
@@ -556,7 +597,13 @@ Exceptional C++ – исключения, гарантии исключений,
 \item
 Пусть дан код на C:
 
-\lstinputlisting[firstline=13,lastline=17]{cpp_code/p0s3.cpp}
+\begin{lstlisting}
+int buz(int x) 
+{
+  int b = bar(b += foo(b));
+  return b;
+}
+\end{lstlisting}
 
 Задaча: охарактеризовать этот код с точки зрения стандарта C99, указать причины, по которым могу возникнуть проблемы. 
 
@@ -565,7 +612,14 @@ Exceptional C++ – исключения, гарантии исключений,
 \item
 Пусть дан код на C:
 
-\lstinputlisting[firstline=19,lastline=24]{cpp_code/p0s3.cpp}
+\begin{lstlisting}
+char *fst(void)
+{
+  char *p = "wikipedia";
+  p[0] = 'W';
+  return p;
+}
+\end{lstlisting}
 
 Задaча: охарактеризовать этот код с точки зрения стандарта C99, указать причины, по которым могу возникнуть проблемы.
 
@@ -574,7 +628,12 @@ Exceptional C++ – исключения, гарантии исключений,
 \item
 Пусть дан код на C:
 
-\lstinputlisting[firstline=26,lastline=29]{cpp_code/p0s3.cpp}
+\begin{lstlisting}
+void snd(int *a, int i)
+{
+  a[i] = i++;
+}
+\end{lstlisting}
 
 Задaча: охарактеризовать этот код с точки зрения стандарта C99, указать причины, по которым могу возникнуть проблемы.
 
@@ -721,7 +780,10 @@ init_sieve (int nofprimes)
 
 В эпиграф вынесены (с некоторым сокращением) слова создателя языка C, сказанные им в интервью журналу C++ Report в 2000-м году, после нескольких десятков лет торжественного шествия языка по миру. И, в общем, человек знал что говорил. Пусть стоит задача прочитать простое объявление на языке C
 
-\lstinputlisting[firstline=5,lastline=5]{cpp_code/p1s1.cpp}
+% \lstinputlisting[firstline=5,lastline=5]{cpp_code/p1s1.cpp}
+\begin{lstlisting}
+char *ap[20];
+\end{lstlisting}
 
 \textbf{Вопрос к студентам:} что это? 
 
@@ -734,14 +796,20 @@ init_sieve (int nofprimes)
 \ifanswers
 Ответ\index{Pointer to array}:
 
-\lstinputlisting[firstline=6,lastline=6]{cpp_code/p1s1.cpp}
+\begin{lstlisting}
+char (*pa)[20];
+\end{lstlisting}
 \fi
 
 Теперь рассмотрим модификатор \lstinline!const!\index{const}. 
 
 \textbf{Вопрос к студентам:} есть ли разница между следующими объявлениями:
 
-\lstinputlisting[firstline=8,lastline=10]{cpp_code/p1s1.cpp}
+\begin{lstlisting}
+const int *xc1;
+int const *xc2;
+int * const xc3 = 0;
+\end{lstlisting}
 
 \ifanswers
 Ответ: между первым и вторым нет, между вторым и третьим очень существенная разница. Во втором случае (как и в первом) речь идёт о \textbf{не константном} указателе на константные данные. В третьем случае речь идёт о \textbf{константном} указателе на не константные данные. Объявляя константу нельзя оставить её неинициализированной, поэтому инициализатор выделяет строчку, где объявлен константный указатель. В то же время, указатель на константные данные сам может быть неконстантным и инициализации не требует (хотя она возможна).
@@ -769,7 +837,9 @@ init_sieve (int nofprimes)
 
 \textbf{Вопрос к студентам:} прочитайте объявление:
 
-\lstinputlisting[firstline=12,lastline=12]{cpp_code/p1s1.cpp}
+\begin{lstlisting}
+char* const *(*next)();
+\end{lstlisting}
 
 \ifanswers
 Правильный ответ: указатель на функцию, возвращающую указатель на константный указатель на символ.
@@ -803,7 +873,9 @@ init_sieve (int nofprimes)
 
 \textbf{Вопрос к студентам:} с учетом новых знаний, прочитать самостоятельно
 
-\lstinputlisting[firstline=13,lastline=13]{cpp_code/p1s1.cpp}
+\begin{lstlisting}
+char *(*c[10])(int **p);
+\end{lstlisting}
 
 \ifanswers
 Ответ: c is array of 10 pointers to functions, accepting pointer to pointer to int and returning pointer to char.
@@ -813,11 +885,16 @@ init_sieve (int nofprimes)
 
 Рассмотрим прекрасное объявление типа:
 
-\lstinputlisting[firstline=15,lastline=15]{cpp_code/p1s1.cpp}
+\begin{lstlisting}
+void (*signal(int sig, void (*func)(int)) ) (int);
+\end{lstlisting}
 
 С помощью \lstinline!typedef! его можно переписать, доставив гораздо меньше боли глазам читающего (и без риска посадить случайную опечатку).
 
-\lstinputlisting[firstline=16,lastline=17]{cpp_code/p1s1.cpp}
+\begin{lstlisting}
+typedef void (*ptr_to_func) (int);
+ptr_to_func signal(int, ptr_to_func);
+\end{lstlisting}
 
 Ещё более хитрый способ упростить запись с использование расширений GCC рассмотрен в (\ref{SyntacticExts}), но он не особо переносим.
 
@@ -825,23 +902,34 @@ init_sieve (int nofprimes)
 
 У \lstinline!typedef! есть некоторые опасности, которые часто ускользают от новичков. Так например \lstinline!typedef! может объявить сразу несколько синонимов типов:
 
-\lstinputlisting[firstline=19,lastline=19]{cpp_code/p1s1.cpp}
+\begin{lstlisting}
+typedef int *ptr, (*fun)(), arr[5];
+\end{lstlisting}
 
 Это считается дурным тоном, старайтесь этого избегать. Ещё более дурным тоном считается зарыть typedef вглубь объявления, что тоже позволяется синтаксисом.
 
-\lstinputlisting[firstline=20,lastline=20]{cpp_code/p1s1.cpp}
+\begin{lstlisting}
+unsigned const long typedef int volatile *kumquat;
+\end{lstlisting}
 
 Опытный программист на языке C часто чувствует себя свободнее с препроцессором, скажем вместо
 
-\lstinputlisting[firstline=21,lastline=21]{cpp_code/p1s1.cpp}
+\begin{lstlisting}
+typedef int * int_ptr;
+\end{lstlisting}
 
 Есть соблазн написать
 
-\lstinputlisting[firstline=22,lastline=22]{cpp_code/p1s1.cpp}
+\begin{lstlisting}
+#define INT_PTR int *
+\end{lstlisting}
 
 Но здесь есть тонкая ловушка:
 
-\lstinputlisting[firstline=21,lastline=25]{cpp_code/p1s1.cpp}
+\begin{lstlisting}
+INT_PTR x, y; /* x is pointer, y is int */
+int_ptr w, v; /* w, v are pointers */
+\end{lstlisting}
 
 Здесь переменные \lstinline!x! и \lstinline!y! будут разных типов, а \lstinline!w! и \lstinline!v! – одного типа.
 
@@ -1397,7 +1485,11 @@ int *foo (int x) { return &x; }
 
 Неконстантные указатели являются lvalue. В принципе, можно записать:
 
-\lstinputlisting[firstline=26,lastline=28]{cpp_code/p1s2.cpp}
+\begin{lstlisting}
+  int p = 3;
+  int *pp = (int *) p;
+  return *pp;
+\end{lstlisting}
 
 Этот код является дурным тоном, он будет плохо переносим и совершенно точно тут указатель используется не по назначению, но важно, что это можно сделать. Указатель это честная ячейка памяти. Он хранит то, что туда положил программист, как это показано на рисунке \ref{fig:pointers}.
 
@@ -1601,7 +1693,11 @@ arr_t foo (void); /* Error! */
 
 Инициализация массивов и указателей выглядит похоже, но означает разные вещи:
 
-\lstinputlisting[firstline=35,lastline=37]{cpp_code/p1s2.cpp}
+\begin{lstlisting}
+char a[] = "abcdefgh";
+char *b = "abcdefgh";
+assert (a[3] == b[3]);
+\end{lstlisting}
 
 \textbf{Вопрос к студентам:} есть ли разница между этими двумя записями и какую вы предпочтёте? Почему?
 
@@ -1611,7 +1707,10 @@ arr_t foo (void); /* Error! */
 
 Между прочим, строковые литералы в инициализации указателей это счастливое (исторически сложившееся) исключение. Строчка 2 в следующем примере не будет скомпилирована:
 
-\lstinputlisting[firstline=43,lastline=44]{cpp_code/p1s2.cpp}
+\begin{lstlisting}
+float a[] = {1.0, 2.0, 3.0}; /* ok */
+float *b = {1.0, 2.0, 3.0}; /* ka-boom! */
+\end{lstlisting}
 
 \textbf{Вопрос к студентам:} есть ли разница между следующими двумя объявлениями?
 
@@ -1805,11 +1904,23 @@ func (&a[0][0], 2, 3); /* ok */
 
 Очень важной особенностью C++ является введение довольно низкоуровневой, но принципиально новой конструкции – ссылок. Ссылка это альтернативное имя переменной.
 
-\lstinputlisting[firstline=67,lastline=70]{cpp_code/p1s2.cpp}
+\begin{lstlisting}
+int x = 5;
+int &xref = x;
+xref += 1;
+assert (x == 6);
+\end{lstlisting}
 
 Каждая ссылка обязательно должна быть инициализирована в точке определения. ``Ссылка сама по себе'' так же как ``нулевая ссылка'' не могут существовать. Указатель сам по себе является местом для хранения данных, ссылка – это просто имя. Поэтому ссылки не нуждаются в явном разыменовании – каждое обращение к ним это уже разыменование. Поэтому различия существенны:
 
-\lstinputlisting[firstline=76,lastline=81]{cpp_code/p1s2.cpp}
+\begin{lstlisting}
+int x[2] = {10, 20};
+int &xref = x[0];
+int *xptr = &x[0];
+xref += 1;
+xptr += 1;
+assert ((xref == 11) && (*xptr == 20));
+\end{lstlisting}
 
 \subsubsection{Использование ссылок}
 
@@ -2099,11 +2210,21 @@ delete [] dim;
 
 Язык C, поскольку он разрабатывался с интенцией отображения один в один на машинные типы, имеет слабую типизацию. Кусок памяти, который хранит int или указатель на int или механическую структуру из чего-нибудь, легко приводится к другому такому же куску памяти.
 
-\lstinputlisting[firstline=95,lastline=100]{cpp_code/p1s2.cpp}
+\begin{lstlisting}
+int *b, *c;
+char d;
+const int *e;
+int a = (int)(b) + (int)(c); // not in C++! 
+d = (char) a; // not in C++! 
+b = (int *) e;
+\end{lstlisting}
 
 Язык C++ содержит гораздо более развитую систему типов и позволяет определять типы, обладающие состоянием и поведением, о которых пойдёт речь в следующих лекциях. Поэтому, несмотря на то, что формально C++ унаследовал от C способ непосредственного приведения C-style cast, применять его считается крайне плохим тоном. Вместо этого следует применять \lstinline!static_cast!\index{static\_cast}, \lstinline!reinterpret_cast!\index{reinterpret\_cast} или \lstinline!const_cast!\index{const\_cast}. Чаще всего вы будете применять \lstinline!static_cast!. Он записывается так.
 
-\lstinputlisting[firstline=106,lastline=107]{cpp_code/p1s2.cpp}
+\begin{lstlisting}
+char a;
+int b = static_cast<int>(a);
+\end{lstlisting}
 
 В принципе это визуально мало чем отличается от C-стиля, рассмотренного выше. Запись чуть более уродлива, зато чуть лучше бросается в глаза в коде программы. Разница в том к чему можно применять \lstinline!static_cast!, а к чему C-cast. Последний применяется к чему угодно. \lstinline!static_cast! применяется только к переменным, совместимым по статическим типам: то есть одинаковым по размеру или указывающим на объекты одинакового размера.
 
@@ -2117,13 +2238,19 @@ double *e = static_cast<double *>(&f); // CE
 
 Гораздо более редкий \lstinline!const_cast! нужен для снятия константности и волатильности. С его помощью можно привести \lstinline!const int *! к \lstinline!int *!. 
 
-\lstinputlisting[firstline=113,lastline=114]{cpp_code/p1s2.cpp}
+\begin{lstlisting}
+const int *a;
+int *b = const_cast<int*>(a);
+\end{lstlisting}
 
 Конечно необходимо понимать опасность этих игр: в памяти, выделенной для \lstinline!const int*!, компилятор размещает данные, изменения которых не ожидает. В тот момент, когда программист принудительно снимает константность и изменяет (пытается изменить) нечто, объявленное ранее константным, он стреляет себе в ногу.
 
 И самый редкий \lstinline!reinterpret_cast! существует для непереносимых низкоуровневых приведений, которые, тем не менее, иногда нужны.
 
-\lstinputlisting[firstline=120,lastline=121]{cpp_code/p1s2.cpp}
+\begin{lstlisting}
+int a;
+int *b = reinterpret_cast<int*>(a);
+\end{lstlisting}
 
 Любое использование \lstinline!reinterpret_cast! (как и C-cast) компрометирует вашу программу. Но случаи использования \lstinline!reinterpret_cast! читающему ваш код будет куда проще найти и вычистить.
 
@@ -2166,7 +2293,11 @@ T *t = (T *) &f; // (!)
 
 Язык C++ такой гарантии не даёт. Вместо этого он согласен сделать эту (и многую другую) работу за вас посредством встроенного искажения (манглирования) имён. Используя C++ вы можете написать три функции с одинаковыми именами, но различными типами:
 
-\lstinputlisting[firstline=125,lastline=127]{cpp_code/p1s2.cpp}
+\begin{lstlisting}
+char bar (char x) { return x; }
+int bar (int y) { return y; }
+long long bar (long long z) { return z; }
+\end{lstlisting}
 
 На уровне ассемблера они могут выглядеть например так:
 
@@ -2202,7 +2333,11 @@ extern "C"
 
 Также удобная концепция (и снова проистекающая от отсутствия обязательств C++ быть близким к машине) это аргументы по умолчанию. Посмотрим как они могут быть заданы:
 
-\lstinputlisting[firstline=1,lastline=5]{cpp_code/p1s2.cpp}
+\begin{lstlisting}
+char foo(char x = 0) { return x; }
+int foo(int y = 5) { return y; }
+long long foo(long long z = 0x0afff) { return z; }
+\end{lstlisting}
 
 Функция не может быть перегружена по: 
 
@@ -2333,9 +2468,17 @@ foo (true); // error, not foo(int)
 
 \subsubsection{Создание и использование пространств имён}
 
-Глобальное пространство имён это префикс через два двоеточия, а все стандартные функции принадлежат пространству имён std. Напишем hello world с явным указанием пространств имён.
+Глобальное пространство имён это префикс через два двоеточия, а все стандартные функции принадлежат пространству имён std. Ниже приведен пример hello world с явным указанием пространств имён.
 
-\lstinputlisting[firstline=1,lastline=7]{cpp_code/p1s3.cpp}
+\begin{lstlisting}
+#include <cstdio>
+const char * const helloworld = "Hello, world";
+int main(void)
+{
+  std::printf("%s\n", ::helloworld);
+  return 0;
+}
+\end{lstlisting}
 
 Обратите внимание на включение \lstinline!<cstdio>! вместо привычного заголовочного файла \lstinline!<stdio.h>!. Все заголовочные файлы к которым вы привыкли в C, сохранены в C++. Но хорошим тоном считается писать унаследованные заголовочные файлы в C++ conforming виде, то есть \lstinline!<cXXX>! вместо \lstinline!<XXX.h>!.
 
@@ -2343,15 +2486,43 @@ foo (true); // error, not foo(int)
 
 Засорять собственными именами, такими как \lstinline!::helloworld!, глобальное пространство имён это на самом деле крайне плохая идея. Несколько лучше объявить своё пространство имён, включив туда всё, что специфично именно для вашей программы.
 
-\lstinputlisting[firstline=1,lastline=9]{cpp_code/p1s4.cpp}
+\begin{lstlisting}
+#include <cstdio>
+namespace hellowapp {
+const char * const helloworld = "Hello, world";
+}
+int main(void)
+{
+  std::printf("%s\n", hellowapp::helloworld);
+  return 0;
+}
+\end{lstlisting}
 
 Допустимо объявлять вложенные пространства имён с произвольным количеством уровней вложенности. При помещении в пространство имён функции с большим телом, вполне достаточно поместить в пространство имён явно только объявление (например в заголовочном файле), указав пространство имён при определении (например в файле реализации).
 
-\lstinputlisting[firstline=1,lastline=6]{cpp_code/p1s5.cpp}
+\begin{lstlisting}
+/* foo.h */
+namespace foo {
+int bar(void);
+}
+/* foo.cpp */
+int foo::bar(void) { /* ... */ }
+\end{lstlisting}
 
 Пространства имён являются областями видимости (как блоки из фигурных скобок) и подчиняются тем же правилам – если имя указано в охватывающем пространстве имён оно может быть использовано без квалификации. Но в отличии от блоков скобок они могут быть поименованы и тогда переменная или функция с квалификацией может быть использована где угодно
 
-\lstinputlisting[firstline=8,lastline=17]{cpp_code/p1s5.cpp}
+\begin{lstlisting}
+namespace foo {
+int y;
+}
+namespace {
+int y;
+void buz(int x) { y = x; } /* ok */
+}
+namespace buz {
+void buz(int x) { foo::y = x; } /* ok */
+}
+\end{lstlisting}
 
 Здесь приведён пример неименованного пространства имён (по русски это звучит странно, лучше говорить ``анонимное пространство имён''). Объявленные в анонимном пространстве имён функции доступны только в текущем модуле -- этим они похожи на функции, объявленные с модификатором \lstinline!static!
 
@@ -2369,7 +2540,18 @@ foo (true); // error, not foo(int)
 
 Этот трюк называется ``поиск Кёнига''\index{Kenig search} по имени человека, который его придумал и ввёл в стандарт C++98.
 
-\lstinputlisting[firstline=19,lastline=28]{cpp_code/p1s5.cpp}
+\begin{lstlisting}
+namespace ns {
+  struct S {};
+  void f (S x) {}
+}
+
+void g(void)
+{
+  ns::S x;
+  f(x); /* ok, f is ns::f */
+}
+\end{lstlisting}
 
 Впрочем, если компилятор встречает вызов фукции внутри метода некоего класса, то иные члены этого класса и его родительских имеют приоритет над функциями, найденными на основании информации о типах аргументов.
 
@@ -2377,7 +2559,18 @@ foo (true); // error, not foo(int)
 
 Любая стандартная функция в C++ принадлежит пространству имён std. Каждый раз писать \lstinline!std::printf! или \lstinline!std::memcpy! бывает накладно. Чтобы этого избежать, добавьте строчку \lstinline!using namespace std!\index{using} после включения хедеров. Директива \lstinline!using some_name! также может применяться чтобы внести из произвольного пространства имён только одно имя.
 
-\lstinputlisting[firstline=1,lastline=10]{cpp_code/p1s6.cpp}
+\begin{lstlisting}
+#include <cstdlib>
+#include <cstdio>
+using namespace std;
+
+int 
+main(void)
+{
+  printf("%s\n", "Hello, world");
+  return 0;
+}
+\end{lstlisting}
 
 Поиск Кёнига не срабатывает для имён, которые компилятор считает известными
 
@@ -3496,11 +3689,31 @@ pair_t::transpose_pair ()
 
 Пусть стоит задача разработать тип данных, который будет использован для моделирования полёта материальной точки в двумерном мире (высота, длина). Мяч может лететь свободно, для чего у него вызывается метод \lstinline!fly(double t)! или его можно толкнуть, придав ему определённую скорость под определённым углом (после чего например опять отправить в полёт и так далее). Можно написать определение структуры, вроде приведенного ниже.
 
-\lstinputlisting[firstline=14,lastline=23]{cpp_code/p2s1.cpp}
+\begin{lstlisting}
+struct ball
+{
+  double t;
+  double vx;
+  double vy;
+  double x;
+  double y;
+  void push(double v, double alpha);
+  void fly(double time);
+};
+\end{lstlisting}
 
 Представляет ли эта структура данных хорошую абстракцию мяча? Нет, не представляет. Каждый пользователь вашего ``мяча'' может произвольно менять его координаты. Это означает, что в плохо отлаженной программе симуляции, этот мяч сможет свободно ``телепортироваться'', а это явно не то, чего ждут от законченной модели. 
 
-\lstinputlisting[firstline=29,lastline=36]{cpp_code/p2s1.cpp}
+\begin{lstlisting}
+ball foo(void)
+{
+  ball a_ball;
+  a_ball.vx = 5.0; /* sad, but ok */
+  a_ball.push(5.0, 0.75); /* ok */
+  a_ball.x = -1.0; /* hmm... still ok */  
+  return a_ball;
+}
+\end{lstlisting}
 
 Хуже того, время может быть свободно переставлено вперёд или назад. Но пусть даже никто не ошибся и всё написано правильно. А потом... возникла необходимость ``запустить'' этот мяч в многопользовательской среде. Всё пропало – для того, чтобы вставить синхронизацию, переписывать придётся каждый участок кода где ссылались на эти поля.
 
@@ -3508,13 +3721,42 @@ pair_t::transpose_pair ()
 
 Для разграничения состояния модели от её поведения и более гибкого управления поведением, в C++ были введены классы. Простые классы, без использования полиморфизма и без иерархий наследования, называются ``конкретными классами''. Конкретные классы -- мощный и полезный инструмент для поддержания консистентности абстракции. Можно переписать модель мяча, создав его класс
 
-\lstinputlisting[firstline=43,lastline=54]{cpp_code/p2s1.cpp}
+\begin{lstlisting}
+struct ball_t
+{
+private:
+  double m_x;
+  double m_y;
+  double m_vx;
+  double m_vy;
+  double m_t;
+public:
+  void push(double a_v, double a_alpha);
+  void fly(double a_time);
+};
+\end{lstlisting}
 
 Модификатор \lstinline!public! означает, что любой пользователь типа \lstinline!ball_t! имеет доступ к этим методам или данным. 
 
 Модификатор \lstinline!private! означает, что доступ к соответствующим методам и данным имеют только методы этого класса.
 
-\lstinputlisting[firstline=58,lastline=74]{cpp_code/p2s1.cpp}
+\begin{lstlisting}
+void
+ball_t::push(double a_v, double a_alpha)
+{
+  assert(a_v > 0);
+  m_vx += a_v * cosf(a_alpha); /* ok */
+  m_vy += a_v * sinf(a_alpha);
+}
+
+ball_t bar(void)
+{
+  ball_t ball;
+  ball.m_vx = 5.0; // FAIL
+  ball.push(5.0, 0.75); // OK
+  return ball;
+}
+\end{lstlisting}
 
 Хорошим тоном считается закрывать данные, составляющие состояние объекта и открывать функции, составляющие его поведение.
 
@@ -3543,7 +3785,11 @@ pair_t::transpose_pair ()
 
 Отсутствие доступа к состоянию означает, что при создании объекта он должен уметь сам установить своё состояние, а при уничтожении – освободить свои ресурсы. Для этого в класс вводятся конструктор и деструктор – специальные функции, вызывающиеся при создании и уничтожении объекта. Например у класса мяча, конструктор может устанавливать начальное положение, деструктор же может быть тривиальным.
 
-\lstinputlisting[firstline=18,lastline=21]{cpp_code/p2s2.cpp}
+\begin{lstlisting}
+ball_t(double a_x = 0.0, double a_y = 0.0):
+  m_x(a_x), m_y(a_y), m_vx(0.0), m_vy(0.0), m_t(0.0) {}
+~ball_t(void) {}
+\end{lstlisting}
 
 Обратите внимание на список инициализации у конструктора в этом примере кода. Можно, конечно, написать инициализацию в теле конструктора, но использование списков инициализации является лучшей идеей. По умолчанию, удовлетворяющий стандарту языка C++ компилятор сгенерирует конструктор (на самом деле несколько конструкторов) и деструктор по умолчанию. Это кажется удобным, но в \ref{RAII} последует обсуждение того, чем это может быть чревато. Конструктор по умолчанию вызывает конструкторы всех членов класса, у которых они есть, деструктор -- их деструкторы.
 
@@ -3595,11 +3841,21 @@ anytype `op` int => int `op` int
 
 Но в C++ неявные преобразования также пробуются компилятором для пользовательских типов. Определение в пользовательском типе конструктора, который может быть истрактован как конструктор с одним аргументом (считая аргументы по умолчанию частично подставленными всюду кроме первого аргумента), считается определением неявного преобразование из аргумента конструктора к этому типу. Это может иметь неприятные последствия:
 
-\lstinputlisting[firstline=26,lastline=31]{cpp_code/p2s2.cpp}
+\begin{lstlisting}
+int emulateBall(ball_t b);
+
+int foo(void)
+{
+  emulateBall(1.0); // ??? but legal
+}
+\end{lstlisting}
 
 Верный способ определить конструктор, чтобы явно заявить компилятору, что он не поддерживает неявного преобразования это определить его с ключевым словом \lstinline!explicit!
 
-\lstinputlisting[firstline=12,lastline=13]{cpp_code/p2s3.cpp}
+\begin{lstlisting}
+explicit ball_t(double a_x = 0.0, double a_y = 0.0):
+  m_x(a_x), m_y(a_y), m_vx(0.0), m_vy(0.0), m_t(0.0) {}
+\end{lstlisting}
 
 Это важное решение при проектировании и его надо принимать осознанно. Лепить \lstinline!explicit! куда ни попадя -- дурной тон (скажем это ключевое слово возможно но совершенно не нужно на конструкторе более чем с одним аргументом и без аргументов по умолчанию). Но иногда он очень нужен.
 
@@ -3654,7 +3910,10 @@ int *pt = new int [10](); /* 10 ints are initialized with 0 */
 
 Отражает ли созданная до сих пор абстракция физический мяч? Всё ещё нет. Мяч в физическом мире обычно виден пользователю, у которого есть возможность считать его координаты. То есть нужны некоторые методы, которые будут, сохраняя состояние мяча, давать возможность прочитать его. Такие методы традиционно называются селекторами.
 
-\lstinputlisting[firstline=16,lastline=18]{cpp_code/p2s3.cpp}
+\begin{lstlisting}
+double get_x(void) const { return m_x; }
+double get_y(void) const { return m_y; }
+\end{lstlisting}
 
 Обратите внимание на const в их объявлении. Внутри объявленного таким образом метода изменить любое поле класса это ошибка компиляции. Исключение составляют поля, объявленные с ключевым словом \lstinline!mutable!, но им не стоит злоупотреблять при проектировании.
 
@@ -4077,7 +4336,11 @@ public:
 
 Конструктор и деструктор должны быть к этому моменту уже понятны. Но оказывается, что C++ генерирует ещё две функции специального вида – копирующий конструктор\index{copy constructor}, отвечающий за создание объекта по образцу такого же и оператор присваивания\index{assignment operator}, который будет вызван при присваивании объекта в выражениях вида \lstinline!a=b!.
 
-\lstinputlisting[firstline=20,lastline=22]{cpp_code/p2s10.cpp}
+\begin{lstlisting}
+Empty e1;
+Empty e2(e1); // copy constructor called
+e1 = e2; // assignment called 
+\end{lstlisting}
 
 По умолчанию сгенерированные компилятором конструктор копирования и оператор присваивания просто побитово копируют код аргумента в целевой объект. Разумеется, это не пройдёт если в классе есть член-ссылка, тогда вы должны писать оператор присваивания самостоятельно.
 
@@ -4085,11 +4348,27 @@ public:
 
 Иногда такое умолчательное поведение приводит к мрачным проблемам, тяжёлым в отладке. Предположим, вы написали некий класс, управляющий внутренним буфером, который выделяется в конструкторе и освобождается в деструкторе.
 
-\lstinputlisting[firstline=30,lastline=38]{cpp_code/p2s10.cpp}
+\begin{lstlisting}
+class CBuffer {
+public:
+  CBuffer(int size = 10) { m_size = size; m_buffer = new char[size]; }
+  ~CBuffer() { delete[] m_buffer; }
+  char &get(int x) { assert(x >= 0 && x < m_size); return m_buffer[x]; } 
+private:
+  char *m_buffer;
+  int m_size;
+};
+\end{lstlisting}
 
 А потом кто-то по незнанию создал буфер по его образцу внутри какой-то функции.
 
-\lstinputlisting[firstline=40,lastline=44]{cpp_code/p2s10.cpp}
+\begin{lstlisting}
+void wrong(void)
+{
+  CBuffer b1;
+  CBuffer b2 = b1;
+} /* Segfault here */
+\end{lstlisting}
 
 Что при этом произойдёт? Выделенный вами буфер доступен по указателю. Указатель будет побитово скопирован. Это значит что теперь на буфер есть два указателя. При выходе за границы блока оба будут освобождены. Это крайне неприятная ошибка двойного освобождения, которое является UB.
 
@@ -4338,17 +4617,46 @@ x = y = z = w;
 
 Для того, чтобы абстракция комплексных чисел была завершённой, должна быть возможность неявного преобразования double в complex, ведь по сути число \lstinline!2.0! это \lstinline!2.0 + 0.0 * i!. Эта возможность заложена в конструкторе класса (вспоминаем, что конструктор с одним аргументом это неявное преобразование типа).
 
-\lstinputlisting[firstline=36,lastline=37]{cpp_code/p2s8.cpp}
+\begin{lstlisting}
+Complex a = Complex(1.0, 3.1), b;
+b = a + 2.0; /* ok */
+\end{lstlisting}
 
 Но здесь таится и опасность, потому что сложение перестаёт быть коммутативным и простая запись, вида:
 
-\lstinputlisting[firstline=39,lastline=40]{cpp_code/p2s8.cpp}
+\begin{lstlisting}
+Complex a = Complex(1.0, 3.1), b;
+b = 2.0 + a; /* error! */
+\end{lstlisting}
 
 Выдаст ошибку компиляции. Ошибка связана с тем, что неявные преобразования применяются только к параметрам, перечисленным в списке параметров. Поэтому \lstinline!a.operator+(2.0)! преобразует \lstinline!double! к \lstinline!Complex!, но для \lstinline!(2.0).operator+(a)! неявный параметр \lstinline!this! -- указатель на объект для которого вызывается метод, не подвергается, согласно стандарту, никаким неявным преобразованиям.
 
 Правильный метод: определить операторы сложения и умножения вне класса как отдельные функции:
 
-\lstinputlisting[firstline=8,lastline=29]{cpp_code/p2s8c.cpp}
+\begin{lstlisting}
+class Complex
+{
+public:
+  Complex(double r = 0.0, double i = 0.0) : re(r), im(i) {}
+
+  double get_real(void) const { return re; }
+  double get_imag(void) const { return im; }
+
+private:
+  double re, im;  
+};
+
+Complex operator+ (const Complex &x, const Complex &y) 
+{ 
+  return Complex(x.get_real() + y.get_real(), x.get_imag() + y.get_imag()); 
+}
+
+Complex operator* (const Complex &x, const Complex &y) 
+{ 
+  return Complex(x.get_real() * y.get_real() - x.get_imag() * y.get_imag(), 
+                 x.get_real() * y.get_imag() + x.get_imag() * y.get_real()); 
+}
+\end{lstlisting}
 
 Точно так же необходимо поступать со всеми функциями, которые по определению должны быть коммутативными. Тогда коммутативность будет сохранена.
 
@@ -4727,9 +5035,41 @@ Widget *w = new (WidgetPool, WidgetLogStream) Widget;
 Разрушение происходит в обратном порядке.
 \end{enumerate}
 
-Обычный сценарий работы \lstinline!malloc()! для выделения буфера, вместе с размещающим new для явного вызова конструктора приведён ниже:
+Обычный сценарий работы \lstinline!malloc()! для выделения буфера, вместе с размещающим \lstinline!new! для явного вызова конструктора приведён ниже:
 
-\lstinputlisting{cpp_code/p2s9.cpp}
+\begin{lstlisting}
+class Widget
+{
+  private:
+    int m_i;
+  public:
+    Widget(int a_i): m_i(a_i * a_i) {}
+    int get_state() const  { return m_i; }
+    ~Widget() {}
+};
+\end{lstlisting}
+
+\begin{lstlisting}
+Widget *
+test_malloced(int initializer)
+{
+  Widget *wbuf = (Widget *) malloc(sizeof(Widget));
+  Widget *w = new (wbuf) Widget(initializer);
+  return w;
+}
+\end{lstlisting}
+
+\begin{lstlisting}
+int 
+main(void)
+{
+  Widget *w = test_malloced(5);
+  assert(w->get_state() == 25);
+  w->~Widget();
+  free(w);
+  return 0;
+}
+\end{lstlisting}
 
 Обратите внимание -- деструктор может быть вызван явно.
 
@@ -6223,7 +6563,20 @@ public:
 
 Необходимо понимать, что время жизни объекта начинается после того, как отработал его конструктор. Это означает, что следующий код (хотя и корректен с точки зрения языка) не верен:
 
-\lstinputlisting[firstline=1,lastline=12]{cpp_code/p2s7.cpp}
+\begin{lstlisting}
+class A {
+  public:
+    A (const char *s) {}
+    const char *f(void) { return "hello, world"; }
+};
+
+class B : public A {
+  public:
+    B() : A ( s = f() ) {}
+  private:
+    const char *s;
+};
+\end{lstlisting}
 
 Здесь сразу две ошибки. Во-первых попытка вызвать метод \lstinline!f()! базового подобъекта, который ещё не сконструирован в этой точке (поскольку только вызывается его конструктор). Это может прокатить, может нет, но это в любом случае некорректно. Во-вторых попытка инициализировать и потом использовать ещё не существующий член производного класса (до конструирования которого там пока вообще далеко).
 
@@ -6473,7 +6826,46 @@ Derived* temp = dynamic_cast<Derived*>(base);
 
 Пытается привести p, типа \lstinline!Base*! к типу \lstinline!Derived*!, где \lstinline!Base! и \lstinline!Derived! принадлежат одной и той же иерархии. Если \lstinline!Derived! является базовым классом для \lstinline!Base!, то это ничем не отличается от \lstinline!static_cast!. Но \lstinline!dynamic_cast! работает также если Base является полиморфным базовым классом для \lstinline!Derived!, то есть является базовым классом для \lstinline!Derived! и содержит виртуальные функции. Звучит запутано? Давайте посмотрим пример.
 
-\lstinputlisting{cpp_code/p2s13.cpp}
+\begin{lstlisting}
+class NamedObject {
+public:
+  virtual const char *whoareyou(void) const = 0;
+};
+\end{lstlisting}
+
+\begin{lstlisting}
+class Pokemon : public NamedObject {
+public:
+  const char *whoareyou(void) const { return "Pokemon"; }
+};
+
+class DartVeider : public NamedObject {
+public:
+  const char *whoareyou(void) const { return "Dart Veider"; }
+};
+\end{lstlisting}
+
+\begin{lstlisting}
+int check_DartVeider(NamedObject *p)
+{
+  if (dynamic_cast<DartVeider *>(p))
+    {
+      printf("You are Dart Veider!\n");
+    }
+  else
+    {
+      printf("You are not Dart Veider, you are %s\n", p->whoareyou());
+    }
+  return 0;
+}
+\end{lstlisting}
+
+\begin{lstlisting}
+DartVeider dv;
+Pokemon pm;
+check_DartVeider(&dv);
+check_DartVeider(&pm);
+\end{lstlisting}
 
 Что будет на выдаче? Ответ:
 
@@ -6592,7 +6984,21 @@ public:
 
 Важно очень хорошо представлять себе порядок конструирования сложных диаграмм классов. Ниже приведен несколько синтетический (но на самом деле гораздо менее сложный, чем многие практически важные иерархии) пример.
 
-\lstinputlisting[firstline=3,lastline=15]{cpp_code/p2s12.cpp}
+\begin{lstlisting}
+class B1 { };
+class V1 : public B1 { };
+class D1 : virtual public V1 { };
+class B2 { };
+class B3 { };
+class V2 : public B1, public B2 { };
+class D2 : virtual public V2, public B3 { };
+class M1 { };
+class M2 { };
+class X : public D1, public D2 {
+  M1 m1_;
+  M2 m2_;
+};
+\end{lstlisting}
 
 Для простоты можно изобразить эту иерархию на листочке:
 
@@ -6661,7 +7067,39 @@ x.foo();
 
 Вложенные функции в C++ невозможны так же как и в C (что кстати не вполне логично, так как вложенные лямбда-функции в новом стандарте возможны и будут рассмотрены на следующих лекциях, так что казалось бы гулять так гулять). Зато C++ позволяет вкладывать классы. Синтаксис очевиден, но, если необходимо, чтобы вложенный класс ``знал'' о своём окружении, об этом надо позаботиться отдельно:
 
-\lstinputlisting{cpp_code/p2s15.cpp}
+\begin{lstlisting}
+class DeathStar
+{
+public:
+  DeathStar(const char *name) : m_name(name)
+    {
+       m_dv.starptr = this;
+    }
+
+  class DartVeider
+  {
+    public:
+      void whoareyou() const
+        {
+          printf("I am Dart Veider, flying on %s\n", starptr ? starptr->m_name : "hmm... I don't know where");
+        }
+      DeathStar *starptr;    
+  };
+
+  void ask_dart_veider() const { m_dv.whoareyou(); }
+
+private:
+  DartVeider m_dv;
+  const char *m_name;
+};
+\end{lstlisting}
+
+Используется это как-то так.
+
+\begin{lstlisting}
+DeathStar d("Old Good Death Star");
+d.ask_dart_veider();
+\end{lstlisting}
 
 Каждый вложенный класс определяет область видимости своих имён. Это позволяет гибко разграничивать уровень доступа в зависимости от архитектуры системы.
 
@@ -6781,7 +7219,38 @@ private:
 
 Дружба не наследуется, но друг статического родительского типа достаточен, чтобы делать дружественные вызовы полиморфных наследников.
 
-\lstinputlisting[firstline=51,lastline=80]{cpp_code/p2s16.cpp}
+\begin{lstlisting}
+class Parent
+{
+    friend class Family;
+    protected:
+        virtual void Answer() = 0;
+};
+\end{lstlisting}
+
+\begin{lstlisting}
+class Child : public Parent
+{
+  private:
+    void Answer() { printf("Child!\n"); }
+};
+\end{lstlisting}
+
+\begin{lstlisting}
+class Family
+{
+friend class Parent;
+public:
+  void ParentAnswer(Parent *p) { p->Answer(); } // OK
+  void ChildAnswer(Child *c) { c->Answer(); }  // FAIL
+};
+\end{lstlisting}
+
+\begin{lstlisting}
+Child c;
+Family f;
+f.ParentAnswer(&c); /* ok */
+\end{lstlisting}
 
 В общем случае, дружба статических типов вредна для инкапсуляции. Но дружба, позволяющая полиморфные вызовы по большой и закрытой иерархии это полезно и иногда необходимо. 
 
@@ -6990,7 +7459,26 @@ class Manager {
 
 Принцип подстановки Лисков требует навыка при работе с ним. Предположим, вы проектируете иерархию геометрических объектов и столкнулись с необходимостью расположить в ней такие абстракции как ``квадрат'' и ``прямоугольник''. Первой мыслью может быть унаследовать прямоугольник от квадрата – в конце концов прямоугольник вводит ещё одно поле и может быть какие-нибудь дополнительные методы
 
-\lstinputlisting[firstline=3,lastline=20]{cpp_code/p2s11.cpp}
+\begin{lstlisting}
+class Square {
+public:
+  Square(double x) : m_x(x) {}
+  virtual ~Square() {}
+  double a(void) { return m_x; }
+  virtual double get_sq(void) { return a() * a(); }
+protected:
+  double m_x;
+};
+
+class Rect: public Square {
+public:
+  Rect(double x, double y) : Square(x), m_y(y) {}
+  int b(void) { return m_y; }
+  virtual double get_sq(void) { return a() * b(); }
+private:
+  double m_y;
+};
+\end{lstlisting}
 
 Но такой подход создаёт проблемы, связанные с тем, что прямоугольник не является частным случаем квадрата и здесь нарушается принцип подстановки. 
 
@@ -7851,11 +8339,44 @@ main (void)
 
 Допустим, стоит задача спроектировать стек – класс объектов любого типа (но однородных) которые будут туда помещаться и вытаскиваться. Как обычно синтаксис вполне понятен через пример (детали всегда можно прочитать в стандарте).
 
-\lstinputlisting[firstline=6,lastline=18]{cpp_code/p3s2.cpp}
+\begin{lstlisting}
+template <typename T>
+class Stack {
+public:
+  Stack() : m_top(NULL) {}
+  void push(const T& elem);
+  void pop();
+  T top() const { return m_top->elem; }
+private:
+  struct StackElem {
+    T elem;
+    StackElem *next;
+  } *m_top;
+}; 
+\end{lstlisting}
 
 Обратите внимание на то, что \lstinline!T!, помещённый в шаблон, используется внутри класса как совершенно обычный тип. Можно вернуть его из метода, передать в метод и даже использовать как деталь реализации скрытой подструктуры.
 
-\lstinputlisting[firstline=20,lastline=37]{cpp_code/p3s2.cpp}
+\begin{lstlisting}
+template <typename T>
+void Stack<T>::push(const T& elem)
+{
+  StackElem *newelem = new StackElem;
+  newelem->elem = elem;
+  newelem->next = m_top;
+  m_top = newelem;
+}
+
+template <typename T>
+void Stack<T>::pop(void)
+{
+  if (NULL == m_top)
+    return;
+  StackElem *topelem = m_top;
+  m_top = m_top->next;
+  delete topelem;
+}
+\end{lstlisting}
 
 \textbf{Вопрос к студентам:} чего здесь явно не хватает?
 
@@ -7865,7 +8386,19 @@ main (void)
 
 Давайте посмотрим как применять разработанный шаблонный класс:
 
-\lstinputlisting[firstline=39]{cpp_code/p3s2.cpp}
+\begin{lstlisting}
+Stack <int> intstack;
+Stack <double> dblstack;
+intstack.push(2);
+dblstack.push(2.0);
+printf("top1 = %d, top2 = %lf\n", intstack.top(), dblstack.top());
+intstack.push(3);
+dblstack.push(3.0);
+printf("top1 = %d, top2 = %lf\n", intstack.top(), dblstack.top());
+intstack.pop();
+dblstack.pop();
+printf("top1 = %d, top2 = %lf\n", intstack.top(), dblstack.top());
+\end{lstlisting}
 
 Из примера ясно, что с использованием шаблонов, поддержка двух разнородных контейнеров (трёх, десяти) это крайне легко. Скорость компиляции, правда, страдает, вместе с объёмом кода, но по современным реалиям это невысокая цена.
 
@@ -10549,7 +11082,37 @@ auto at (T const& a, int i) -> decltype(a[i]) {
 
 SFINAE является очень мощной техникой, позволяющей делать интересные вещи. Например определить на этапе компиляции имеет ли некий тип вложенный зависимый тип с определённым именем.
 
-\lstinputlisting{cpp_code/p3s7.cpp}
+\begin{lstlisting}
+template <typename T>
+struct has_typedef_foobar {
+  typedef char yes[1];
+  typedef char no[2];
+ 
+  template <typename C>
+  static yes& test(typename C::foobar*);
+ 
+  template <typename>
+  static no& test(...);
+ 
+  static const bool value = 
+     sizeof(test<T>(0)) == sizeof(yes);
+};
+
+struct foo {    
+  typedef float foobar;
+};
+
+struct bar {    
+};
+
+int main(void)
+{
+  printf("foo: %d, bar: %d\n", 
+         has_typedef_foobar<foo>::value,
+         has_typedef_foobar<bar>::value);
+  return 0;
+}
+\end{lstlisting}
 
 Этот код выведет результат \lstinline!foo: 1, bar: 0!, верно определив наличие зависимого типа \lstinline!foo::foobar! в \lstinline!foo! и его отсутствие в \lstinline!bar!. Эта техника может казаться с первого взгляда не очевидной. Я рекомендую изучить идею, пока она не станет ясна: понимание SFINAE это ключ к пониманию всего метапрограммирования.
 
