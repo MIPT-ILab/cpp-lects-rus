@@ -1,0 +1,3 @@
+For Windows use:
+
+make -f Makefile.w64

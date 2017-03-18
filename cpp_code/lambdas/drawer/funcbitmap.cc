@@ -42,7 +42,11 @@ draw_internal (ISurface *s, ftype_t f,  unsigned delta)
 }
 
 int
+#if defined(_WIN32) || defined(WIN32) 
+WinMain ()
+#else
 main ()
+#endif
 {
   unsigned delta = 0;
 

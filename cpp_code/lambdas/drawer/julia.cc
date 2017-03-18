@@ -49,7 +49,11 @@ draw_julia (ISurface *s, cdt c)
 }
 
 int
+#if defined(_WIN32) || defined(WIN32)
+WinMain (int argc, char **argv)
+#else
 main (int argc, char **argv)
+#endif
 {
   cdt c = -1.0i;
 

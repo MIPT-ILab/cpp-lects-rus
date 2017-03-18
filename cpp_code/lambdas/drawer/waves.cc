@@ -42,7 +42,11 @@ draw_waves (ISurface *s, double xcenter, double ycenter, double phase)
 }
 
 int
+#if defined(_WIN32) || defined(WIN32)
+WinMain ()
+#else
 main ()
+#endif
 {
   const unsigned xsize = 500;
   const unsigned ysize = 500;

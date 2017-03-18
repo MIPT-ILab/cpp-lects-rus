@@ -1,0 +1,21 @@
+# Drawer makefile
+
+CXXFLAGS = -O2 -Wall -Wextra -I SDLw64/include 
+LDFLAGS = -L SDLw64/lib -lSDLmain -lSDL -mwindows
+
+all : funcbitmap waves julia
+
+julia : julia.cc sdlutil.o
+	${CXX} julia.cc sdlutil.o ${CXXFLAGS} ${LDFLAGS} -o $@
+
+waves : waves.cc sdlutil.o
+	${CXX} waves.cc sdlutil.o ${CXXFLAGS} ${LDFLAGS} -o $@
+
+funcbitmap : funcbitmap.cc sdlutil.cc
+	${CXX} funcbitmap.cc sdlutil.cc ${CXXFLAGS} ${LDFLAGS} -o $@
+
+sdlutil.o : sdlutil.cc sdlutil.hpp
+
+.PHONY: clean
+clean:
+	del *.exe *.o *.bmp
