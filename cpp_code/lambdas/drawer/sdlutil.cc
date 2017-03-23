@@ -70,9 +70,9 @@ SDLSurface::putlogpixel (double x, double y, Uint32 color)
   int logx = rint ((double) width * (x + 1.0) / 2.0);
   int logy = rint ((double) height * (y + 1.0) / 2.0);
 
-  if (logx > (int) width) logx = width - 1;
+  if (logx >= (int) width) logx = width - 1;
   if (logx < 0) logx = 0;
-  if (logy > (int) height) logy = height - 1;
+  if (logy >= (int) height) logy = height - 1;
   if (logy < 0) logy = 0;
 
   putpixel (logx, logy, color);
@@ -89,7 +89,7 @@ ViewPort::poll ()
   while(SDL_PollEvent(&event))
     {
       if(event.type == SDL_QUIT)
-      return pollres::STOP;
+        return pollres::STOP;
     }
   SDL_LockSurface(screen);
   callback (&s);
