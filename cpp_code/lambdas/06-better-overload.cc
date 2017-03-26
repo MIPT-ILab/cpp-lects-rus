@@ -39,8 +39,14 @@ main (void)
      [](int i) { cout << "forint" << endl; },
      [](double d) { cout << "fordouble" << endl; });
 
+  auto g = make_overload (
+     [](int i) { cout << "forintg" << endl; },
+     [](double d) { cout << "fordoubleg" << endl; });
+
   f(3);
   f(3.0);
+  g(3);
+  g(3.0);
 
   return 0;
 }

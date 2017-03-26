@@ -11,7 +11,7 @@ int foo (int b)
   if (b == 4) 
     {  
       int y = 5;
-      auto lam = [=] { return x + y + a + b + g; };
+      auto lam = [x, b, y] () mutable -> int { return x + y + a + b + g; };
       cout << lam() << endl;
 
       // 3 of 5 changes are ignored

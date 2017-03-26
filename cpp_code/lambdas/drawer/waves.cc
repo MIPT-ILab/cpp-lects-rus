@@ -21,7 +21,7 @@ draw_waves (ISurface *s, double xcenter, double ycenter, double phase)
   double a = sin (FREQ * phase);
   int rmask = 0x00, bmask = 0x00;
 
-  s->fillwith (0xffffffff);
+  // s->fillwith (0xffffffff);
 
   if (a > 0.0) 
     {
@@ -48,13 +48,15 @@ WinMain ()
 main ()
 #endif
 {
-  const unsigned xsize = 500;
-  const unsigned ysize = 500;
+  const unsigned xsize = 800;
+  const unsigned ysize = 800;
 
   clock_t start_phase = clock ();
   double dphase = 0.0;
+  double xcenter = -0.5;
+  double ycenter = 0.3;
 
-  auto draw_external = [&dphase] (ISurface *s) { draw_waves (s, -0.5, 0.3, dphase); };
+  auto draw_external = [xcenter, ycenter, &dphase] (ISurface *s) { draw_waves (s, xcenter, ycenter, dphase); };
 
   ViewPort *v = ViewPort::QueryViewPort (xsize, ysize, draw_external);
 

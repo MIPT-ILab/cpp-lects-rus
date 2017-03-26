@@ -7,8 +7,8 @@
 
 using namespace std;
 
-const unsigned xsize = 640;
-const unsigned ysize = 480;
+const unsigned xsize = 1024;
+const unsigned ysize = 768;
 const unsigned black = 0xff1010ff;
 const unsigned white = 0xffffffff;
 

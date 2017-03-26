@@ -11,8 +11,8 @@ julia : julia.cc sdlutil.o
 waves : waves.cc sdlutil.o
 	${CXX} waves.cc sdlutil.o ${CXXFLAGS} ${LDFLAGS} -o $@
 
-funcbitmap : funcbitmap.cc sdlutil.cc
-	${CXX} funcbitmap.cc sdlutil.cc ${CXXFLAGS} ${LDFLAGS} -o $@
+funcbitmap : funcbitmap.cc sdlutil.o
+	${CXX} funcbitmap.cc sdlutil.o ${CXXFLAGS} ${LDFLAGS} -o $@
 
 sdlutil.o : sdlutil.cc sdlutil.hpp
 

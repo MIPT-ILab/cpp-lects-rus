@@ -10971,23 +10971,19 @@ if (p && p->next) { /* ... */ }
 
 \begin{lstlisting}
 template <int N>
-class Danger {
-public:
+struct Danger {
   typedef char block[N]; 
 };
 
 template <typename T, int N>
-class Tricky {
-public:
+struct Tricky {
   void test_lazyness() {
       Danger<N> no_boom_yet;
   }
 };
 
-int main(void)
-{
+int main() {
   Tricky<int, -2> ok;
-  return 0;
 }
 \end{lstlisting}
 
@@ -11210,7 +11206,7 @@ private:
   enum AlgoType { NOOP, INSRT, QUICK };
   static const int algo = (N==0) ? NOOP : 
                           (N==1) ? NOOP :
-                          (N<50) ? INSERTION_SORT : QUICK_SORT;
+                          (N<50) ? INSRT : QUICK;
   void do_sort (Int2Type<INSRT>) { /* INSERTION_SORT */ }
   void do_sort (Int2Type<QUICK>) { /* QUICK_SORT */ }
 public:
