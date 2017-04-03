@@ -9,7 +9,7 @@ void hook(T);
 template<typename T> 
 struct Dancing 
 {
-  void jebb() { 
+  void jab() { 
     hook(0);
   }
   void cross() { 
@@ -27,6 +27,6 @@ void hook(T t)
 int main() 
 {
   Dancing<int> a; 
-  a.jebb();
+  a.jab();
 }
 
