@@ -4,29 +4,29 @@ using std::cout;
 using std::endl;
 
 template<typename T> 
-void hook(T);
+void proceed(T);
 
 template<typename T> 
 struct Dancing 
 {
-  void jab() { 
-    hook(0);
+  void tearup() { 
+    proceed(0);
   }
-  void cross() { 
+  void finalize() { 
     cout << "hic salta" << endl; 
   }
 };
 
 template<typename T> 
-void hook(T t) 
+void proceed(T t) 
 {
   Dancing<T> a; 
-  a.cross();
+  a.finalize();
 }
 
 int main() 
 {
   Dancing<int> a; 
-  a.jab();
+  a.tearup();
 }
 
