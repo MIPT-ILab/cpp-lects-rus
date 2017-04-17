@@ -5,7 +5,9 @@
 int
 main ()
 {
-  std::cout << factorial<6>::value << " == " <<  factorial2<6>::value << std::endl;
+  std::cout << factorial<6>::value << " == " 
+            << factorial2<6>::value << " == " 
+            << factorial3<6>::value << std::endl;
   return 0;
 }
 

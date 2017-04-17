@@ -1,3 +1,8 @@
+#include <utility>
+
+using std::size_t;
+using std::integral_constant;
+
 template <int n>
 struct factorial 
 {
@@ -26,4 +31,9 @@ struct factorial2
 {
   enum { value = fact_rec <n, 1, 1> :: value };
 };
+
+template<size_t N>
+struct factorial3 : integral_constant<size_t, N * factorial3<N - 1>{}> {};
+template<> struct factorial3<1> : integral_constant<size_t, 1> {};
+template<> struct factorial3<0> : integral_constant<size_t, 1> {};
 
