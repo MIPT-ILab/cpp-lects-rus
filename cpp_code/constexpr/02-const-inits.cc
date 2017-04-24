@@ -1,9 +1,9 @@
-#include <cstdio>
+#include <iostream>
 
-using namespace std;
+using std::cout;
+using std::endl;
 
-struct S 
-{
+struct S {
   static const int sz;
 };
 
@@ -11,10 +11,12 @@ const int page_sz = 4 * S::sz;
 
 const int S::sz = 256; /* too late */
 
+int arr[page_sz];
+
 int
 main (void)
 {
-  printf ("%d, %d\n", page_sz, S::sz);
+  cout << page_sz << " " << S::sz << endl;
   return 0;
 }
 

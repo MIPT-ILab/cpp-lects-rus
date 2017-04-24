@@ -5,11 +5,14 @@
 #include <list>
 #include <vector>
 
+using std::cin;
 using std::cout;
 using std::iterator_traits;
 using std::deque;
 using std::endl;
 using std::forward_list;
+using std::istream_iterator;
+using std::ostream_iterator;
 using std::list;
 using std::vector;
 
@@ -56,5 +59,7 @@ main ()
   print_iterator_type (forward_list<int>{}.begin());
   print_iterator_type (list<int>{}.begin());
   print_iterator_type (vector<int>{}.begin());
+  print_iterator_type (istream_iterator<int>());
+  print_iterator_type (ostream_iterator<int>(cout));
 }
 
