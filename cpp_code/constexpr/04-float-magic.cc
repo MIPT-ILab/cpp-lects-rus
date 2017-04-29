@@ -10,7 +10,7 @@ constexpr float ct = 1.0f / 3.0f;
 void __attribute__ ((noinline))
 magic_func (float x, float y)
 {
-  fesetround (FE_DOWNWARD);
+//  fesetround (FE_DOWNWARD);
   float rt = x / y;
   if (ct != rt) 
     cerr << "Failure: " << ct << " != " << rt << endl;  
