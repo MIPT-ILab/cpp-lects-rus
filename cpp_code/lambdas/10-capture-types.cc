@@ -7,7 +7,7 @@ int
 foo (int a, int b)
 {
   auto fval = [a, b](int x) { return a + b*x; }; 
-  auto fref = [&a, &b](int x) { return a + b*x; };
+  auto fref = [&a, &b](int x) { a = x;  return a + b*x; };
   auto fmval = [a](int x) mutable { a += x; return a; }; 
   auto fmref = [&a](int x) mutable { a += x; return a; };
   auto faval = [=](int x) { return a + b*x; }; 
