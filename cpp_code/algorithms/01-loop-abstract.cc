@@ -7,7 +7,8 @@ using std::endl;
 using std::for_each;
 using std::vector;
 
-template <typename C, typename F> void apply (C cont, F func) {
+template <typename C, typename F> 
+void apply (C cont, F func) {
   for (auto elt : cont) 
     func (elt);
 }
