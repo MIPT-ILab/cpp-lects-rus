@@ -1,3 +1,9 @@
 Доклад на EU'14 -- метапрограммы для обфускации символьных строк 
 
 https://www.blackhat.com/docs/eu-14/materials/eu-14-Andrivet-C-plus-plus11-Metaprogramming-Applied-To-software-Obfuscation-wp.pdf
+
+----
+
+В начале этого доклада милый обзор LLVM IR. Да и сам доклад достойный. Про оптимизаторы и их проблемы.
+
+https://www.youtube.com/watch?v=eR34r7HOU14
