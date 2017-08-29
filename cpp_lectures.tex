@@ -16350,72 +16350,119 @@ TODO: здесь dep graph как хороший пример multimap
 
 \hfill\textit{-- Jimi Hendrix}
 
-Идиома RAII уже рассматривалась в (\ref{RAII}), и там же была сделана наивная попытка завернуть в класс для управления ресурсами такой классический разделяемый ресурс как дисковый файл. Конечно, идея обобщить RAII для любого \lstinline!T!, используя шаблоны -- приходит на ум почти сразу после знакомства с шаблонами. Паттерн обертки, осуществляющей управление временем жизни объекта умнее, чем это делается через обычный указатель, называется ``smart pointer'' или умный указатель. Таким образом это не какой-то класс, это общая концепция для целого семейства от крайне простых до крайне сложных и интересных классов.
+Идиома RAII уже рассматривалась в (\ref{RAII}), и там же была сделана наивная попытка завернуть в класс для управления ресурсами такой классический разделяемый ресурс как дисковый файл. Конечно, идея обобщить RAII для любого \lstinline!T!, используя шаблоны -- приходит на ум почти сразу после знакомства с шаблонами.
+
+\begin{lstlisting}
+template <typename U>
+int foo (int x) {
+  U *ptr = new U(x);
+  // .... some code ....
+  if (some condition) {
+    delete ptr; 
+    return -1;
+  }
+  // .....
+  delete ptr;
+  return 0;
+}
+\end{lstlisting}
+
+Этот мотивирующий пример плох, кажется, вообще всем: здесь ручное управление ресурсов с дублированием кода, здесь небезопасность относительно исключений и всё такое.
+
+Хотелось бы завернуть это в некую симпатичную RAII обёртку
+
+\begin{lstlisting}
+template <typename U>
+int foo (int x) {
+  RAIIPtr<U> ptr(new U(x));
+  // .... some code ....
+  if (some condition) {
+    return -1;
+  }
+  // .....
+  return 0;
+}
+\end{lstlisting}
+
+Паттерн обертки, осуществляющей управление временем жизни объекта умнее, чем это делается через обычный указатель, называется ``smart pointer'' или умный указатель. Таким образом это не какой-то класс, это общая концепция для целого семейства от крайне простых до крайне сложных и интересных классов.
 
 \subsubsection{Первая попытка -- не слишком умный указатель}
 
 Первая попытка написать не слишком сложную обертку для управления ресурсами, может выглядеть как-то так:
 
 \begin{lstlisting}
-template <typename T> 
-class NotSoSmartP
-{
-private:
-  T* pData; /* Generic pointer to be stored */
+template <typename T> class RAIIPtr {
+  T *ptr_;
 public:
-  SP(T* pValue) : pData(pValue) {}
-  ~SP() { delete pData; }
-  T& operator* () { return *pData; }
-  T* operator-> () { return pData; }
+  RAIIPtr(T *ptr = nullptr) : ptr_(ptr) {}
+  ~RAIIPtr() { delete ptr_; }
+  T operator*() const { return *ptr_; }
+  T* operator->() const { return ptr_; }
 };
 \end{lstlisting}
 
-Самое главное здесь это перегрузка двух интересных операторов -- \lstinline!operator*! который называется \textbf{dereferencing} т.е. разыменование и \lstinline!operator->! который называется \textbf{indirection} т.е. косвенный доступ. Но далее они часто будут называться просто ``звёздочка'' и ``стрелочка''.
+Перегрузка двух интересных операторов -- \lstinline!operator*! (dereferencing, разыменование) и \lstinline!operator->! (indirection, косвенный доступ) уже обсуждалась ранее (см. \ref{OperatorOverloading}).
 
-Пусть есть класс \lstinline!Polynom! определенный как-то так:
+Тем не менее, в коде выше есть проблема и она становится очевидной, если посмотреть на него через ``волшебные очки''
 
 \begin{lstlisting}
-class Polynom
-{
+template <typename T> class RAIIPtr {
+  T *ptr_;
 public:
-  Polynom (int size, ...);
-  Polynom (const Polynom & rhs);
-  ~Polynom ();
-  void display ();
-  /* ... */
+  RAIIPtr(T *ptr = nullptr) : ptr_(ptr) {}
+  ~RAIIPtr() { delete ptr_; }
+  RAIIPtr(const RAIIPtr&) = default;
+  RAIIPtr& operator= (const RAIIPtr&) = default;
+  T operator*() const { return *ptr_; }
+  T* operator->() const { return ptr_; }
+};
+\end{lstlisting}
+
+Теперь должно быть очевидно, что обычное копирование или создание по образцу такого указателя приведет к ошибке двойного удаления (см. \ref{RAII}, где эта проблема изложена подробно). 
+
+Конечно, если содержимое может быть скопировано, его можно скопировать. Это подход неинтрузивных контейнеров, таких как vector или string. Но в общем случае содержимое не может быть так просто скопировано. Что тут можно сделать? 
+
+Самый простой способ -- запретить копирование и присваивание. 
+
+\begin{lstlisting}
+template <typename T> class SRAIIPtr {
+  T *ptr_;
+public:
+  SRAIIPtr(T *ptr = nullptr) : ptr_(ptr) {}
+  ~SRAIIPtr() { delete ptr_; }
+  SRAIIPtr(const SRAIIPtr&) = delete;
+  SRAIIPtr& operator= (const SRAIIPtr&) = delete;
+  T operator*() const { return *ptr_; }
+  T* operator->() const { return ptr_; }
+};
+\end{lstlisting}
+
+Эта стратегия называется ``scoped pointer'' и именно так устроен и работает класс \lstinline!boost::scoped_ptr!. Таким образом, можно даже не писать велосипед
+
+\begin{lstlisting}
+template <typename U>
+int foo (int x) {
+  boost::scoped_ptr<U> ptr(new U(x));
+  // .... some code ....
+  if (some condition) {
+    return -1;
+  }
+  // .....
+  return 0;
 }
 \end{lstlisting}
 
-Его можно использовать вместе с умным указателем как-то так:
+Отдельный вопрос: почему ничего такого не было включено в стандарт, но он получит своё ответ далее. Итак, простейшая проблема, таким образом решена. Пора перейти к более сложным случаям. А конкретно: к случаям, когда указатель вынужден утекать из области видимости.
 
-\begin{lstlisting}
-  NotSoSmartP<Polynom> p(new Polynom(5, 1, 2, 3, 4, 5));
-  p->display();
-  /* no need to delete */
-\end{lstlisting}
-
-Особое внимание следует обратить, что метод умного указателя вызывается так, как если бы действительно вызывался метод класса \lstinline!Polynom! по указателю на него.
-
-Но первая проблема обнаруживается сразу же:
-
-\begin{lstlisting}
-  NotSoSmartP<Polynom> p(new Polynom(5, 1, 2, 3, 4, 5));
-  NotSoSmartP<Polynom> q = p;
-  p->display();
-  /* boom! */
-\end{lstlisting}
-
-И действительно -- обычное копирование или создание по образцу такого указателя приведет к ошибке двойного удаления (см. \ref{RAII}). Что тут можно сделать? Самый простой способ -- запретить копирование и присваивание. Эта стратегия называется ``scoped pointer'' и именно так устроен и работает класс \lstinline!boost::scoped_ptr!. Но это все ещё не самая умная стратегия. Очевидно есть две более разумные вещи -- обеспечить уникальность владения объектом и передачу владения при некоторых обстоятельствах или обеспечить безопасное совместное владение объектом и -- в той или иной форме -- подсчет ссылок.
-
-\subsubsection{Стандартные умные указатели}
+\subsubsection{Автоматические указатели и их проблемы}\label{COAP}
 
 TODO: продолжить раздел
 
-\subsubsection{Проблема COAP и небольшая экскурсия в новый стандарт}\label{COAP}
+\subsubsection{Уникальное владение}\label{subsub:uniqueptrs}
 
 TODO: продолжить раздел
 
-\subsubsection{Ещё более умные указатели}
+\subsubsection{Совместное владение}\label{subsub:sharedptrs}
 
 TODO: продолжить раздел
 
