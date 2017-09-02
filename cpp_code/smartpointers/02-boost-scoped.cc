@@ -1,23 +1,7 @@
 #include <boost/scoped_ptr.hpp>
-#include <iostream>
+#include "myres.h"
 
 using boost::scoped_ptr;
-using std::cout;
-using std::endl;
-
-struct MyRes {
-  MyRes(int, double) {
-    cout << "MyRes ctor" << endl;
-  }
-
-  void use() {
-    cout << "MyRes used" << endl;
-  }
-
-  ~MyRes() {
-    cout << "MyRes dtor" << endl;
-  }
-};
 
 int
 boosted (int x, double y)

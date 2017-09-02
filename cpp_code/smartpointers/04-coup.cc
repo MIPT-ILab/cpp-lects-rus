@@ -2,7 +2,7 @@
 
 #include "myres.h"
 
-using std::auto_ptr;
+using std::unque_ptr;
 
 template <typename T> 
 struct Brittle 
@@ -14,7 +14,6 @@ struct Brittle
 int
 main () 
 {
-  Brittle<auto_ptr<MyRes>> b (auto_ptr<MyRes>(new MyRes(42, 42.0)));
-  if (!b.working_.get())
-    cout << "b.working_ empty" << endl;
+  // CE here
+  Brittle<uniue_ptr<MyRes>> b (unique_ptr<MyRes>(new MyRes(42, 42.0)));
 }

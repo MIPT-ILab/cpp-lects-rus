@@ -16456,11 +16456,304 @@ int foo (int x) {
 
 \subsubsection{Автоматические указатели и их проблемы}\label{COAP}
 
-TODO: продолжить раздел
+Иногда указатели могут ``утекать'' за scope. Это вполне естественно и нормально и логично иметь нормальные способы это обработать. Пример, приведённый ранее может быть расширен следующим образом:
+
+\begin{lstlisting}
+template <typename T> bar(T*);
+
+template <typename U>
+int foo (int x) {
+  boost::scoped_ptr<U> ptr(new U(x));
+  // .... some code ....
+  if (some condition) {
+    bar<U>(ptr.get());
+  }
+  // .....
+  return 0;
+}
+\end{lstlisting}
+
+Увы, это очень плохая идея. В строчке вызова функции bar утекает сырой указатель. Теперь мы совсем не можем быть уверены, что его никто не освободит там, куда он утёк, и уж точно никак не можем это проконтролировать.
+
+Древним выходом из этой ситуации является \lstinline!auto_ptr!. Введённый в 98 стандарте, этот указатель определял конструктор копирования через передачу владения ресурсом
+
+\begin{lstlisting}
+ARAIIPtr(ARAIIPtr& rhs) : ptr_(rhs.ptr_) { 
+  rhs.ptr_ = nullptr; 
+}
+ARAIIPtr& operator= (ARAIIPtr rhs) { 
+  swap(*this, rhs); return *this; 
+}
+\end{lstlisting}
+
+Такой подход позволяет эффективно решить проблему: теперь нет нужды позволять утекать голому указателю, он передаётся вместе с владением
+
+\begin{lstlisting}
+template <typename T> bar(auto_ptr<T>);
+
+template <typename U>
+int foo (int x) {
+  auto_ptr<U> ptr(new U(x));
+  // .... some code ....
+  if (some condition) {
+    bar<U>(ptr);
+  }
+  // .....
+  return 0;
+}
+\end{lstlisting}
+
+Увы, передача владения таким образом подразумевает, в некотором смысле \textbf{слишком} тихое копирование. Типичный случай: пусть есть класс, который делает внутри себя резервную копию своего аргумента.
+
+\begin{lstlisting}
+template <typename T>  struct Brittle {
+  T working_, reserve_;
+  Brittle (T val) : working_(val), reserve_(working_) {}
+};
+\end{lstlisting}
+
+Попытка использовать этот класс, параметризованный \lstinline!auto_ptr! приведёт к удивительным и разрушительным последствиям.
+
+\begin{lstlisting}
+Brittle<auto_ptr<int>> b (auto_ptr<int>(new int(42)));
+\end{lstlisting}
+
+Очень плохо то, что это скомпилируется без каких-нибудь ошибок, управление логично и закономерно утечёт в резервную копию, рабочая копия останется пустой и потом, где-нибудь это выстрелит.
+
+Но самым-самым плохим является то, что приведённый выше класс \lstinline!Brittle! очень напоминает неинтрузивные контейнеры стандартной библиотеки, которые по сути делают всё то же самое, только ещё сложнее.
+
+Любые попытки использовать \lstinline!auto_ptr! со стандартными контейнерами опасны и порочны. Специальное сокращение COAP\index{COAP} расшифровывающееся как ``container of auto ptrs'' долгое время было синонимом таящегося и абсолютного зла.
+
+При очевидной полезности \lstinline!auto_ptr!, поражает воображение его способность разрушать и приводить в негодность самые невинно выглядящие контексты. Никто не заподозрил бы экземпляр COAP в приведённом выше классе Brittle, он же совсем не похож на классические контейнеры.
+
+Отчаяние и безысходность продолжались до 2011 года, когда стандарт был наконец пересмотрен в сторону введения так называемой семантики перемещения (см. \ref{RvalueRefs}), которая, в свою очередь, позволила ввести настоящую абстракцию я уникального владения ресурсом -- unique pointers.
 
 \subsubsection{Уникальное владение}\label{subsub:uniqueptrs}
 
-TODO: продолжить раздел
+Если вдуматься, основная проблема использования копирования для передачи владения ресурсом -- не в самой передаче владения, а именно в том, что для этого используется копирование, которое просто семантически для этого не предназначено.
+
+Соответственно с появлением перемещающего присваивания, естественный выход из ситуации это запретить копирование, но открыть перемещение.
+
+\begin{lstlisting}
+URAIIPtr(const URAIIPtr&) = delete;
+URAIIPtr& operator= (const URAIIPtr&) = delete;
+URAIIPtr(URAIIPtr&& rhs) : ptr_(rhs.ptr_) { 
+  rhs.ptr_ = nullptr; 
+} 
+URAIIPtr& operator= (URAIIPtr&& rhs) { 
+  swap(*this, rhs); return *this; 
+}
+\end{lstlisting}
+
+Эта идея позволяет решить проблему передачи ресурса за пределы области видимости.
+
+\begin{lstlisting}
+template <typename T> bar(unique_ptr<T>);
+
+template <typename U>
+int foo (int x) {
+  auto ptr = make_unique<U>(x);
+  // .... some code ....
+  if (some condition) {
+    bar<U>(move(ptr));
+  }
+  // .....
+  return 0;
+}
+\end{lstlisting}
+
+Здесь следует в первую очередь обратить внимание на использование \lstinline!std::move!. Теперь передача ресурса это действительно и явно перемещающая передача.
+
+А что насчёт \lstinline!Brittle! -- может тут спросить внимательный читатель.
+
+\begin{lstlisting}
+Brittle<unique_ptr<int>> b (unique_ptr<int>(new int(42)));
+\end{lstlisting}
+
+Разумеется коварная строчка из предыдущего раздела даже не скомпилируется.
+
+Также стоит обратить внимание на метод создания указателя. Тут есть два варианта: классический через конструктор и использованный выше.
+
+\begin{lstlisting}
+auto ptr = make_unique<U>(x);
+unique_ptr<U> ptr (new U(x));
+\end{lstlisting}
+
+В данном случае они посимвольно равны в записи. Тем не менее, разница есть и кроется в основном в вопросах безопасности исключений. Если new отработало, а потом конструктор \lstinline!unique_ptr! бросил исключение, то выделенная память утечёт.
+
+Единственное, что сначала кажется неудобным это аллокация массива. Кажется, что в конструкторе можно написать
+
+\begin{lstlisting}
+unique_ptr<int> ptr (new int[1000]()); // ERROR
+\end{lstlisting}
+
+Тогда как \lstinline!make_unique! этого не позволяет. Но это, пожалуй, аргумент за \lstinline!make_unique!. Потому что такая запись является грубой ошибкой. И действительно: тут смешаны формы \lstinline!new[]! и \lstinline!delete!.
+
+Есть два варианта корректно аллоцировать массив и оба используют специализацию шаблона для массивов.
+
+\begin{lstlisting}
+auto ui = make_unique<int[]>(1000);
+unique_ptr<int[]> ui (new int[1000]());
+\end{lstlisting}
+
+Теперь правильно спарены \lstinline!new[]! и \lstinline!delete[]!. Если записать такую схему в велосипеде \lstinline!URAIIPtr!, она будет выглядеть следующим образом.
+
+Во-первых удалитель теперь будет параметром шаблона
+
+\begin{lstlisting}
+template <typename T, typename Deleter = default_delete<T>> 
+class URAIIPtr {
+  T *ptr_;
+  Deleter del_;
+public:
+  URAIIPtr(T *ptr = nullptr, Deleter del = Deleter()) :
+    ptr_(ptr), del_(del) {}
+  ~URAIIPtr() { del_(ptr_); }
+\end{lstlisting}
+
+Во-вторых он будет частично специализирован
+
+\begin{lstlisting}
+template <typename T> struct default_delete {
+  void operator() (T *ptr) { delete ptr; }
+};
+
+template <typename T> struct default_delete<T[]> {
+  void operator() (T *ptr) { delete [] ptr; }
+};
+\end{lstlisting}
+
+Разумеется, в такой системе кажется, что есть третий выход: воспользоваться своим удалителем.
+
+\textbf{Вопрос к студентам:} напишите свой удалитель к некорректному варианту, использующему \lstinline!unique_ptr<int>! и при этом \lstinline!new int[1000]()! в конструкторе так, чтобы этот вариант заработал.
+
+\ifanswers
+Правильный ответ: например так
+
+\begin{lstlisting}
+template <typename T> struct MyArrDeleter {
+  void operator()(T *t) { delete [] t; }
+};
+
+unique_ptr<int, MyArrDeleter<int>> ui3 (new int[1000]());
+\end{lstlisting}
+
+Но хороший студент напишет через лямбду
+\fi
+
+Пользовательский удалитель может быть сколь угодно сложным: класс с нетривиальным конструктором, лямбда с захватом контекста. Но чаще всего нужны старые добрые сишные функции.
+
+\begin{lstlisting}
+Resource *create();
+void destroy(Resource *);
+unique_ptr<Resource, decltype(&destroy)> ures (create(), destroy);
+\end{lstlisting}
+
+Увы, в этом случае пользователь платит штраф на размер указателя, который теперь вынужденно включает указатель на функцию.
+
+\textbf{Вопрос к студентам:} что вы думаете про \lstinline!unique_ptr<void>!, можно ли его использовать как уникальный обобщённый указатель?
+
+\ifanswers
+Проблемы, как водится, будут с удалением. Работать может примерно такая городушка:
+
+\begin{lstlisting}
+template <typename T>
+struct VDel {
+  void operator()(void *s) { delete static_cast<T*>(s); }
+};
+unique_ptr<void, VDel<int>> u(new int(42));
+\end{lstlisting}
+\fi
+
+Очень часто люди, узнав про \lstinline!unique_ptr! радуются (правильно радуются) и заменяют им голые указатели члены в своих классах (правильно заменяют). Но при этом часто возникает проблема с предварительными объявлениями.
+
+\begin{lstlisting}
+class MyClass; // forward declared
+\end{lstlisting}
+
+В этом случае старый вариант не составляет проблем.
+
+\begin{lstlisting}
+struct MyWrapper {
+  MyClass *c;
+  MyWrapper() : c(nullptr) {};
+};
+\end{lstlisting}
+
+В то же время новый вариант не компилируется.
+
+\begin{lstlisting}
+// FAIL!
+struct MySafeWrapper {
+  unique_ptr<MyClass> c; 
+  MySafeWrapper() : c(nullptr) {};
+};
+\end{lstlisting}
+
+Проблема состоит в том, что дефолтный удалитель просачивается в хедер и приносит туда вызов \lstinline!delete!, а этот вызов для неполных типов не работает.
+
+Разумеется проблема может быть решена кастомным удалителем
+
+\begin{lstlisting}
+struct MyClassDeleter {
+  void operator()(MyClass *p);
+};
+
+struct MySafeWrapper { 
+  unique_ptr<MyClass, MyClassDeleter> c; 
+  MySafeWrapper() : c(nullptr) {}
+};
+\end{lstlisting}
+
+\subsubsection{Проектирование с уникальными указателями}\label{subsub:uniquetrees}
+
+Тут про идиому PImpl
+
+\begin{lstlisting}
+class Ifacade {
+  CImpl *const impl_;
+public:
+  Ifacade() : impl_(new CImpl) {}  
+  // ..... other methods
+};
+\end{lstlisting}
+
+Переход от неё к уникальному владению
+
+\begin{lstlisting}
+class Ifacade {
+  const unique_ptr<CImpl> impl_;
+public:
+  Ifacade() : impl_(new CImpl) {}
+  // ..... other methods
+};
+\end{lstlisting}
+
+К слову про то, что \lstinline!const unique_ptr! это идеальный \lstinline!scoped_ptr!
+
+Далее про дерево уникальных указателей
+
+\begin{lstlisting}
+template <typename Data> class Tree {
+  struct Node {
+    unique_ptr<Node> left, right;
+    Data d;
+  };
+  unique_ptr<Node> top_;
+  void release_node(unique_ptr<Node> u) {}
+  // ..... other 42 methods ......
+};
+\end{lstlisting}
+
+Про возможное переполнение стека при удалении и про решение
+
+\begin{lstlisting}
+void release_node(unique_ptr<Node> u) {
+  // TODO: нетривиальное решение тут
+}  
+\end{lstlisting}
+
+\textbf{Вопрос к студентам:} Можно ли (если да то как и если нет, то почему) сделать на unique_ptrs направленный ациклический граф?
 
 \subsubsection{Совместное владение}\label{subsub:sharedptrs}
 
