@@ -13524,9 +13524,14 @@ szt hpos = s.find("H", ellp);
 assert (hpos == std::string::npos);
 \end{lstlisting}
 
-Иллюстрация работы этого кода приведена на (рис. TODO). Самое важное это отметить, что возможен поиск с конкретной позиции. 
+Иллюстрация работы этого кода приведена на (рис. \ref{fig:string-find}). Самое важное это отметить, что возможен поиск с конкретной позиции. 
 
-TODO: картинка
+\begin{figure}[ht]
+\centering
+\includegraphics[width=1.0\textwidth]{illustrations/string-find-crop.pdf}
+\caption{Поиск в строках}
+\label{fig:string-find}
+\end{figure}
 
 Простые задачи поиска просты и в C стиле. Например, приведённый выше код может быть переписан.
 
@@ -16753,11 +16758,46 @@ void release_node(unique_ptr<Node> u) {
 }  
 \end{lstlisting}
 
-\textbf{Вопрос к студентам:} Можно ли (если да то как и если нет, то почему) сделать на unique_ptrs направленный ациклический граф?
+\textbf{Вопрос к студентам:} Можно ли (если да то как и если нет, то почему) сделать на \lstinline!unique_ptr! направленный ациклический граф?
 
 \subsubsection{Совместное владение}\label{subsub:sharedptrs}
 
 TODO: продолжить раздел
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=1.0\textwidth]{illustrations/smartptrs-outer-crop.pdf}
+\caption{Разделяемые указатели: контрольный блок}
+\label{fig:smartptrs-outer}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=1.0\textwidth]{illustrations/smartptrs-inner-crop.pdf}
+\caption{Устройство разделяемого указателя после make\_shared}
+\label{fig:smartptrs-inner}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=1.0\textwidth]{illustrations/smartptrs-aliased-crop.pdf}
+\caption{Алиасинг в разделяемых указателях}
+\label{fig:smartptrs-aliased}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=1.0\textwidth]{illustrations/smartptrs-weak-outer-crop.pdf}
+\caption{Слабые указатели и устройство контрольного блока}
+\label{fig:smartptrs-weak-outer}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=1.0\textwidth]{illustrations/smartptrs-weak-inner-crop.pdf}
+\caption{Проблема make\_shared и слабых ссылок}
+\label{fig:smartptrs-weak-inner}
+\end{figure}
 
 \pagebreak
 \subsection{Всё для вашего удобства}\label{UtilityStdLib}
