@@ -51,14 +51,14 @@ concat(Args&&... a_args)
 
 __attribute__ ((noinline)) string
 foo (bool ssl, const string& path, const string& query) {
-  return concat (ssl ? "(make this string long enough)       http" : "(make this string long enough)       https", "(make this string long enough)       ://", path, "(make this string long enough)       /", query);
+  return concat (ssl ? "http" : "https", "://", path, "/", query);
 }
 
 int
 main ()
 {
   printf("%s\n", "Started");
-  string s = foo(true, "(make this string long enough)       myurl", "(make this string long enough)       ?v=1");
+  string s = foo(true, "myurl", "?v=1");
   cout << s << endl;
 }
 
