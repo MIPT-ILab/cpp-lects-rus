@@ -3,6 +3,6 @@
 int 
 bar (int x, int y)
 {
-  return max (x + 1, y);
+  return max<int> (x + 1, y);
 }
 

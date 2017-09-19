@@ -3,6 +3,6 @@
 int 
 foo (int x, int y)
 {
-  return max (x, y + 1);
+  return max<int> (x, y + 1);
 }
 

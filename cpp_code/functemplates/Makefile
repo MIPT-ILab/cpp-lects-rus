@@ -8,7 +8,7 @@ maxuser1.o : maxuser1.cc max.hpp
 	objdump -d maxuser1.o > maxuser1.dis
 
 maxuser2.o : maxuser2.cc max.hpp
-	$(CXX) maxuser2.cc -c
+	$(CXX) -O1 maxuser2.cc -c
 	objdump -d maxuser2.o > maxuser2.dis
 
 .PHONY: winclean
