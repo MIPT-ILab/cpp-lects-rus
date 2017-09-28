@@ -13,8 +13,8 @@ struct Conv {
 //                         or (~10, ~11, 12) -> 12
 // if all are crossed out, look below
 
-void foo (int x) { cout << 10 << endl; }
-//void foo (int &x) { cout << 11 << endl; }
+// void foo (int x) { cout << 10 << endl; }
+void foo (int &x) { cout << 11 << endl; }
 void foo (const int &x) { cout << 12 << endl; }
 
 // second conflict for int 

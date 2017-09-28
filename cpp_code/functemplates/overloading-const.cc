@@ -20,7 +20,7 @@ struct Conv {
 // if one left it wins
 // if all are crossed out, see below
 
-// void foo (char x) { cout << 20 << endl; }
+//void foo (char x) { cout << 20 << endl; }
 // void foo (const char &x) { cout << 21 << endl; }
 // void foo (double x) { cout << 22 << endl; }
 // void foo (const double &x) { cout << 23 << endl; }
@@ -37,7 +37,7 @@ struct Conv {
 // void foo (...) { cout << 40 << endl; }
 
 // viable, but produces error
-void foo (int &x) { cout << 50 << endl; }
+// void foo (int &x) { cout << 50 << endl; }
 
 // these are not viable anyway
 void foo (char &x) { cout << 51 << endl; }

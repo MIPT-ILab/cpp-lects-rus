@@ -12,10 +12,13 @@ foo (const T& t) {
   cout << typeid(t).name() << endl;
 }
 
+template <typename T> struct TD;
+
 int
 main (void)
 {
   const Empty *c;
   foo (c);  
+  TD<c> tParam;
 }
 

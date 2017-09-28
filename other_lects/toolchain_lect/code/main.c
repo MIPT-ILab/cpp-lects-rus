@@ -1,11 +1,10 @@
 #include <stdio.h>
 
-#include "fact.h"
+unsigned fact(unsigned);
 
 int
-main (void)
+main ()
 {
-  printf ("5! = %u\n", fact(5));
-  return 0;
+  printf("%d\n", fact(10));
 }
 
