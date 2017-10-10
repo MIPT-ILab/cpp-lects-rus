@@ -13,42 +13,32 @@ struct Costly {
 
 Costly foo (Costly x) { return x; }
 
-//void bar (Costly &c) { (void) c; }
-
-#if 0
-template <typename Fun, typename Arg>
-decltype(auto)
-transparent (Fun fun, Arg &arg) 
-  { return fun(arg); }
-
+#if defined(STAGE0)
 
 template <typename Fun, typename Arg>
 decltype(auto)
-transparent (Fun fun, const Arg &arg)
+transparent (Fun fun, Arg arg) 
   { return fun(arg); }
-#endif
 
-#if 1
+#elif defined(STAGE1)
+
 template <typename Fun, typename Arg>
 decltype(auto)
 transparent (Fun fun, Arg &&arg)
   { return fun (arg); }
-#endif
 
+#elif defined(STAGE2)
 
-#if 0
 template <typename Fun, typename Arg>
 decltype(auto)
 transparent (Fun fun, Arg &&arg)
   { return fun (forward<Arg>(arg)); }
+
+#else
+
+#error "define STAGE0, STAGE1 or STAGE2"
+
 #endif
-
-void g(int &&t) { cout << "rvalue" << endl; }
-void g(int &t) { cout << "lvalue" << endl; }
-
-template <typename T> void 
-h(T &&t) { g(std::forward<T>(t)); }
-
 
 int main (void)
 {
@@ -57,12 +47,5 @@ int main (void)
   Costly t = transparent (&foo, b);
   cout << 2 << endl;
   Costly s = transparent (&foo, foo(b));
-
-  cout << "twobound:" << endl;
-  int x = 1;
-  const int cx = 1;
-  h (1);
-  h (x);
-  // h (move(cx));
 }
 

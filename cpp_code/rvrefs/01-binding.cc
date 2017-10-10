@@ -27,8 +27,9 @@ main (void)
 
   int &&e = a + 1;
   int &&d = e * 3;
+  int &dref = d;
   d += 1;
-  cout << d << " " << e << endl;
+  cout << d << " " << e << " " << dref << endl;
 
   int &g = lvref(x);
   cout << g << endl;
