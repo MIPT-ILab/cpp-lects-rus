@@ -3,28 +3,29 @@
 #include <functional>
 #include <stdexcept>
 
+using std::cout;
+using std::endl;
+using std::forward;
+using std::runtime_error;
+
 template<typename T, typename... Args> int 
-pp_printf(const char* s, T&& value, Args&&... args) 
-{ 
-  while (*s) 
-    { 
-      if (*s == '%' && *++s != '%') 
-        {
-          /* ignore the character that follows the '%'! */
-          std::cout << value;
-          return printf(++s, args...) + 1;
-        }
-      std::cout << *s++;
+ts_printf(const char* s, T&& value, Args&&... args) { 
+  while (*s) {
+    if (*s == '%' && *++s != '%') {
+      /* ignore the character that follows the '%'! */
+      cout << value;
+      return printf(++s, forward<Args>(args)...) + 1;
     }
+    cout << *s++;
+  }    
   throw std::runtime_error("extra arguments provided to printf");
 }
 
-int 
-pp_printf(const char* s) {
+int ts_printf(const char* s) {
   while (*s) {
     if (*s == '%' && *++s != '%') 
-      throw std::runtime_error("invalid format string: missing arguments");
-    std::cout << *s++;
+      throw runtime_error("invalid format string: missing arguments");
+    cout << *s++;
   }
   return 0;
 }
@@ -32,7 +33,7 @@ pp_printf(const char* s) {
 int
 main (void)
 {
-  pp_printf ("%d... %d... %d... "
+  ts_printf ("%d... %d... %d... "
              "%d... %d... %s\n", 
              4, 3, 2, 1, 0, "Hello, world!");
   return 0;

@@ -3,10 +3,12 @@
 using std::cout;
 using std::endl;
 
-template <typename T> T add(T v) { return v; }
+//template <typename T> T add(T v) { return v; }
+
+auto add() { return 0; }
 
 template <typename T, typename... Args>
-add (T first, Args... args) {
+auto add (T first, Args... args) {
   return first + add (args...);
 }
 

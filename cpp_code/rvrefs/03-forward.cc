@@ -1,6 +1,10 @@
 #include <iostream>
+#include <utility>
 
-using namespace std;
+using std::cout;
+using std::endl;
+using std::move;
+using std::forward;
 
 struct Costly {
   Costly () { cout << "ctor" << endl; }
@@ -42,10 +46,14 @@ transparent (Fun fun, Arg &&arg)
 
 int main (void)
 {
-  Costly b;
-  cout << 1 << endl;
-  Costly t = transparent (&foo, b);
-  cout << 2 << endl;
-  Costly s = transparent (&foo, foo(b));
+  Costly b1, b2;
+  cout << "Direct lval: " << endl;
+  Costly t1 = foo(b1);
+  cout << "Direct rval: " << endl;
+  Costly t2 = foo(move(b1));
+  cout << "Transparent lval: " << endl;
+  Costly t3 = transparent (&foo, b2);
+  cout << "Transparent rval:" << endl;
+  Costly t4 = transparent (&foo, move(b2));
 }
 
