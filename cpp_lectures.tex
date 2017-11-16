@@ -6010,6 +6010,8 @@ almost_move(T&& a) {
 } 
 \end{lstlisting}
 
+Здесь \lstinline!using! это вариант \lstinline!typedef! для работы в шаблонных контекстах, см. (\ref{FriendUsing}).
+
 Первое, что тут бросается в глаза -- \lstinline!move! это просто \lstinline!static_cast! ничего больше. Кроме того здесь есть контекст вывода типа и именно поэтому \lstinline!move! почти всегда употребляется без уточнения типа.
 
 Очень похоже устроен \lstinline!forward!
@@ -9469,8 +9471,76 @@ c.use();
 
 Про более интересный случай речь пойдёт после знакомства с идиомой CRTP см. (\ref{VasilCase}).
 
+Ещё одно применение указателей на функции -- получение шаблона, который делает автоматическую мемоизацию.
+
+Предположим, что \lstinline!cache! это объект класса (можно сделать его статическим внутри \lstinline!memoize!) который поддерживает функции \lstinline!find!, \lstinline!val! и \lstinline!store! с очевидной семантикой.
+
+\begin{lstlisting}
+template <int (*f)(int)> int memoize(int x) {
+  if (cache.find(x)) return cache.val(x);
+  return cache.store (f(x));
+}
+
+int fib(int n) {
+  if (n < 2) return n;
+  return memoize<fib>(n - 1) + memoize<fib>(n - 2);
+}
+\end{lstlisting}
+
+Эти числа Фибоначчи на удивление эффективны (особенно если правильно подобрать структуру данных для cache).
+
+\subsubsection{Шаблоны псевдонимов}\label{FriendUsing}
+
+До сих пор двумя лучшими (воображаемыми) друзьями программиста были \lstinline!typedef! (\ref{FriendTypedef}) и \lstinline!typename! (\ref{FriendTypename}). Но теперь оказывается, что в новом стандарте у \lstinline!typedef! есть младший братик \lstinline!using!
+
+\begin{lstlisting}
+typedef int MyInt;
+using MyInt = int;
+\end{lstlisting}
+
+Эти две строчки совершенно эквивалентны. Зачем же нужно было вводить новое ключевое слово? Потому что \lstinline!using! умеет больше:
+
+\begin{lstlisting}
+template <typename T> 
+using MyType = AnotherType< T, MyAllocatorType >; 
+
+template <typename T> 
+using ptr = T*;
+...
+MyType<int> a;
+ptr<int> x;
+\end{lstlisting}
+
+Очень удобно совмещать новый \lstinline!using! с определителями типов. Например такое переопределение, как приведенное ниже:
+
+\begin{lstlisting}
+template <typename T> using decay_t = typename decay<T>::type;
+\end{lstlisting}
+
+Позволяет сделать in-place сгнивалку для типов. Синонимы для всех распространенных определителей уже включены в стандарт.
+
+В вашей стандартной библиотеке даже базовые типы могут быть определены исходя из реалий архитектуры:
+
+\begin{lstlisting}
+using size_t = decltype(sizeof(0));
+using ptrdiff_t = decltype((int*)0 - (int*)0);
+using nullptr_t = decltype(nullptr);
+\end{lstlisting}
+
+Кстати, это даёт замечательный пример совмещения \lstinline!using! и \lstinline!decltype!
+
+\textbf{Обсуждение в аудитории:} почему не был расширен синтаксис уже имевшегося \lstinline!typedef!, а было перегружено ключевое слово \lstinline!using! которое вообще-то совсем о другом?
+
+Тема и впрямь дискуссионная. Имеется частное мнение Саттера, что ``there is no type to define'' и \lstinline!typedef! показался комитету семантически непригодным для выражения идеи семейства типов. Ну ок.
+
 \pagebreak
 \subsection{Шаблоны и ООП}\label{OOTemplates}
+
+\hfill\textit{These two have the same origin, but they differ in name}
+
+\hfill\textit{Both are called Mystery}{\vspace{0.5em}}
+
+\hfill\textit{-- Laozi}
 
 Самые коварные места в языке -- это места сочленения различных его подсистем. Большинство языков программирования не являются мультипарадигменными и лишены этих проблем, но C++ это большой сложившийся конгломерат самых разных техник. На стыках этих техник часто возникают ситуации конфликта и взаимодействия. Особенно это касается использования возможностей ООП с учетом особенностей шаблонных классов. Как шаблоны соотносятся с наследованием, полиморфизмом, инкапсуляцией? Это неочевидно. Особенно интересна техника CRTP, когда шаблонный параметр причудливо переплетается с иерархией классов. Обо всем этом пойдет речь в этой лекции.
 
@@ -9558,9 +9628,9 @@ public:
   }
 private:
   template< class V >
-  void internal_func (V) { printf ("forall\n"); }
+  void internal_func (V) { cout << "forall\n"; }
 
-  void internal_func (int) { printf ("forint\n"); }
+  void internal_func (int) { cout << "forint\n"; }
 };
 \end{lstlisting}
 
@@ -9584,10 +9654,10 @@ public:
 private:
   template <class V>
   void internal_func (Type2Type<V>)
-    { printf ("forall\n"); }
+    { cout << "forall\n"; }
 
   void internal_func (Type2Type<int>)
-    { printf ("forint\n"); }
+    { cout << "forint\n"; }
 };
 \end{lstlisting}
 
@@ -9844,10 +9914,10 @@ class A : public ABase <A<T1, T2>, T1>
 {
   public:
     void forall ()
-      { printf ("forall\n"); }
+      { cout << "forall\n"; }
 
     void forint ()
-      { printf ("forint\n"); }
+      { cout << "forint\n"; }
 };
 \end{lstlisting}
 
@@ -11901,6 +11971,7 @@ void Dancing<int>::finalize () { hic salta }
 
 В книгах по шаблонам, таких как \cite{vandervoord} традиционно много места отводится тому, что называется ``Separation model''\index{Separation model}. Это модель инстанцирования, когда код шаблона находится в одной единице трансляции, а инстанцирование происходит в другой. Начиная с C++11 экспорт шаблонов был запрещён, а Separation model объявлена устаревшей. Поэтому везде далее можно полагать, что код шаблона размещается и инстанцирование происходит в одной единице трансляции.
 
+\pagebreak
 \subsubsection{Достоинства ленивости}\label{Lazyness}
 
 C и C++ -- это языки с энергичной (с некоторыми исключениями) редукцией выражений при вычислениях, поэтому изучающие их (если у них нет предварительного опыта в таких языках как Lisp или Haskell) часто даже не подозревают, что может быть как-то иначе.
@@ -11959,6 +12030,7 @@ int main() {
 
 Несмотря на то, что инстанцирование определяет \lstinline!typedef! с некорректным параметром размера массива, это не является ошибкой, поскольку реально этот зависимый тип нигде не был использован. Ленивость вынуждает компилятор откладывать инстанцирование любой части шаблона так долго, как это возможно.
 
+\pagebreak
 \subsubsection{Идиома SFINAE}\label{SFINAE}
 
 \hfill\textit{I can accept failure, everyone fails at something.}
@@ -12112,11 +12184,815 @@ int main(void)
 
 Этот код выведет результат \lstinline!foo: 1, bar: 0!, верно определив наличие зависимого типа \lstinline!foo::foobar! в \lstinline!foo! и его отсутствие в \lstinline!bar!. Эта техника может казаться с первого взгляда не очевидной. Я рекомендую изучить идею, пока она не станет ясна: понимание SFINAE это ключ к пониманию всего метапрограммирования.
 
+\textbf{Домашняя наработка:} Попробуйте в таком же стиле проверить наличие метода \lstinline!foobar!, возвращающего обязательно \lstinline!float! и не берущего ни одного аргумента. Тривиальная замена:
+
+\begin{lstlisting}
+template <typename C> static auto test(void*) ->
+      decltype(float {declval<C>().foobar()}, yes{});
+\end{lstlisting}
+
+До какой-то степени работает, но не ловит случаи когда возвращается \lstinline!float&! и т.п.
+
+Всё это слишком запутывается. Я называю такое SFINAE ``партизанским'', потому что приходится блуждать в страшных зимних лесах без еды годами с оружием. Поэтому люди искали более систематические подходы.
+
+И нашли их.
+
 \pagebreak
 \subsection{Систематическое SFINAE}
 
+Проблемы с ``партизанским'' SFINAE во многом были вызваны тем, что область его применения была очерчена недостаточно исчерпывающе. Ясно, что возможны какие-то трюки, но какие трюки возможны, а какие нет, и, что важнее \textbf{почему} они вообще возможны?
+
+\subsubsection{Истина и ложь}
+
+Ключевой шаг в систематизации SFINAE это понимание того, что в языке кроме ``пространства типов'' и ``пространства значений'' есть также ``пространство характеристик валидности'' или SFINAE-space и при любой работе в SFINAE-контекстах мы отображаем одно на другое.
+
+Базовое отображение типов на значения и обратно даётся удобным классом (часть стандарта C++14) \lstinline!integral_constant!
+
+\begin{lstlisting}
+template <typename T, T v> 
+struct integral_constant {
+  static const T value = v;
+  typedef T value_type;
+  typedef integral_constant type;
+  operator value_type() const { return value; } 
+};
+\end{lstlisting}
+
+Функции, работающие в SFINAE контекстах, должны как-то сообщать ответы ``да'' и ``нет'' на вопросы ``является ли это тем-то и тем-то?'', скажем: ``является ли тип аргумента указателем на функцию-член класса X с такой-то сигнатурой?''. Чтобы закодировать ответы, можно использовать простейшие из таких констант: интегральные булевы константы.
+
+\begin{lstlisting}
+using true_type = integral_constant<bool, true>;
+using false_type = integral_constant<bool, false>;
+\end{lstlisting}
+
+И они же позволяют отображение из type-space на sfinae-space
+
+\begin{lstlisting}
+template<typename T, typename U> 
+struct is_same : false_type {};
+
+template<typename T> 
+struct is_same<T, T> : true_type {};
+\end{lstlisting}
+
+Теперь благодаря SFINAE, будет работать
+
+\begin{lstlisting}
+assert (is_same<int, int>::value && 
+        !is_same<char, int>::value);
+\end{lstlisting}
+ 
+Пользоваться каждый раз \lstinline!xxx::value! не всегда удобно. Чуть более удобно -- сделать алиас в виде шаблонной переменной.
+
+\begin{lstlisting}
+template<typename T, typename U> 
+bool is_same_v = is_same<T, U>::value;
+\end{lstlisting}
+
+Теперь будет работать как полная, так и сокращённая версия
+
+\begin{lstlisting}
+assert (is_same_v<int, int> && 
+        !is_same_v<char, int>);
+\end{lstlisting}
+
+Интересно, что эта проверка делает фактически обратное отображение из SFINAE-space (валидности и невалидности) на значения.
+
+\subsubsection{Определители и модификаторы\index{Type traits}}\label{TypeTraits}
+
+Естественное применение SFINAE, как следует из прошлого примера это определители и модификаторы типов. Задача определителя -- сказать что-то о типе (есть ли в нём ссылки и указатели, константен ли он или волатилен и т.п.), задача модификатора -- сделать что-нибудь с типом (убрать ссылку, добавить указатель, сменить волатильность на константность)
+
+Пример стандартного определителя: является ли тип ссылкой
+
+\begin{lstlisting}
+template <typename T> struct is_reference : false_type {};
+template <typename T> struct is_reference<T&> : true_type {};
+template <typename T> struct is_reference<T&&> : true_type {};
+\end{lstlisting}
+
+Пример стандартного модификатора: убираем ссылку с типа
+
+\begin{lstlisting}
+template <typename T> 
+struct remove_reference { using type = T; };
+
+template <typename T> 
+struct remove_reference<T&> { using type = T; };
+
+template <typename T> 
+struct remove_reference<T&&> { using type = T; };
+\end{lstlisting}
+
+Для модификатора полезен алиас (см. \ref{FriendUsing})
+
+\begin{lstlisting}
+template <typename T> 
+using remove_reference_t = typename remove_reference<T>::type;
+\end{lstlisting}
+
+Я называю такие конструкции ``триадами'' и очень часто имено в три строчки записывается SFINAE определитель или модификатор.
+
+К счастью, некоторые конструкции являются очень простыми. Настолько простыми, что, казалось бы, не требуют даже триад. Например добавление обычной левой ссылки
+
+\begin{lstlisting}
+// this code is terribly wrong
+template <typename T> struct add_lref { using type = T&; };
+\end{lstlisting}
+
+Ну что может пойти не так при добавлении левой ссылки?
+
+Но увы. В таком виде добавление левой ссылки не будет работать для \lstinline!void!. Причина банальная -- \lstinline!void&! это некорректно. В некорректном случае, как уже было сказано выше, хорошая идея это оставить всё как есть. Можно пойти путём инкрементальных улучшений и предусмотреть случай для \lstinline!void!.
+
+\begin{lstlisting}
+template <typename T> struct add_lref { using type = T&; };
+template <> struct add_lref<void> { using type = void; };
+
+template <> 
+struct add_lref<const void> { using type = const void; };
+
+template <> 
+struct add_lref<volatile void> { using type = const void; };
+
+template <> 
+struct add_lref<const volatile void> { 
+  using type = const volatile void; 
+};
+\end{lstlisting}
+
+Красота пропала, но проблема не в этом. Проблема в том, что, а почему мы вообще уверены, что только \lstinline!cv-void! так себя ведёт? Кажется, мысль тут изначально пошла по неверному пути. Верный путь лежит через SFINAE: необходимо выразить \textbf{идею} того, что либо мы добавляем ссылку если можем, либо оставляем всё как есть если не можем.
+
+\begin{lstlisting}
+template <typename T, typename Enable> 
+struct ALRimpl { using type = T; }
+
+template <typename T> 
+struct ALRImpl <T, remove_reference_t<T&>> { 
+  using type = T&; 
+}
+
+template <typename T> 
+struct add_lref : ALRImpl <T, remove_reference_t<T>> {}
+\end{lstlisting}
+
+Эта изящная триада и многие другие приведена в частности в докладе Arthur O'Dwyer на CppCon 2017 (TODO: добавить в список литературы?)
+
+Решение красиво, но тяжеловесно из-за того, что полагается на поведение \lstinline!remove_reference_t!.
+
+Сделать его куда более прозрачным можно с помощью шаблона \lstinline!void_t! (стандартизирован в 2017 году).
+
+\begin{lstlisting}
+template <class ...> using void_t = void;
+\end{lstlisting}
+
+Это по сути отображение пачки типов на Enabled, если каждый из них Enabled. С использованием этого улучшения, искомый модификатор будет выражен куда яснее.
+
+\begin{lstlisting}
+template <typename T, typename Enable> 
+struct ALRImpl { using type = T; }
+
+template <typename T> 
+struct ALRImpl <T, void_t<T&>> { using type = T&; }
+
+template <typename T> 
+struct add_lref : ALRImpl <T, void> {}
+\end{lstlisting}
+ 
+Здесь убрано всё лишнее и можно ли сделать лучше -- не очевидно.
+
+Системный подход к SFINAE делает даже тяжеловесный определитель наличия зависимого типа с данным именем (\lstinline!has_typedef_foobar! из \ref{SFINAE}) весьма простым и понятным.
+
+\begin{lstlisting}
+template <typename, typename = void_t<>>
+struct has_typedef_foobar : false_type {};
+
+template <typename T> 
+struct has_typedef_foobar <T, 
+   void_t<typename T::foobar>> : true_type {};
+\end{lstlisting}
+
+Основные преимущества системного подхода: ясное и корректное выражение мысли в коде. Язык продолжает развитие в этом направлении. Например в C++17 приведённый выше код можно переписать ещё проще, используя появившийся там \lstinline!std::is_detected!
+
+\begin{lstlisting}
+template <typename T> 
+using has_typedef_foobar_t = decltype(T::foobar);
+
+cout << is_detected<has_typedef_foobar_t, foo>::value << endl;
+\end{lstlisting}
+
+Тем не менее, много до сих пор остаётся творческим процессом.
+
+\subsubsection{Вариабельные шаблоны для списков типов}
+
+Типичная задача на конструирование определителей типов: сконструировать \lstinline!and_t <T, U>!, который является \lstinline!true_type! только если и \lstinline!T! и \lstinline!U! являются \lstinline!true_type!, иначе является \lstinline!false_type!.
+
+Решение к этому моменту должно быть уже почти очевидно:
+
+\begin{lstlisting}
+template <typename T, typename U> 
+struct and_t : false_type {};
+
+template <> 
+struct and_t <true_type, true_type> : true_type {};
+\end{lstlisting}
+
+Но что если необходимо написать чуть более сложный определитель: вычислить коньюнкцию целого списка типов? Или, скажем, установить равенство данного элемента одному из списка?
+
+Здесь на помощь приходят вариабельные шаблоны.
+
+\begin{lstlisting}
+template<typename T, typename... List>
+struct is_one_of;
+
+template<typename T>
+struct is_one_of<T> : false_type {};
+
+template<typename T, typename... Tail>
+struct is_one_of<T, T, Tail...> : true_type {};
+\end{lstlisting}
+
+Самое сложное и изящное это рекурсивный вызов:
+
+\begin{lstlisting}
+template<typename T, typename Head, typename... Tail>
+struct is_one_of<T, Head, Tail...> : 
+       is_one_of<Head, Tail...> {};
+\end{lstlisting}
+
+Таким образом вариабельные шаблоны позволяют рекурсию по списку типов гораздо естественней, чем это позволяли делать обычные шаблоны. Большое количество кода в известной книге \cite{mcpp} теперь может быть переписано гораздо проще.
+
+\textbf{Вопрос к студентам:} Дан template parameter pack \lstinline!...Ts!, где каждый тип может быть либо \lstinline!true_type! или \lstinline!false_type!. Как узнать, являются ли они все \lstinline!true_type!?
+
+Очевиден простой рекурсивный ответ:
+
+\begin{lstlisting}
+template <typename ...Ts>
+struct all_true;
+
+template <typename H, typename ...Ts>
+struct all_true<H, Ts...> : 
+       and_t<is_same<true_type, H>, 
+            all_true<Ts...>> {};
+
+template <>
+struct all_true<> : true_type {};
+\end{lstlisting}
+
+Можно ли сделать изящней, не инстанцируя $O(N)$ типов?
+
+\ifanswers
+Более просветляющий ответ использует кортежи:
+
+\begin{lstlisting}
+template <typename H, typename ...Ts>
+struct all_true<H, Ts...> : 
+       and_t<is_same<true_type, H>, 
+             is_same<tuple<H,Ts...>,
+                     tuple<Ts...,H>>> {};
+\end{lstlisting}
+\fi
+
+Часть из использованных здесь определителей есть в стандарте, другие можно сконструировать по мере необходимости (хотя иногда это бывает нетривиально).
+
+Можно запомнить (это примерно столь же полезная для запоминания информация как первый 21 знак числа пи), что все что угодно, что встречается в корректной программе на C++14 может быть отнесено к одному из 14 базовых классов traits и только к нему одному. 
+
+\begin{lstlisting}
+template <class T> struct is_void;
+template <class T> struct is_null_pointer;
+template <class T> struct is_integral;
+template <class T> struct is_floating_point;
+template <class T> struct is_array;
+template <class T> struct is_pointer;
+template <class T> struct is_lvalue_reference;
+template <class T> struct is_rvalue_reference;
+template <class T> struct is_member_object_pointer;
+template <class T> struct is_member_function_pointer;
+template <class T> struct is_enum;
+template <class T> struct is_union;
+template <class T> struct is_class;
+template <class T> struct is_function;
+\end{lstlisting}
+
+И кстати 14 это первые две цифры номера стандарта. Совпадение? Не думаю.
+
+\subsubsection{Статический ассерт}
+
+Некоторые утверждения можно проверить на этапе компиляции. Конечно, на этапе исполнения их, обычно, тоже можно проверить.
+
+\begin{lstlisting}
+int foo () {
+  assert (sizeof(int) == 4);
+  // more code here
+}
+\end{lstlisting}
+
+Допустимо, но выглядит странно. И потом: неужели это нужно делать в каждой функции?
+
+Идея: написать в глобальной области видимости
+
+\begin{lstlisting}
+CT_ASSERT (sizeof(int) == 4);
+\end{lstlisting}
+
+Удивительно, но это возможно даже на C. Первое, что приходит на ум, это нечто вроде этого:
+
+\begin{lstlisting}
+#define CT_ASSERT(pred) switch(0){case 0:case pred:;}
+\end{lstlisting}
+
+Или вот этого:
+
+\begin{lstlisting}
+#define CT_ASSERT(pred) do {int arr[pred ? 1 : -1];} while(0);
+\end{lstlisting}
+
+Оба способа известны чуть ли не с восьмидесятых и оба в целом негодные, потому что не годятся для размещения вне функций.
+
+Годный способ реализации на языке C чуть более сложен (пример взят с  \url{https://stackoverflow.com/questions/807244/c-compiler-asserts-how-to-implement})
+
+\begin{lstlisting}
+#define CT_ASSERT(predicate) \
+  impl_CASSERT_LINE(predicate,__LINE__,__COUNTER__)
+#define impl_PASTE(a,b) a##b
+#define impl_CASSERT_LINE(predicate, line, cnt) \
+  typedef char impl_PASTE( \
+    assertion_failed_##cnt##_,line)[2*!!(predicate)-1];
+\end{lstlisting}
+
+Он построен на том же контроле массивов отрицательной длины, но благодаря использованию \lstinline!typedef! подходит для глобальных упоминаний. Но нельзя не заметить, что этот способ какой-то мрачный...
+
+Андрей Александреску \cite{mcpp} в 2001 году предложил красивый и специфичный для C++ способ решения проблемы статического ассерта.
+
+\begin{lstlisting}
+template <bool cond> struct CT_ASSERT;
+template <> struct CT_ASSERT<true> {};
+\end{lstlisting}
+
+Эти две строчки поражают воображение своей элегантностью. И в целом это работает, но тут есть проблемы с выдачей сообщения (большинство ошибок в шаблонах удивительно нечитаемы), писать в коде надо треугольные скобки, а не круглые и, главное, приходится придумывать имя для каждого ассерта.
+
+\begin{lstlisting}
+CT_ASSERT<sizeof(int) == 4> myassert1; 
+\end{lstlisting}
+
+Это неудобно, так что с 2011 года на уровне языка ввели синтаксический сахар.
+
+\begin{itemize}
+\item Для языка C: \lstinline!_Static_assert (cond, message)!
+\item Для языка C++: \lstinline!static_assert (cond, message)!
+\end{itemize}
+
+Статические ассерты бесплатны и служат частью документации кода.
+
+\begin{lstlisting}
+#include "mylib.h"
+static_assert (MyLib::Version > 2, "Old Mylib");
+static_assert (sizeof(int) == 4, "Incompatible environment");
+// ..... etc
+\end{lstlisting}
+
+Если что-то можно проверить статически, лучше проверить это статически.
+
+Для нас интересно, что статический ассерт пришлось вводить на уровне языка именно потому что SFINAE-путь его организации, хоть и существовал, оказался неудобным.
+
+Тем не менее, для многих других вещей этот путь не только удобный, а, пожалуй и единственный.
+
+\subsubsection{Условный тип и условный Enable}
+
+Рассмотренный ранее статический ассерт отображает выражения на валидность. Можно ли отображать типы в типы либо невалидные характеристики в зависимости от выражений? Оказывается, что да.
+
+Сначала простое, управляемое выражением, отображение типов.
+
+\begin{lstlisting}
+template <bool C, typename T, typename F> 
+struct conditional { using type = T; }
+
+template <typename T, typename F> 
+struct conditional<false, T, F> { using type = F; }
+
+template <bool C, typename T, typename F> 
+using conditional_t = typename conditional<C, T, F>::type;
+\end{lstlisting}
+
+Эта триада называется условным типом. Она отображает значение \lstinline!C! (от англ. condition) как \lstinline!{true,false} -> {T, F}!.
+
+Теперь можно проделать интересную операцию: выкинуть из условного типа всё, касающееся \lstinline!F!. В этом случае получается отображение \lstinline!{true,false} -> {T, Disabled}!
+
+\begin{lstlisting}
+template <bool B, typename T = void> 
+struct enable_if { using type = T; }
+
+template <typename T = void> 
+struct enable_if<false, T> { }
+
+template <bool B, typename T = void> 
+using enable_if_t = typename enable_if<B, T>::type;
+\end{lstlisting}
+
+Полученный паттерн -- один из самых известных и один из самых полезных изо всех. Главное в нём то, что он позволяет выкидывать (SFINAE-out) нежеланные инстанциации шаблонов.
+
+\begin{lstlisting}
+template <typename T, 
+          typename = enable_if_t<(sizeof(T) > 4)>>
+void foo (T x) { do something with x }
+
+foo('c'); // FAIL
+\end{lstlisting}
+
+До некоторой степени, \lstinline!enable_if! штука коварная. Например, очевидная задача: написать в пару приведённой выше функции, функцию, которая работает для \lstinline!(sizeof(T) <= 4)! не так уж и просто.
+
+Очевидная идея не работает.
+
+\begin{lstlisting}
+template <typename T, 
+          typename = enable_if_t<(sizeof(T) > 4)>>
+void foo (T x) { do something with x }
+
+template <typename T, 
+          typename = enable_if_t<(sizeof(T) <= 4)>>
+void foo (T x) { do something with x }
+
+foo('c'); // overload failure
+\end{lstlisting}
+
+Увы, до разрешения подстановки и вообще до SFINAE здесь не доходит. С точки зрения компилятора, написана одна и та же функция и выбрать перегрузку не представляется возможным.
+
+Можно, конечно, выкрутиться с dummy аругментом
+
+\begin{lstlisting}
+template <typename T, 
+          typename = enable_if_t<(sizeof(T) <= 4)>>
+void foo (T x, int dummy = 0) { do something with x }
+\end{lstlisting}
+
+Это работает, но совсем непонятно откуда такая ассиметрия на ровном то месте.
+
+Одна из возможных правильных идей: разруливать этот контекст не шаблонным параметром, а перегруженным типом возвращаемого значения.
+
+\begin{lstlisting}
+template <typename T>
+enable_if_t<(sizeof(T) > 4)>, void> 
+foo (T x) { do something with x }
+
+template <typename T>
+enable_if_t<(sizeof(T) <= 4)>, void> 
+foo (T x) { do something with x }
+
+foo('c'); // ok
+\end{lstlisting}
+
+Так всё работает.
+
+\textbf{Вопрос к студентам:} Является ли хорошей идея пожертвовать типом аргумента?
+
+\begin{lstlisting}
+template <typename T> void 
+foo (enable_if_t<(sizeof(T) > 4)>, T> x) { 
+do something with x 
+}
+\end{lstlisting}
+
+Это тоже работает, но сделали ли бы вы так?
+
+\ifanswers
+Правильный ответ: с моей точки зрения это крайне плохая идея, так как она убивает вывод типов.
+\fi
+
+Красивое и симметричное решение для этой задачи также поулчается если рулить указателями а не типами в качестве шаблонных параметров.
+
+\begin{lstlisting}
+template <typename T,
+          enable_if_t <(sizeof(T) > 4)>* = nullptr>
+void foo (T x) { cout << x << " gt 4 bytes" << endl; }
+
+template <typename T,
+          enable_if_t <(sizeof(T) <= 4)>* = nullptr>
+void foo (T x) { cout << x << " le 4 bytes" << endl; }
+\end{lstlisting}
+
+Здесь работоспособность основана на том, что параметры-указатели входят в анализ типов отдельной строчкой.
+
+Фантастический пример использования \lstinline!enable_if! для создания условного \lstinline!explicit! был рассмотрен Стефаном Лававеем в его докладе на CppCon 2016.
+
 \pagebreak
-\subsection{Метапрограммирование}
+\subsection{Метапрограммирование}\index{Metaprogramming}
+
+\hfill\textit{To iterate is human, to recurse divine}{\vspace{0.5em}}
+
+\hfill\textit{-- L. Peter Deutsch}
+
+Шаблонное метапрограммирование было открыто в 1994-м году. Эрвин Анрух (Erwin Unruh) на заседании комитета по стандартизации сделал доклад, из которого следовало, что шаблоны могут быть использованы для вычисления на этапе компиляции и продемонстрировал генератор простых чисел, который на этапе компиляции выводил в виде сообщений об ошибках простые числа от 2 до заранее заданного настраиваемого предела. Но этот генератор довольно сложен. Кроме того, он представлял собой довольно неочевидный код.
+
+\subsubsection{Простая рекурсия и арифметика}\label{SimpleRecursion}
+
+Начать следует с очевидного: метапрограммирование это обобщение систематического SFINAE на целочисленные вычисления.
+
+\begin{lstlisting}
+template<size_t N>
+struct fact : 
+  integral_constant<size_t, 
+                    N * fact<N - 1>{}> {}; 
+
+template<> struct fact<0> : 
+  integral_constant<size_t, 1> {};
+\end{lstlisting}
+
+Теперь в коде можно легко вычислить факториал пяти:
+
+\begin{lstlisting}
+cout << fact<5>{} << endl;
+\end{lstlisting}
+
+Это вычисление не займёт ни секунды машинного времени: ответ будет известен уже на этапе компиляции.
+
+Посмотреть как разворачиваются вычисления можно в специальной утилите metashell.
+
+\begin{verbatim}
+$ metashell
+> #include <metashell/scalar.hpp>
+> #include "meta-fact.hpp"
+> #msh mdb factorial<6>::value
+Metaprogram started
+(mdb) ft
+factorial<6>::value
++ factorial<6> 
+| + factorial<5> 
+| | + factorial<4> 
+| | | + factorial<3> 
+| | | | + factorial<2> 
+| | | | | + factorial<1> 
+| | | | | | + factorial<0> 
+| | | | | | ` factorial<0>::(anonymous) 
+| | | | | ` factorial<1>::(anonymous) 
+| | | | ` factorial<2>::(anonymous) 
+| | | ` factorial<3>::(anonymous) 
+| | ` factorial<4>::(anonymous) 
+| ` factorial<5>::(anonymous) 
+` factorial<6> 
+(mdb) quit
+> #msh quit
+\end{verbatim}
+
+Также легко организовать вычисление чисел Фибоначчи
+
+\begin{lstlisting}
+template<size_t N> struct fibonacci :
+  integral_constant <size_t,
+                     fibonacci<N-1>{} +
+                     fibonacci<N-2>{}> {};
+
+template<> struct fibonacci<1> : 
+  integral_constant<size_t, 1> {};
+
+template<> struct fibonacci<0> : 
+  integral_constant<size_t,0> {};
+\end{lstlisting}
+
+Здесь двойная (древовидная) древовидная рекурсия уже может несколько смущать.
+
+Не слишком ли много времени потратит на этот процесс компилятор?
+
+\subsubsection{Две модели вычислений}\label{ComputationModels}
+
+Вернёмся к факториалу. Человек с опытом на C написал бы простую функцию, вычисляющую факториал числа, в итеративном стиле:
+
+\begin{lstlisting}
+int
+fact_0 (int x)
+{
+  int i, res = 1;
+  for (i = 2; i <= x; ++i)
+    res *= i;
+
+  return res;
+}
+\end{lstlisting}
+
+Здесь для того, чтобы вычислить факториал понадобились две ячейки памяти -- изменяемые переменные \lstinline!i! и \lstinline!res!. Математик Алан Тьюринг в 1936-м году опубликовал статью из которой следовало, что очень сложные вычислительные процессы можно произвести, имея в своем распоряжении:
+
+\begin{itemize}
+\item ветвления (скажем оператор \lstinline!if! или тернарный оператор)
+\item переходы (хороший пример -- любой цикл или простое \lstinline!goto!)
+\item последовательное линейное исполнение инструкций
+\item достаточное количество изменяемой памяти
+\end{itemize}
+
+Факториал переписанный в более Тьюринг-стиле, но все ещё на C показывает некий минимализм выразительных средств:
+
+\begin{lstlisting}
+int memory[3];
+
+/* memory[0] is input and result */
+fact_0:
+  memory[1] = 1;
+  memory[2] = 1;
+  label t, fin;
+t:
+  memory[1] += 1;
+  memory[2] *= memory[1];
+  if (memory[1] > memory[0]) 
+    goto fin;
+  goto t;
+fin:
+  memory[0] = memory[2];
+\end{lstlisting}
+
+Некоторое время спустя, Стивен Клини обнаружил, что очень сложные вычислительные процессы можно произвести, имея в своем распоряжении:
+
+\begin{itemize}
+\item ветвления (скажем оператор \lstinline!if! или тернарный оператор)
+\item вызовы функций с передачей аргументов
+\end{itemize}
+
+В этом случае вообще не требуется изменяемых переменных.
+
+И правда, факториал можно записать иначе:
+
+\begin{lstlisting}
+int
+fact_1 (int x)
+{
+  if (x < 2)
+    return x;
+  else
+    return x * fact_1 (x - 1);
+}
+\end{lstlisting}
+
+Такие функции были им названы \textbf{частично-рекурсивными} функциями и было доказано, что аппарат частично-рекурсивных функций эквивалентен по вычислительной мощности машинам Тьюринга и лямбда-выражениям
+
+Порождаемый таким образом рекурсивный процесс вычислительно не слишком эффективен, поскольку выражение \lstinline!x * fact_1 (x - 1)! не может быть вычислено до полного вычисления всех рекурсивных вызовов. Таким образом нет аккумулятора (вернее он неявно размазан по рекурсивной цепочке). Аккумулятор тоже можно сымитировать, изменив факториал:
+
+\begin{lstlisting}
+int
+fact_2_1 (int x, int idx, int product)
+{
+  if (idx > x)
+    return product;
+  else
+    return fact_2_1 (x, idx + 1, product * idx);
+}
+
+int
+fact_2 (int x)
+{
+  return fact_2_1 (x, 1, 1);
+}
+\end{lstlisting}
+
+Теперь в metashell картинка иная
+
+\begin{verbatim}
+Metaprogram started
+(mdb) ft
+factorial2<6>::value
++ factorial2<6> 
+| ` fact_rec<6, 2, 1> 
+|   ` fact_rec<6, 3, 2> 
+|     ` fact_rec<6, 4, 6> 
+|       ` fact_rec<6, 5, 24> 
+|         ` fact_rec<6, 6, 120> 
+` factorial2<6> 
+\end{verbatim}
+
+Интересно, что обычные программы на C++ больше похожи на подсахаренные машины Тьюринга (с поправкой на структурное программирование, взрослые циклы и вызовы функций). А вот метапрограммирование больше напоминает подход Клини.
+
+Метапрограмма рекурсивного факториала несколько сложнее итеративной.
+
+\begin{lstlisting}
+template <size_t n, size_t idx, size_t product> 
+struct fact_rec : 
+  integral_constant<size_t, 
+                    fact_rec <n, idx + 1, product * idx>{}> {};
+
+template <size_t n, size_t product> 
+struct fact_rec <n, n, product> : 
+  integral_constant<size_t, 
+                    product * n> {};
+
+template <size_t n> 
+struct factorial : 
+  integral_constant<size_t, fact_rec <n, 1, 1>{}> {};
+\end{lstlisting}
+
+Но она же и более поучительна.
+
+\textbf{Домашняя наработка:} сравните по скорости оба подхода на вашем компиляторе.
+
+\subsubsection{Ветвления и пример квадратного корня}\label{TemplateIfElse}
+
+Следующий пример куда более нетривиален: предлагается на этапе компиляции посчитать целочисленный квадратный корень.
+
+Первый шаг для решения такой задачи: прикинуть код на обычном C++, но в функциональном стиле:
+
+\begin{lstlisting}
+int
+isqrt (int N, int lo = 1, int hi = N)
+{
+  int mid = (lo + hi + 1) / 2;
+
+  if (lo == hi)
+    return lo;
+  else
+    {
+      if (N < mid * mid)
+        return isqrt (N, lo, mid - 1);
+      else
+        return isqrt (N, mid, hi);
+    }
+}
+\end{lstlisting}
+
+Теперь этот код практически один в один может быть переложен на метапрограмму. Поскольку шаблонное инстанцирование даёт один уровень сопоставления с шаблоном, можно убрать самый верхний условный оператор.
+
+Тогда завершение рекурсии будет выглядеть тривиально как \lstinline{return lo} выше
+
+\begin{lstlisting}
+template <int N, int S> 
+struct Sqrt <N, S, S, S> :
+  integral_constant<int, S> {};
+\end{lstlisting}
+
+Но что использовать для ветвления в общем шаге? На выручку приходит уже рассмотренный выше \lstinline!conditional_t!.
+
+\begin{lstlisting}
+template <int N, int L = 1, int H = N, 
+          int mid = (L + H + 1) / 2> 
+struct Sqrt :
+  integral_constant<int, 
+    conditional_t<(N < mid * mid), 
+                  Sqrt<N, L, mid - 1>, 
+                  Sqrt<N, mid, H>> {}> {};
+\end{lstlisting}
+
+Использование всё так же тривиально
+
+\begin{lstlisting}
+cout << Sqrt<16>{} << endl;
+\end{lstlisting}
+
+Рассмотренные примеры показывают, что в метапрограммах можно делать ветвления и циклы (через рекурсию), хранить промежуточные данные и выполнять над ними основные арифметические операции. Всего этого достаточно для того, чтобы доказать Тьюринг-полноту шаблонов C++\index{Turing completeness of templates}.
+
+\subsubsection{Простые числа}\label{TemplatePrimes}
+
+Благодаря вложенным классам, можно устраивать некую модульность в вычислениях и даже писать нечто, похожее на ``метаподпрограммы''. Большой пример с простыми числами сильно отличается от базового кода Анруха (его всегда можно найти в интернетах), но он несколько полезней, так как результаты печатаются не в виде ошибок, а доступны для использования.
+
+// TODO: переписать систематичней
+
+\begin{lstlisting}
+template <int i>
+struct NthPrime
+{
+  template <int p>
+  struct is_prime
+  {
+    template <int n>
+    struct n_divisors
+    {
+      template <int N, int M>
+      struct is_divisor
+      {
+        enum { val = is_divisor <N, M - 1>::val + ((N % M) == 0) };
+      };
+
+      template <int N>
+      struct is_divisor <N, 1>
+      {
+        enum { val = 0 };
+      };
+
+      enum { val = is_divisor <n, n - 1>::val };
+    };
+    enum { val = (n_divisors <p>::val == 0) };
+  };
+
+  template <int n, int m>
+  struct search_step
+  {
+    enum { val = search_step <n - (is_prime <m>::val), m + 1>::val };
+  };
+
+  template <int m>
+  struct search_step <1, m>
+  {
+    enum { val = m - 1 };
+  };
+
+  enum { val = search_step <i, 3>::val };
+};
+\end{lstlisting}
+
+Использование очевидно:
+
+\begin{lstlisting}
+int main(int argc, char* argv[])
+{
+  printf("Prime 6: %i\n", NthPrime<6>::val);
+  return 0;
+}
+\end{lstlisting}
+
+\textbf{Домашняя наработка:} коды Грея на шаблонах
+
+
 
 \pagebreak
 \subsection{Вычисления времени компиляции}
