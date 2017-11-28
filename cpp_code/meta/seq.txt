@@ -1,6 +1,7 @@
+cd C:\research\cpp_lectures\cpp_code\meta
+"C:\Program Files (x86)\metashell 3.0.0\bin\metashell.exe"
 #include <metashell/scalar.hpp>
-#include "fact-simple.hpp"
-#include "meta-fact.hpp"
+#include "talk.hpp"
 #msh mdb Simple::factorial<6>::value
 ft
 quit

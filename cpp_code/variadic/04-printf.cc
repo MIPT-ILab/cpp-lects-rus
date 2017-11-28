@@ -8,13 +8,15 @@ using std::endl;
 using std::forward;
 using std::runtime_error;
 
+int ts_printf(const char* s);
+
 template<typename T, typename... Args> int 
 ts_printf(const char* s, T&& value, Args&&... args) { 
   while (*s) {
     if (*s == '%' && *++s != '%') {
       /* ignore the character that follows the '%'! */
       cout << value;
-      return printf(++s, forward<Args>(args)...) + 1;
+      return ts_printf(++s, forward<Args>(args)...) + 1;
     }
     cout << *s++;
   }    
@@ -34,8 +36,8 @@ int
 main (void)
 {
   ts_printf ("%d... %d... %d... "
-             "%d... %d... %s\n", 
-             4, 3, 2, 1, 0, "Hello, world!");
+             "%d... %d... %%... %s\n", 
+             4, 3, 2, 1, "Hello, world!");
   return 0;
 }
 

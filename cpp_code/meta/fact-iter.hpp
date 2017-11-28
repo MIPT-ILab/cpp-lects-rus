@@ -13,7 +13,7 @@ struct Fact_rec <n, n, product>
 };
 
 template <unsigned n>
-struct Factorial
+struct factorial
 {
   enum { value = Fact_rec <n, 1, 1> :: value };
 };
