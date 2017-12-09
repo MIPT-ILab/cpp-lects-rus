@@ -6,6 +6,7 @@ using std::ostream;
 using std::cout;
 using std::get;
 using std::endl;
+using std::forward;
 using std::index_sequence;
 using std::index_sequence_for;
 using std::make_index_sequence;
@@ -13,6 +14,7 @@ using std::make_tuple;
 using std::size_t;
 using std::tuple;
 using std::tuple_cat;
+using std::tuple_size;
 
 template<typename Tuple, size_t... Is>
 void 
@@ -51,10 +53,12 @@ constexpr auto rotate_l (const tuple<Args...>& t) {
 template<size_t Nx, size_t Mx, typename... Args>
 constexpr auto swap_elts (const tuple<Args...>& t) {
   if constexpr (Nx == Mx) return t;
-  constexpr size_t N = (Nx > Mx) ? Mx : Nx;
-  constexpr size_t M = (Nx > Mx) ? Nx : Mx;
+  constexpr size_t Ny = Nx % sizeof...(Args);
+  constexpr size_t My = Mx % sizeof...(Args);
+  constexpr size_t N = (Ny > My) ? My : Ny;
+  constexpr size_t M = (Ny > My) ? Ny : My;
 
-  // now N < M  
+  // now N < M, N < sizeof...(Args), M < sizeof...(Args)
 
   auto nth = get<N>(t);
   auto mth = get<M>(t);
@@ -63,6 +67,17 @@ constexpr auto swap_elts (const tuple<Args...>& t) {
   auto tM = rotate_l<M-N>(tmp1);
   auto tmp2 = tuple_cat(make_tuple(nth), subtuple<1>(tM, make_index_sequence<sizeof...(Args) - 1>{}));
   return rotate_r<M>(tmp2);
+}
+
+// based on observation, that:
+// (x1, x2, x3, x4, ...) = (x1, x2) * (x1, x3, x4, ...)
+template<size_t I, size_t J, size_t... Is, typename Tuple>
+constexpr auto permute_elts (const Tuple& t) {
+  if constexpr(sizeof...(Is) > 0) {
+    return permute_elts<I, Is...>(swap_elts<I, J>(t));
+  }
+  else
+    return swap_elts<I, J>(t);
 }
 
 template<typename Tuple, size_t... Is>
@@ -83,5 +98,7 @@ main () {
 #endif
   constexpr auto test1swap24 = swap_elts<2, 4>(test1);
   cout << "Swapped #2 and #4: " << test1swap24 << endl;
+  constexpr auto test1perm23140 = permute_elts<2, 3, 1, 4, 0>(test1);
+  cout << "After (2 3 1 4 0) permutation: " << test1perm23140 << endl;
 }
 
