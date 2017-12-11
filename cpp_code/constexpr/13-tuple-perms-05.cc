@@ -84,17 +84,6 @@ constexpr auto swap_elts (Tuple &&t) {
   return rotate_r<M>(tmp2);
 }
 
-// based on observation, that:
-// (x1, x2, x3, x4, ...) = (x1, x2) * (x1, x3, x4, ...)
-template<size_t I, size_t J, size_t... Is, typename Tuple>
-constexpr auto permute_elts (Tuple &&t) {
-  if constexpr(sizeof...(Is) > 0) {
-    return permute_elts<I, Is...>(swap_elts<I, J>(forward<Tuple>(t)));
-  }
-  else
-    return swap_elts<I, J>(forward<Tuple>(t));
-}
-
 template<typename Tuple, size_t... Is>
 void
 print_rotates(Tuple &&t, index_sequence<Is...>) {  
@@ -113,7 +102,5 @@ main () {
   print_rotates(test, make_index_sequence<10>{});
   constexpr auto testswap24 = swap_elts<2, 4>(test);
   cout << "Swapped #2 and #4: " << testswap24 << endl;
-  constexpr auto testperm23140 = permute_elts<2, 3, 1, 4, 0>(test);
-  cout << "After (2 3 1 4 0) permutation: " << testperm23140 << endl;
 }
 
