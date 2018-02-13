@@ -25,11 +25,11 @@ print_tuple_impl(ostream& os, Tuple &&t, index_sequence<Is...>)
 }
 
 template<typename Tuple, typename = void_t<decltype(get<0>(Tuple{}))>>
-decltype(auto) operator<<(ostream& os, Tuple &&t)
+decltype(auto) operator<<(ostream& os, const Tuple &t)
 {
   constexpr size_t sz = tuple_size<decay_t<Tuple>>::value;
   os << "(";
-  print_tuple_impl(os, forward<Tuple>(t), make_index_sequence<sz>{});
+  print_tuple_impl(os, t, make_index_sequence<sz>{});
   return os << ")";
 }
 
@@ -77,8 +77,8 @@ constexpr auto swap_elts (Tuple &&t) {
 
   // now N < M, N < sz, M < sz
 
-  auto&& nth = make_tuple(get<N>(forward<Tuple>(t)));
-  auto&& mth = make_tuple(get<M>(forward<Tuple>(t)));
+  auto&& nth = make_tuple(get<N>(t));
+  auto&& mth = make_tuple(get<M>(t));
   auto&& tmp1 = tuple_cat(mth, tuple_tail(rotate_l<N>(forward<Tuple>(t))));
   auto&& tmp2 = tuple_cat(nth, tuple_tail(rotate_l<M-N>(tmp1)));
   return rotate_r<M>(tmp2);
@@ -115,5 +115,13 @@ main () {
   cout << "Swapped #2 and #4: " << testswap24 << endl;
   constexpr auto testperm23140 = permute_elts<2, 3, 1, 4, 0>(test);
   cout << "After (2 3 1 4 0) permutation: " << testperm23140 << endl;
+
+  // run-time lvalue and rvalue tests
+  auto ltest = make_tuple(1, 1.5, 2, 2.5, 3, 3.5);
+  auto ltestperm23140 = permute_elts<2, 3, 1, 4, 0>(ltest);
+  auto rtestperm23140 = permute_elts<2, 3, 1, 4, 0>(make_tuple(1, 1.5, 2, 2.5, 3, 3.5));
+  cout << "After (2 3 1 4 0) permutation: " << testperm23140 << endl;
+  cout << "After (2 3 1 4 0) permutation: " << ltestperm23140 << endl;
+  cout << "After (2 3 1 4 0) permutation: " << rtestperm23140 << endl;
 }
 

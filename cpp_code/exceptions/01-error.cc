@@ -11,13 +11,16 @@ struct UnwShow
 int foo (int n) 
 {
   UnwShow s;
-  if (n == 0) return 1 / n;
+  if (n == 0) throw 1;
   foo (n - 1);
 }
 
 int 
 main ()
 {
+try {
   foo (5);
+}
+catch (...) {}
 }
 
