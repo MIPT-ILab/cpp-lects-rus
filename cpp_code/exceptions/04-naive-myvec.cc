@@ -14,24 +14,29 @@ template <typename T> class MyVector {
 public:
   MyVector (size_t sz): arr_(new T[sz]), size_(sz), used_(0) {}
 
-  MyVector (const MyVector &rhs): arr_(new T[rhs.size_]), size_(rhs.size_), used_(rhs.used_) {
+  MyVector (const MyVector &rhs): 
+    arr_(new T[rhs.size_]), size_(rhs.size_), used_(rhs.used_) 
+  {
     for (size_t idx = 0; idx != size_; ++idx)
       arr_[idx] = rhs.arr_[idx];
   }
 
   MyVector (MyVector &&rhs) : 
-    arr_(rhs.arr_), size_(rhs.size_), used_(rhs.used_) {
+    arr_(rhs.arr_), size_(rhs.size_), used_(rhs.used_) 
+  {
     rhs.arr_ = nullptr;
     rhs.size_ = 0; rhs.used_ = 0;
   }
 
-  MyVector& operator= (MyVector &&rhs) {
+  MyVector& operator= (MyVector &&rhs) 
+  {
     swap (arr_, rhs.arr_); 
     swap (size_, rhs.size_); 
     swap (used_, rhs.used_);
   }
 
-  MyVector& operator= (const MyVector &rhs) {
+  MyVector& operator= (const MyVector &rhs) 
+  {
     if (this != &rhs) {
       size_ = rhs.size_;
       used_ = rhs.used_;
@@ -43,13 +48,15 @@ public:
     return *this;
   }
 
-  T pop () {
+  T pop ()
+  {
     if (used_ < 1) throw runtime_error("Vector is empty"); 
     used_ -= 1;
     return arr_[used_];
   }
   
-  void push(const T& t) {
+  void push(const T& t) 
+  {
     assert (used_ <= size_);
     if (used_ == size_) {
       size_t newsz = size_*2 + 1;
