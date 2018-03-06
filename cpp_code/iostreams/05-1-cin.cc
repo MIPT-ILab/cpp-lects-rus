@@ -8,9 +8,9 @@ using std::getline;
 int main()
 {
 	std::string mystr; int num;
-cout << "Please enter a number: " << "\n";
-cin>> num;
-cout<< "Your number is: " << num<< "\n";
-cout<< "Please enter your name: \n";
-getline(cin, mystr);
+        cout << "Please enter a number: " << "\n";
+        cin>> num;
+        cout<< "Your number is: " << num<< "\n";
+        cout<< "Please enter your name: \n";
+        getline(cin, mystr);
 }

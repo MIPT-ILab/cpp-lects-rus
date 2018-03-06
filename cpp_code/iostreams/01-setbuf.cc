@@ -13,7 +13,7 @@ void delay(int seconds)
 int main ()
 {
 	// buffered IO
-	// setvbuf (stdout, NULL, _IOFBF, 1024);
+	setvbuf (stdout, NULL, _IOFBF, 1024);
 	
 	// unbuffered IO
 	// setbuf (stdout, NULL);
