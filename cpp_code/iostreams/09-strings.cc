@@ -2,20 +2,28 @@
 #include <iostream>
 #include <sstream>
 
+using std::cout;
+using std::endl;
+using std::hex;
+using std::ios;
+using std::istringstream;
+using std::ostringstream;
+using std::string;
+
 int
 main ()
 {
-  std::ostringstream fst;
+  ostringstream fst;
   int n;
   float f;
 
   fst << 42.2442;
-  std::string s1 = fst.str();
-  std::istringstream iss(s1);
+  string s1 = fst.str();
+  istringstream iss(s1);
   iss >> n >> f;
-  std::string s2("value: ");
-  std::ostringstream snd (s2, std::ios::out|std::ios::ate);
-  snd << std::hex << n << " " << f;
-  std::cout << snd.str() << std::endl;
+  string s2("value: ");
+  ostringstream snd (s2, ios::out|ios::ate);
+  snd << hex << n << " " << f;
+  cout << snd.str() << endl;
 }
 

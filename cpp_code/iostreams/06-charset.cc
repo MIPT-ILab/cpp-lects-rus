@@ -59,8 +59,10 @@ main() {
   try {
     newone();
     cout << "Writing charset done" << endl;
+#if 1
   } catch (ios_base::failure& e) {
     cerr << "IOS failure: " << e.what() << endl; 
+#endif
   } catch (system_error& e) {
     cerr << "System error: " << e.code().message() << endl;
   }

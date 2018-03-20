@@ -1,10 +1,12 @@
 #include <iostream>
 #include <cassert>
 #include <vector>
+#include <utility>
 
 using std::cout;
 using std::endl;
 using std::vector;
+using std::void_t;
 
 template <typename C, typename F> 
 size_t
@@ -27,7 +29,8 @@ public:
       arr_[n] = value;
   }
   template <typename Iter, 
-           typename = decltype(*std::declval<Iter&>(), ++std::declval<Iter&>(), void())>
+           typename = void_t<decltype(*std::declval<Iter&>()), 
+                             decltype(++std::declval<Iter&>())>>
   MyVector (Iter fst, Iter lst) {
     size_ = 0;
     for (auto it = fst; it != lst; ++it)

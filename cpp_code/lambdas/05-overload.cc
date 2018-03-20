@@ -7,7 +7,9 @@ using namespace std;
 
 template <class... F>
 struct overload : F... {
-//  using overload<F...>::operator();
+#if (__cplusplus >= 201703L)
+  using F::operator()...;
+#endif
   overload(F... f) : F(f)... {} 
 };
 

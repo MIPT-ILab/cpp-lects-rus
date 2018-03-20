@@ -12,7 +12,7 @@ using std::vector;
 
 int
 main () {
-  ifstream f("poluslo.jpg");
+  ifstream f("poluslo.jpg", ifstream::binary);
   int printrow = 0;
   vector<unsigned char> buf;
   while(f) {
