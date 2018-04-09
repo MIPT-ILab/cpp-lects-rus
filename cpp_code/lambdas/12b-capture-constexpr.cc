@@ -10,13 +10,17 @@ constexpr auto getFactorializer = []{
     while (it != e) pred(it++ - b);
   };
 
-  for_each(optimization,optimization+6,[&](int n){
-    if (!n) optimization[n]=1;
-    else optimization[n] = n * optimization[n-1];
+  for_each(optimization, optimization + 6, [&](int n){
+    if (n == 0) {
+      optimization[n] = 1;
+      return;
+    }    
+    optimization[n] = n * optimization[n-1];
   });
 
   auto FacImpl = [=](auto fac, unsigned n){
-    if (n<=5) return optimization[n];
+    if (n <= 5) 
+      return optimization[n];
     return n * fac(fac, n-1);
   };
 

@@ -6,8 +6,7 @@ using std::endl;
 using std::forward;
 using std::move;
 
-struct Heavy
-{
+struct Heavy {
   Heavy() { cout << "Heavy ctor" << endl; }
   Heavy(const Heavy&) { cout << "Heavy copied" << endl; }
   Heavy(Heavy&&) { cout << "Heavy moved" << endl; }
@@ -15,7 +14,6 @@ struct Heavy
   Heavy& operator= (Heavy&&) { cout << "Heavy move-assigned" << endl; return *this; }
   void use(const char *where) { cout << "Heavy used at " << where << endl; }
 };
-
 
 int foo (Heavy& h, int x) { h.use("foo"); return 0; }
 int bar (Heavy&& h, double d, int s) { h.use("bar"); return 0; }

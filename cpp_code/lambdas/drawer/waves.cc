@@ -21,7 +21,7 @@ draw_waves (ISurface *s, double xcenter, double ycenter, double phase)
   double a = sin (FREQ * phase);
   int rmask = 0x00, bmask = 0x00;
 
-  // s->fillwith (0xffffffff);
+  s->fillwith (0xffffffff);
 
   if (a > 0.0) 
     {

@@ -25,8 +25,8 @@ struct Foo {
 
 int main()
 {
-  Foo foo;
-  int n = foo(5, 6);
+  Foo x;
+  int n = x(5, 6);
   cout << n << endl;
 }
 

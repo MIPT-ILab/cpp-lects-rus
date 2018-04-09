@@ -1,7 +1,9 @@
 # Drawer makefile
 
-CXXFLAGS = -O2 -Wall -Wextra -I SDLw64/include 
-LDFLAGS = -L SDLw64/lib -lSDLmain -lSDL -mwindows
+CXX=C:\Users\kvladimi\Downloads\MinGW\bin\g++
+
+CXXFLAGS=-O2 -Wall -Wextra -I SDLw64/include 
+LDFLAGS=-L SDLw64/lib -lSDLmain -lSDL -mwindows
 
 all : funcbitmap waves julia
 

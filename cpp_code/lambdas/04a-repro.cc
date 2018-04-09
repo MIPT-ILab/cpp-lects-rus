@@ -1,15 +1,23 @@
+#include <iostream>
 #include <utility>
 
-int foo (int&) { return 0; }
-int bar (int&&) { return 0; }
+using std::cout;
+using std::endl;
+using std::forward;
+using std::move;
+
+using Heavy = int;
+
+int foo (Heavy& h) { return 1; }
+int bar (Heavy&& h) { return 2; }
 
 int
 main ()
 {
-  auto transparent = [](auto f, auto&& param) { 
-    return f(std::forward<decltype(param)>(param));
+  auto transparent = [](auto f, auto&&... param) { 
+    return f(forward<decltype(param)>(param)...);
   };
-  int a = 5;
+  Heavy a;
   transparent (foo, a);
   transparent (bar, std::move(a));
 }

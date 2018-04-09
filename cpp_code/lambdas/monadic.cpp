@@ -17,7 +17,7 @@ auto tail = [](auto xs) {
 };
 
 auto length = [](auto xs) {
-    cout << typeid(xs).name() << endl;
+//    cout << typeid(xs).name() << endl;
     return xs([](auto ... z) { return sizeof...(z); });
 };
 
