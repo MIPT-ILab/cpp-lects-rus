@@ -13,8 +13,8 @@ main () {
   for (auto elt : s)
     cout << elt << endl;
 
-  auto itb = s.lower_bound(30);
-  auto ite = s.upper_bound(100);
+  auto itb = s.lower_bound(100);
+  auto ite = s.upper_bound(30);
   cout << "lower of 30: " << *itb << endl;
   cout << "upper of 100: " << *ite << endl;
 

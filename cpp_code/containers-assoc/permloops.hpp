@@ -82,6 +82,17 @@ public:
   // true if loops are equal
   bool equals (const PermLoop& rhs) const { return loop_ == rhs.loop_; }
 
+  // lexicographical less-than
+  bool less(const PermLoop &rhs) const {
+    size_t sz = rhs.loop_.size();
+    if (loop_.size() != sz)
+      return loop_.size() < sz;
+    for (size_t i = 0; i != sz; ++i)
+      if (loop_[i] != rhs.loop_[i])
+        return loop_[i] < rhs.loop_[i];
+    return false;
+  }
+
   // size of loop
   size_t size() const { return loop_.size(); }
 
@@ -121,6 +132,11 @@ private:
 template <typename T>
 bool operator == (const PermLoop<T>& lhs, const PermLoop<T>& rhs) {
   return lhs.equals(rhs);
+}
+
+template <typename T>
+bool operator<(const PermLoop<T> &lhs, const PermLoop<T> &rhs) {
+  return lhs.less(rhs);
 }
 
 template <typename T>

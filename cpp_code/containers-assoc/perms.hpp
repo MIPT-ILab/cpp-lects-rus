@@ -77,6 +77,17 @@ public:
   // true if permutation contains element
   bool contains(T elem) const;
 
+  // lexicographical less-than
+  bool less(const Permutation &rhs) const {
+    size_t sz = rhs.loops_.size();
+    if (sz != loops_.size())
+      return (loops_.size() < sz);
+    for (size_t i = 0; i != sz; ++i)
+      if (loops_[i] != rhs.loops_[i])
+        return (loops_[i] < rhs.loops_[i]);
+    return false;
+  }
+
   // true if equals
   bool equals(const Permutation& rhs) const { return rhs.loops_ == loops_; }
 
@@ -103,6 +114,11 @@ private:
 template <typename T>
 bool operator == (const Permutation<T>& lhs, const Permutation<T>& rhs) {
   return lhs.equals(rhs);
+}
+
+template <typename T>
+bool operator<(const Permutation<T> &lhs, const Permutation<T> &rhs) {
+  return lhs.less(rhs);
 }
 
 template <typename T>

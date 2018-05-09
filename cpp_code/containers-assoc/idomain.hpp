@@ -21,7 +21,7 @@ using std::to_string;
 template <typename T, T start_, T fin_>
 struct Idom {
   T val_;
-  Idom(T val) : val_(val) {
+  Idom(T val = start_) : val_(val) {
     if (val > fin_) throw std::out_of_range(string("value too big for domain: ") + to_string(val));
     if (val < start_) throw std::out_of_range("value too small for domain");
   }
