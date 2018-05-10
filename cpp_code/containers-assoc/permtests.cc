@@ -136,9 +136,11 @@ main()
   cout << "sets: ";
   auto ds = duration([]{test_perf_sorbit_sets<10000>();});
   cout << ds.count() << endl;
+#ifdef UNORD
   cout << "usets: ";
   auto du = duration([]{test_perf_sorbit_usets<10000>();});
   cout << du.count() << endl;
+#endif
 #endif
 
 #ifdef FULL

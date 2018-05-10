@@ -108,9 +108,13 @@ int main()
   constexpr size_t KeyLen = 3;
   constexpr size_t VaLen = 19;
 
-  cout << "maps: " << duration([]{do_test<map<string, list<string>>, N>(KeyLen, VaLen);}).count() << endl;
+  cout << "maps: " << duration([]{do_test<map<string, vector<string>>, N>(KeyLen, VaLen);}).count() << endl;
+#ifndef SHORT
   cout << "mmaps: " << duration([]{do_m_test<multimap<string, string>, N>(KeyLen, VaLen);}).count() << endl;
-  cout << "umaps: " << duration([]{do_test<unordered_map<string, list<string>>, N>(KeyLen, VaLen);}).count() << endl;
+#endif
+  cout << "umaps: " << duration([]{do_test<unordered_map<string, vector<string>>, N>(KeyLen, VaLen);}).count() << endl;
+#ifndef SHORT
   cout << "ummaps: " << duration([]{do_m_test<unordered_multimap<string, string>, N>(KeyLen, VaLen);}).count() << endl;
+#endif
   return 0;
 }
