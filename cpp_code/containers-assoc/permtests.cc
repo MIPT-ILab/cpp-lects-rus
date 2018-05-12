@@ -131,14 +131,14 @@ main()
 
 #ifdef SIMPLE
   cout << "vectors: ";
-  auto dv = duration([]{test_perf_sorbit_vecs<10000>();});
+  auto dv = duration([]{test_perf_sorbit_vecs<20000>();});
   cout << dv.count() << endl;
   cout << "sets: ";
-  auto ds = duration([]{test_perf_sorbit_sets<10000>();});
+  auto ds = duration([]{test_perf_sorbit_sets<20000>();});
   cout << ds.count() << endl;
 #ifdef UNORD
   cout << "usets: ";
-  auto du = duration([]{test_perf_sorbit_usets<10000>();});
+  auto du = duration([]{test_perf_sorbit_usets<20000>();});
   cout << du.count() << endl;
 #endif
 #endif

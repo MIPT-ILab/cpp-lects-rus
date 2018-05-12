@@ -9,6 +9,16 @@
 #include <unordered_set>
 #include <vector>
 
+#ifdef USE_BOOST
+#include <boost/container/flat_map.hpp>
+#include <boost/bimap.hpp>
+#include <boost/bimap/list_of.hpp>
+
+using boost::container::flat_map;
+using namespace boost::bimaps;
+#endif
+
+
 using std::cout;
 using std::endl;
 using std::forward;
@@ -27,7 +37,8 @@ using std::chrono::duration_cast;
 using std::chrono::milliseconds;
 
 template<typename F, typename ...Args>
-auto duration(F&& func, Args&&... args) {
+auto duration(F&& func, Args&&... args) 
+{
   auto start = steady_clock::now();
   forward<decltype(func)>(func)(forward<Args>(args)...);
   return duration_cast<milliseconds>(steady_clock::now() - start);
@@ -45,9 +56,54 @@ string random_string(size_t length)
   return str;
 }
 
+template <typename T, size_t N, size_t M>
+auto do_basic_map_test(int keylen, int valen) 
+{
+  // filling
+  T x;
+  for (size_t i = 0; i < N; ++i) {
+    auto key = random_string(keylen);
+    auto val = random_string(valen);
+    x.insert(make_pair(key, val));
+  }
+
+  // using: find keys and change values
+  for (size_t i = 0; i < M; ++i) {
+    auto key = random_string(keylen);
+    auto it = x.find(key);
+    if (it != x.end())
+      it->second = random_string(valen);
+  }
+
+  return x.size();
+}
+
+template <typename T, size_t N, size_t M>
+auto do_basic_bimap_test(int keylen, int valen) 
+{
+  // filling
+  T x;
+  for (size_t i = 0; i < N; ++i) {
+    auto key = random_string(keylen);
+    auto val = random_string(valen);
+    x.left.insert(make_pair(key, val));
+  }
+
+  // using: find keys and change values
+  for (size_t i = 0; i < M; ++i) {
+    auto key = random_string(keylen);
+    auto it = x.left.find(key);
+    if (it != x.left.end())
+      it->second = random_string(valen);
+  }
+
+  return x.size();
+}
+
 // something like map or unordered map
 template <typename T, size_t N>
-auto do_test(int keylen, int valen) {
+auto do_test(int keylen, int valen) 
+{
   // filling
   T x;
   for (size_t i = 0; i < N; ++i) {
@@ -70,12 +126,13 @@ auto do_test(int keylen, int valen) {
         val = newval;
   }
 
-  return x;
+  return x.size();
 }
 
 // something like multimap or unordered multimap
 template <typename T, size_t N>
-auto do_m_test(int keylen, int valen) {
+auto do_m_test(int keylen, int valen) 
+{
   // filling
   T x;
   for (size_t i = 0; i < N; ++i) {
@@ -93,11 +150,30 @@ auto do_m_test(int keylen, int valen) {
       itx->second = newval;
   }
 
-  return x;
+  return x.size();
 }
 
-int main()
-{  
+int
+bench1() {
+  // tests for {something like map} string -> string
+  constexpr size_t N = 100000;
+  constexpr size_t M = 10000000;
+  constexpr size_t KeyLen = 3;
+  constexpr size_t VaLen = 19;
+
+  cout << "bench 1: maps vs unrodered_maps" << endl;
+  cout << "maps: " << duration([]{do_basic_map_test<map<string, string>, N, M>(KeyLen, VaLen);}).count() << endl;
+  cout << "umaps: " << duration([]{do_basic_map_test<unordered_map<string, string>, N, M>(KeyLen, VaLen);}).count() << endl;
+#ifdef USE_BOOST
+  cout << "fmaps: " << duration([]{do_basic_map_test<flat_map<string, string>, N, M>(KeyLen, VaLen);}).count() << endl;
+  cout << "bimaps: " << duration([]{do_basic_bimap_test<bimap<set_of<string>, list_of<string>>, N, M>(KeyLen, VaLen);}).count() << endl;
+#endif
+  return 0;
+}
+
+int
+bench2() 
+{
   // four tests: 
   // map key => [values]
   // multimap key => value
@@ -108,13 +184,23 @@ int main()
   constexpr size_t KeyLen = 3;
   constexpr size_t VaLen = 19;
 
+  cout << "bench 2: maps vs multimaps" << endl;
   cout << "maps: " << duration([]{do_test<map<string, vector<string>>, N>(KeyLen, VaLen);}).count() << endl;
-#ifndef SHORT
   cout << "mmaps: " << duration([]{do_m_test<multimap<string, string>, N>(KeyLen, VaLen);}).count() << endl;
-#endif
   cout << "umaps: " << duration([]{do_test<unordered_map<string, vector<string>>, N>(KeyLen, VaLen);}).count() << endl;
-#ifndef SHORT
   cout << "ummaps: " << duration([]{do_m_test<unordered_multimap<string, string>, N>(KeyLen, VaLen);}).count() << endl;
+  return 0;
+}
+
+int main() 
+{  
+  // some cache warmup
+  do_basic_map_test<map<string, string>, 10000, 10000>(3, 19);
+#ifdef BENCH1
+  bench1();
+#endif
+#ifdef BENCH2
+  bench2();
 #endif
   return 0;
 }

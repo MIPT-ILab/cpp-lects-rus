@@ -42,10 +42,10 @@ namespace std
 #ifndef NOBOOST
       return h1 ^ (h2 << 1);
 #else
-    size_t seed = 0;
-    boost::hash_combine(seed, h1);
-    boost::hash_combine(seed, h2);
-    return seed;
+      size_t seed = 0;
+      boost::hash_combine(seed, h1);
+      boost::hash_combine(seed, h2);
+      return seed;
 #endif
     }
   };
