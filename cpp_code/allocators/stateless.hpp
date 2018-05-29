@@ -44,7 +44,7 @@ struct logging_alloc {
 // --- 1. basic functionality C++11
   typedef T value_type;
   T* allocate (size_t n) {
-    printf("allocate %zu bytes\n", n);
+    printf("allocate %zu elements\n", n);
     return static_cast<T*>(::operator new(n * sizeof(value_type))); 
   }
   void deallocate(T* p, size_t n) { 
