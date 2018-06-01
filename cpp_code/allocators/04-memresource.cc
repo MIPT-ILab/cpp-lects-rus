@@ -22,7 +22,10 @@ auto mtgen() {
 }
 
 void pmrvec_testresource() {
+  cout << "--- pmr::vector + test resource test ---" << endl;
   test_resource talloc;
+
+  talloc.allocate(10, 4);
 
   double start = 0.0;
   pmr::vector<double> v1(&talloc);
@@ -34,12 +37,11 @@ void pmrvec_testresource() {
   shuffle(v2.begin(), v2.end(), mtgen()); 
   
   cout << "v1[42] = " << v1[42] << " v2[42] = " << v2[42] << endl;
+  cout << "---" << endl;
 }
 
 int
 main ()
 {
-  cout << "--- pmr::vector + test resource test ---" << endl;
   pmrvec_testresource();
-  cout << "---" << endl;
 }

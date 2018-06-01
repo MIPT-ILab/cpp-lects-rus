@@ -37,8 +37,15 @@ struct node_base {
   node<Tp> *next_;
 
   node_base() : next_(nullptr) { }
+  node_base(node_base&& rhs) : next_(rhs.next_) { rhs.next_ = nullptr; }
+  node_base& operator=(node_base&& rhs) { 
+    if (&rhs == this) return *this;
+    next_ = rhs.next_;
+    rhs.next_ = nullptr;
+    return *this;
+  }
   node_base(const node_base&) = delete;
-  node_base operator=(const node_base&) = delete;
+  node_base& operator=(const node_base&) = delete;
 };
 
 template <typename Tp>
@@ -110,7 +117,7 @@ public:
   slist(allocator_type a = {})
     : head_(), ptail_(&head_), size_(0), alloc_(a) { }
   slist(const slist& other, allocator_type a = {});
-  slist(slist&& other);
+  slist(slist&& other) noexcept;
   slist(slist&& other, allocator_type a);
   ~slist();
 
@@ -160,7 +167,6 @@ private:
   allocator_type  alloc_;
 };
 
-#if 0
 namespace {
 template <class Tp>
 bool operator==(const slist<Tp>& a, const slist<Tp>& b) {
@@ -175,20 +181,19 @@ bool operator!=(const slist<Tp>& a, const slist<Tp>& b) {
   return ! (a == b);
 }
 }
-#endif
 
 ///////////// Implementation ///////////////////
 
 template <typename Tp>
-slist<Tp>::slist(const slist& other, allocator_type a)
-  : slist(a) {
+slist<Tp>::slist(const slist<Tp>& other, allocator_type a)
+  : slist<Tp>(a) {
   operator=(other);
 }
 
 template <typename Tp>
-slist<Tp>::slist(slist&& other)
-  : slist(other.get_allocator()) {
-  operator=(move(other));
+slist<Tp>::slist(slist<Tp>&& rhs) noexcept: slist<Tp>(rhs.get_allocator()) { 
+  head_ = move(rhs.head_);
+  ptail_ = move(rhs.ptail_); 
 }
 
 template <typename Tp>

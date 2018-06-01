@@ -51,7 +51,10 @@ main ()
   s.push_front(30);
   s.push_front(40);
 
-  for (auto x : s)
+  slist<int> s1(s, s.get_allocator());
+  slist<int> s2(move(s1));
+
+  for (auto x : s2)
     cout << x << endl;
 
   memuse();
