@@ -13950,15 +13950,289 @@ class basic_string {
 
 \subsubsection{Обработка ошибок в конструкторах}\label{subsub:ctorerrs}
 
-TODO: ошибки в конструкторах
+Классическая обработка ошибок кодами возврата в стиле C ломается в C++ на специальных функциях, у которых непонятен контекст возврата. Самый простой пример это конструктор.
+
+\begin{lstlisting}
+template <typename T> class MyBuffer {
+  T *arr_ = nullptr;
+  size_t size_, used_;
+public:
+  MyBuffer (size_t sz): size_(sz), used_(0) {
+    arr_ = (T*) malloc (sizeof(T) * sz);
+    // here case of arr_ == nullptr shall be processed
+  }
+\end{lstlisting}
+
+Как обработать ситуацию исчерпания памяти? 
+
+Прежде чем отвечать на этот вопрос, можно подумать над другим вопросом: а собственно чем нам грозит эта ситуация, если её не обработать? Угроза на самом деле есть и она очень неприятная.
+
+\begin{lstlisting}
+MyBuffer b(100);
+\end{lstlisting}
+
+После этой строчки объект \lstinline!b! может оказаться в \textbf{несогласованном состоянии} (inconsistent state). У него будут выставлены поля \lstinline!v.arr_ = 0! т.к. память кончилась, но, при этом \lstinline!v.size_ = 100!, т.к. конструктор никак не обработал ошибку. 
+
+Несогласованное состояние это бич объектно-ориентированных контекстов. Хуже всего то, что объект в несогласованном состоянии никак не отличается от нормального объекта: это даже не UB, такое состояние объекта вполне легально. Но инвариант класса нарушен и последствия от этого могут проявится через тысячи строк кода и тысячи часов исполнения.
+
+Итак, обработка необходима, при этом вернуть код ошибки нет возможности. Можно поступить так, как поступают потоки ввода-вывода (см. TODO:ref) и завести в классе особое поле state, устанавливая там какой-нибудь failbit или badbit. Но, конечно, это очень плохая тактика, потому что все такие механизмы разделяют ещё одну проблему с кодами ошибки: они \textbf{тихие}.
+
+Объект, оказавшись в несогласованном состоянии должен информировать об этом создающий его контекст настолько громко, чтобы у контекста не было возможности проигнорировать эту информацию. В случае же кодов ошибок и, тем более, состояний потоков, более 90\% кода, который видел автор, просто игнорируют проверку.
+
+На помощь приходят исключения.
+
+\begin{lstlisting}
+MyBuffer (size_t sz): size_(sz), used_(0) {
+  arr_ = (T*) malloc (sizeof(T) * sz);
+  if (!arr_) throw std::bad_alloc();
+}
+\end{lstlisting}
+
+Здесь \lstinline!std::bad_alloc! это стандартный класс исключения. Этот код может быть даже упрощён, учитывая, что обычное поведение оператора \lstinline!new! это как раз сообщить исключением об исчерпании памяти
+
+\begin{lstlisting}
+MyBuffer (size_t sz): size_(sz), used_(0) {
+  arr_ = new T[sz]; // throws bad_alloc
+}
+\end{lstlisting}
+
+Человек, впервые оценивший всю мощь исключений, часто начинает лепить их по поводу и без повода. Важно отличать ошибки от исключительных ситуаций и правильно обрабатывать то и другое.
+
+Исключительные ситуации характеризуются двумя важнейшими признаками:
+\begin{itemize}
+\item Состояние программы должно быть восстановимо
+\item Исключительная ситуация не может быть обработана на том уровне, на котором возникла
+\end{itemize}
+
+Легко видеть, что в приведённом примере оба условия выполнены. Разумеется если нарушено первое условие, то лучшее, что можно сделать это завершить программу. Если же ошибка может быть обработана на том же уровне, она должна быть обработана, механизм исключений в этом случае является слишком дорогим и избыточным.
+
+Всё дело в том, что порождение любого исключения инициирует размотку стека.
 
 \subsubsection{Размотка стека}\label{subsub:unwinding}
 
-TODO: размотка стека
+Что выведет на экран исполнение следующего кода?
+
+\begin{lstlisting}
+struct UnwShow
+{
+  UnwShow () { printf ("ctor\n"); }
+  ~UnwShow () { printf ("dtor\n"); }
+};
+
+void
+foo (int n)
+{
+  UnwShow s;
+  if (n == 0) throw 1;
+  foo (n - 1);
+}
+
+/* ... */
+foo (3);
+
+\end{lstlisting}
+
+Казалось бы здесь программа забирается глубоко в рекурсию и оттуда бросает исключение раньше чем какой-либо из созданных объектов выйдет из поля зрения. Тем не менее, на экране видны не только четыре конструктора, но и четыре деструктора! Что произошло? Произошедшее называется \textbf{stack unwinding} и по русски обозначается как \textbf{размотка} или \textbf{раскрутка} стека.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=1.0\textwidth]{illustrations/stack-unwind-crop.pdf}
+\caption{Stack Unwinding}
+\label{fig:stack_unwind}
+\end{figure}
+
+Процесс показан на (рис. \ref{fig:stack_unwind}). Довольно сложно показать на статичном рисунке динамический процесс раскрутки, но идея кажется ясной -- все объекты, созданные от места входа в обработку исключений (пока что можно считать что просто от начала программы) до обработчика удаляются со стека корректно -- то есть с вызовом деструкторов.
+
+Раскрутка стека продолжается до тех пор, пока не будет найден первый подходящий \lstinline!catch!, которому и передаётся управление.
+
+Ловля происходит по точному типу
+
+\begin{lstlisting}
+try { throw 1; } catch(long l) {} // NOT CATCH
+\end{lstlisting}
+
+Или по ссылке на точный тип
+
+\begin{lstlisting}
+try { throw 1; } catch(const int &ci) {} // CATCH
+\end{lstlisting}
+
+Или по указателю на точный тип
+
+\begin{lstlisting}
+try { throw new int(1); } catch(int *pi) {} // CATCH
+\end{lstlisting}
+
+Или по ссылке или указателю на базовый класс
+
+\begin{lstlisting}
+try { throw Derived(); } catch(Base &b) {} // CATCH
+\end{lstlisting}
+
+Catch-блоки пробуются в порядке перечисления
+
+\begin{lstlisting}
+try { throw 1; }
+catch(long l) {} // NOT CATCH
+catch(const int &ci) {} // CATCH
+\end{lstlisting}
+
+Пойманную переменную можно менять или удалять
+
+\begin{lstlisting}
+try { throw new Derived(); } catch(Base *b) { delete b; } // ok
+\end{lstlisting}
+
+Пойманное исключение можно перевыбросить
+
+\begin{lstlisting}
+try { throw Derived(); } catch(Base &b) { throw; } // ok
+\end{lstlisting}
+
+Ниже следует очень плохой пример, так не надо делать никогда:
+
+\begin{lstlisting}
+class MathErr {/* ... */};
+class Overflow : public MathErr {/* ... */};
+
+void foo()
+{
+  try {
+    /* ... dangerous code here ... */
+  }
+  catch (MathErr) {
+    /* ... dealing with other guys ... */
+  }
+  catch (Overflow) {
+    /* ... dealing with overflow ... */
+  }
+}
+\end{lstlisting}
+
+В приведённом примере исключения перехватываются по значению. Это очень плохо и ведёт к проблеме срезки, рассмотренной в (\ref{Cutting}). Хорошо написанный код перехватывает исключения по константной ссылке или по указателю (если это конечно не исключения POD-типов, которые программист также имеет право возбуждать, их можно перехватывать по значению).
+
+Важно понимать, что обработчики проверяются по порядку перечисления. Поэтому ставить обработчик \lstinline!MathErr! выше чем \lstinline!Overflow!, означает сделать последний чуть более чем бесполезным.
+
+Итак правильный порядок: от частных к общим и ловим строго по косвенности
+
+\begin{lstlisting}
+catch (Overflow& o) { /* ... dealing with overflow ... */ }
+catch (MathErr& e) { /* ... dealing with other problems ... */ }
+\end{lstlisting}
+
+\textbf{Вопрос к студентам:} как вы относитесь к ловле исключений по указателю?
+
+\ifanswers
+Правильный ответ: плохо. Возникают сложные проблемы владения выделенным объектом.
+\fi
+
+\subsubsection{Стандартные классы исключений}\label{subsub:stanclasses}
+
+Хороший тон это генерировать потомка \lstinline!std::exception! или одного из его потомков в иерархии стандартной библиотеки.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=1.0\textwidth]{illustrations/exc-hier-crop.pdf}
+\caption{Иерархия стандартных исключений}
+\label{fig:exc_hier}
+\end{figure}
+
+На (рис. \ref{fig:exc_hier}) слева зелеными обозначены те классы, которые могут быть выброшены в процессе работы со стандартной библиотекой. Справа -- два основных класса, от которых вам предлагается наследовать свои классы-обработчики.
+
+\begin{lstlisting}
+class MathErr : public runtime_error {/* ... */};
+class Overflow : public MathErr {/* ... */};
+
+void foo()
+{
+  try {
+    /* ... dangerous code here ... */
+  }
+  catch (const Overflow &) {
+    /* ... dealing with overflow ... */
+  }
+  catch (const MathErr &) {
+    /* ... dealing with other guys ... */
+  }
+}
+\end{lstlisting}
+
+Такой вариант кода гораздо более правилен и плюс есть доступ к многочисленным полезным методам стандартных классов, которые они предоставляют.
+
+\subsubsection{Нейтральность}\label{subsub:neutrality}
+
+TODO: нейтральность
 
 \subsubsection{Гарантии безопасности}\label{subsub:excsafety}
 
-TODO: гарантии безопасности
+\hfill\textit{Exception handling isn't hard. Error handling is hard}{\vspace{0.5em}}
+
+\hfill\textit{-- David Abrahams}
+
+Исключения, являясь частным случаем нелокальной управляющей конструкции, добавляют строчки в неявный контракт на каждый метод и добавляют неожиданные дуги возможного выхода в каждом месте вызова небезопасной с точки зрения генерации исключений функции. Поэтому при проектировании кода, серьёзно использующего исключения, программист несёт дополнительную интеллектуальную нагрузку. Он должен следить за тем, что называется безопасностью кода относительно исключений.
+
+Например для рассмотренного выше класса \lstinline!MyBuffer! очевидный конструктор копирования скорее всего будет в некотором смысле плох.
+
+\begin{lstlisting}
+template <typename T> class MyVector {
+  T *arr_ = nullptr;
+  size_t size_, used_;
+public:
+  MyVector (const MyVector &rhs) {
+    arr_ = new T[rhs.size_]; // we will leak this memory
+    size_ = rhs.size_; used_ = rhs.used_;
+    for (size_t i = 0; i != rhs.size_; ++i)
+      arr_[i] = rhs.arr_[i]; // if exception is thrown here
+}
+\end{lstlisting}
+
+Этот пример был обнаружен Каргиллом в 1994 году \cite{Cargill} и подробно рассмотрен Абрамсом в 1998 \cite{Abrahams} и Саттером в 2000 и 2002 годах \cite{exceptionalcpp}, \cite{moreexceptionalcpp}.
+
+Код, в котором при исключении могут утечь ресурсы, оказаться в несогласованном состоянии объекты и прочее, называется небезопасным относительно исключений. 
+
+Существует три гарантии безопасности, которые может предоставлять код:
+
+\begin{itemize}
+\item
+\textbf{Базовая гарантия} заключается в том, что сбой при выполнении операции может изменить состояние программы, но не вызывает утечек и оставляет все объекты в согласованном (но не обязательно предсказуемом) состоянии, т.е. пригодными к дальнейшему использованию.
+\item
+\textbf{Строгая гарантия} обеспечивает транзакционную семантику: при сбое операции гарантируется неизменность состояния программы относительно задействованных в операции объектов.
+\item
+\textbf{Гарантия бессбойности} означает, что функция не генерирует исключений.
+\end{itemize}
+
+Например для решения проблемы Каргилла, можно ввести функцию осуществляющую безопасное копирование.
+
+\begin{lstlisting}
+template <typename T>
+T *safe_copy (const T* src, size_t srcsize) {
+  T *dest = new T[srcsize];
+  try {
+    for (size_t idx = 0; idx != srcsize, ++idx)
+    dest[idx] = src[idx];
+  }
+  catch (...) {
+    delete [] dest;
+    throw;
+  }
+  return dest;
+}
+\end{lstlisting}
+
+Теперь с использованием этой функции конструктор окажется безопасен в пределах базовой гарантии.
+
+\begin{lstlisting}
+MyBuffer (const MyVector &rhs) {
+  arr_ = safe_copy (rhs.arr_, rhs.size_);
+  size_ = rhs.size_; used_ = rhs.used_;
+}
+\end{lstlisting}
+
+\textbf{Вопрос к студентам:} а может быть в пределах строгой гарантии?
+
+\ifanswers
+Правильный ответ: тут нет места транзакционности. Объект будет создан в согласованном но бесполезном состоянии.
+\fi
 
 \subsubsection{Ручное управление памятью}\label{subsub:newdeleteredef}
 
@@ -18344,6 +18618,7 @@ TODO: домашняя наработка в каком-то виде
 \bibitem{vandervoord} Davide Vandevoorde, Nicolai M. Josuttis, \textit{<<C++ Templates. The Complete Guide>>}, Pearson Education, 2003
 \bibitem{booch} Grady Booch, \textit{<<Object-oriented analysis and design with applications, third edition>>}, Addison-Wesley, 2007
 \bibitem{exceptionalcpp} Herb Sutter, \textit{<<Exceptional C++: 47 Engineering Puzzles, Programming Problems, and Solutions>>}, Addison-Wesley, 2000
+\bibitem{moreexceptionalcpp} Herb Sutter, \textit{<<More exceptional C++: 40 new engineering puzzles, programming problems, and solutions>>}, Addison-Wesley, 2002
 \bibitem{mcpp} Andrei Alexandrescu, \textit{<<Modern C++ Design. Generic programming and design patterns applied>>}, Addison-Wesley, 2001
 %Books on coding style
 \bibitem{mcconnell} Steve McConnell \textit{<<Code Complete, Second Edition>>}, Microsoft Press, 2004
@@ -18357,9 +18632,19 @@ TODO: домашняя наработка в каком-то виде
 \bibitem{stdcpp11} ISO/IEC, \textit{<<International Standard, Programming Languages>>}, ISO/IEC 14882:2011, 2011
 \bibitem{stdcpp14} ISO/IEC, \textit{<<International Standard, Programming Languages>>}, ISO/IEC 14882:2014, 2014
 %Papers
-\bibitem{LSP} Liskov, Barbara, \textit{<<Data Abstraction and Hierarchy>>}, Addendum to the Proceedings on Object-oriented Programming Systems, Languages and Applications, 1987
-\bibitem{ISP} Martin, Robert, \textit{<<The Interface Segregation Principle>>}
+\bibitem{LSP} Barbara Liskov, \textit{<<Data Abstraction and Hierarchy>>}, Addendum to the Proceedings on Object-oriented Programming Systems, Languages and Applications, 1987
+\bibitem{ISP} Robert Martin, \textit{<<The Interface Segregation Principle>>}
 \bibitem{DPatterns} Gamma, Erich and Helm, Richard and Johnson, Ralph and Vlissides, John, \textit{<<Design Patterns: Elements of Reusable Object-oriented Software>>}, Addison-Wesley, 1995
+\bibitem{Cargill} Tom Cargill, \textit{<<Exception handling: a false sense of security>>}, C++Report, 1994
+\bibitem{Abrahams} David Abrahams, \textit{<<Exception-safety in generic components>>}, 1998
+%Talks
+\bibitem{talk:ormrod} Nicholas Ormrod, \textit{<<The strange details of std::string at Facebook>>}, CppCon, 2016
+\bibitem{talk:zeren} Mark Zeren, \textit{<<Rethinking strings>>}, C++Now, 2017
+\bibitem{talk:poluhin} Антон Полухин, \textit{<<Как делать не надо>>}, С++ Russia User Group, 2016
+\bibitem{talk:kalb} Jon Kalb, \textit{<<Exception Safe code (3 parts)>>}, CppCon, 2014
+\bibitem{talk:douglas} Niall Douglas, \textit{<<Mongrel Monads>>}, ACCU, 2017
+%Blog posts
+\bibitem{post:mertz} Arne Mertz, \textit{<<Modern C++ features – keyword noexcept>>}, blog post, 2016
 \end{thebibliography}
 
 \pagebreak
