@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?><diagram program="umlet" version="11.3">
+  <zoom_level>10</zoom_level>
+  <element>
+    <type>com.umlet.element.Class</type>
+    <coordinates>
+      <x>50</x>
+      <y>100</y>
+      <w>160</w>
+      <h>160</h>
+    </coordinates>
+    <panel_attributes>MyVectorBuf
+--
+T* arr_
+size_t size_
+size_t used_
+--
+ctor
+dtor
+move ctor
+move assignment</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <type>com.umlet.element.Class</type>
+    <coordinates>
+      <x>270</x>
+      <y>100</y>
+      <w>150</w>
+      <h>170</h>
+    </coordinates>
+    <panel_attributes>MyVector
+--
+inherited fields
+--
+copy ctor
+copy assignment
+push(T x)
+pop()
+top()
+size()
+capacity()</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <type>com.umlet.element.Relation</type>
+    <coordinates>
+      <x>180</x>
+      <y>150</y>
+      <w>110</w>
+      <h>50</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;-</panel_attributes>
+    <additional_attributes>30;30;90;30</additional_attributes>
+  </element>
+</diagram>
