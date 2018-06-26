@@ -16295,17 +16295,172 @@ if (c.empty())
 
 \subsubsection{Адаптеры}
 
-Некоторые распространённые ``контейнеры'', такие как стек или очередь, на самом деле не являются контейнерами в смысле стандартной библиотеки, поскольку не определяют внутреннего представления своих данных. Что мы подразумеваем, говоря ``стек''? Всего лишь набор операций, позволяющий снять элемент, положить элемент, посмотреть последний элемент. Такой набор операций может работать и для вектора и для деки и для списка.
+Некоторые распространённые ``контейнеры'', такие как стек или очередь, на самом деле не являются контейнерами в смысле стандартной библиотеки, поскольку не определяют внутреннего представления своих данных. Что мы подразумеваем, говоря ``стек''? Всего лишь набор операций, позволяющий снять элемент, положить элемент, посмотреть последний элемент. Такой набор операций может работать и для вектора и для деки и для списка. Поэтому в стандартной библиотеке, стеки и очереди реализованы не как контейнеры, а как \textbf{адаптеры} контейнеров.
 
-TODO: картинка
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.9\textwidth]{illustrations/adapters-crop.pdf}
+\caption{Адаптеры стека и очереди}
+\label{fig:adapters_sq}
+\end{figure}
 
-Поэтому в стандартной библиотеке, стеки и очереди реализованы не как контейнеры, а как \textbf{адаптеры} контейнеров.
+На (рис. \ref{fig:adapters_sq}) показаны адаптеры стека и очереди. Контейнеры под ними в принципе произвольные, но стандарт даёт разумные умолчания.
 
-TODO: рассказ про адаптеры
+Всего в стандартной библиотеке сейчас определены три вида адаптеров:
+
+\begin{enumerate}
+\item \textbf{stack} – LIFO стек над последовательным контейнером
+\begin{lstlisting}
+template <class T, class Container = deque<T> > 
+class stack;
+\end{lstlisting}
+\item \textbf{queue} – FIFO очередь над последовательным контейнером
+\begin{lstlisting}
+template <class T, class Container = deque<T> > 
+class queue;
+\end{lstlisting}
+\item \textbf{priority\_queue} – очередь с приоритетами (как binary heap) над последовательным контейнером
+\begin{lstlisting}
+template <class T, 
+          class Container = vector<T>,
+          class Compare = less<typename Container::value_type>>
+class priority_queue;
+\end{lstlisting}
+\end{enumerate}
+
+К сожалению адаптеры не слишком ортогональны: они берут одновременно и класс и тип, которым он параметризован. Это даёт неограниченные возможности выстрелить себе в ногу.
+
+\begin{lstlisting}
+stack <int> s; // ok, stack <int, deque<int>>
+stack <int, vector<long>> s1; // bad
+stack <int, vector<char>> s2; // really bad
+s2.push(1000);
+\end{lstlisting}
+
+\textbf{Вопрос к студентам:} что реально будет помещено в стек s2?
+
+\ifanswers
+Правильный ответ: 256 - (1024 - 1000) это 232.
+\fi
+
+Казалось бы логично использовать шаблонные шаблонные параметры. Простейшая попытка такого рода может быть проиллюстрирована ниже
+
+\begin{lstlisting}
+template <class T, 
+          template <class T> class Container = deque> 
+class stack;
+\end{lstlisting}
+
+Казалось бы такой адаптер уже нельзя использовать неправильно.
+
+\begin{lstlisting}
+stack<int, vector> s;
+\end{lstlisting}
+
+\textbf{Вопрос к студентам:} почему эта система не будет работать?
+
+\ifanswers
+Правильный ответ: потому что у вектора не один шаблонный параметр
+\fi
+
+Кроме того, некоторые контейнеры просто не являются подходящими. Хуже всего, что никакой статической проверки не предусмотрено и неподходящесь контейнера часто выясняется внезапно.
+
+\begin{lstlisting}
+stack <int, forward_list<int>> s; // ok
+\end{lstlisting}
+
+Эта строчка превосходно скомпилируется, но попытка использовать любой метод из интерфейса будет провалена.
+
+\begin{lstlisting}
+s.push(100); // fail: no push_back
+s.pop(); // fail: no pop_back
+s.top(); // fail: no back
+\end{lstlisting}
+
+Эти ошибки неочевидны. Стек вполне может быть сделан на односвязном списке.
+
+\textbf{Вопрос к студентам:} вы понимаете как сделать стек на односвязном списке?
+
+\ifanswers
+Правильный ответ: добавлять в голову и удалять с головы.
+\fi
+
+Но увы, адаптер \lstinline!std::stack! требует (неявно требует) вполне определённый интерфейс.
 
 \subsubsection{Контейнеро-подобные классы}
 
-TODO: рассказ про valarray и прочий bitset
+В этом разделе речь пойдёт об удобных контейнеро-подобных классах, не являющихся, тем не менее, полноценными контейнерами. Начать стоит с мотивирующего примера.
+
+Очень часто люди, привычные к математической нотации вектора неудоумевают почему в С++ оператор сложения для векторов не работает в математическом смысле.
+
+Например, всегда есть соблазн определить
+
+\begin{lstlisting}
+vector<int> v1 = {1, 2, 3, 4};
+vector<int> v2 = {10, 20, 30, 40};
+assert(v1 + v2 == vector<int>{11, 22, 33, 44});
+\end{lstlisting}
+
+Например так можно было бы сделать, создав отдельную специализацию vector для типов, похожих на интегральные.
+
+\textbf{Вопрос к студентам:} почему так делать нельзя?
+
+\ifanswers
+Правильный ответ: к этому моменту \lstinline!vector<bool>! уже должен был кое-чему нас научить. Каждая специализация такого рода внутри стандартной библиотеки это потенциальная проблема для использования вектора в обобщённом контексте.
+\fi
+
+Вместо этого в стандарт включен специальный класс \lstinline!valarray!. У этого класса сложная судьба: будучи введён для математических вычислений, он, с развитием метапрограммирования, был практически вытеснен такими библиотеками как Eigen, основанными на шаблонах.
+
+Тем не менее, в него было заложено несколько крайне интересных концепций, в том числе серьёзно упрощающих векторизацию операций над ним, и вполне достойных отдельного рассмотрения.
+
+Во-первых, конечно, valarray ведёт себя именно как вектор при сложении.
+
+\begin{lstlisting}
+valarray<int> v1 = {1, 2, 3, 4};
+valarray<int> v2 = {10, 20, 30, 40};
+assert(v1 + v2 == valarray<int>{11, 22, 33, 44});
+\end{lstlisting}
+
+И даже умножение у него поэлементное
+
+\begin{lstlisting}
+valarray<int> v4 = v1 * v2 + v1 + v2; // { 62, 123, 305, 567 }
+valarray<int> v4 = pow (v1, 2); // 4, 9, 25, 49
+\end{lstlisting}
+
+Но настоящая мощь valarray в том, что для него существуют векторные указатели (slices\index{slice}).
+
+\begin{lstlisting}
+valarray<int> row(n);
+slice red(0, n/3, 3);
+row[red] = 255; 
+\end{lstlisting}
+
+Этот код установит каждую третью ячейку row в значение 255.
+Векторный указатель slice имеет начало, конец и инкремент, он похож на запись цикла и действительно можно было бы записать (но слайс эффективней):
+
+\begin{lstlisting}
+for (int i = 0; i != n; i += 3)
+  row[i] = 255;
+\end{lstlisting}
+
+Вторым важным контейнеро-подобным классом является жалкая попытка комитета отыграться за \lstinline!vector<bool>!, а именно битовая маска \lstinline!std::bitset!
+
+На самом деле, конечно, \lstinline!bitset! это альтернатива \lstinline!array<bool>! то есть у него фиксированный размер, являющийся параметром контейнера. При этом он хранит данные более компактно (тоже суббайтно, как и \lstinline!vector<bool>!).
+
+\begin{lstlisting}
+// 24-bit number
+bitset<24> s1 = 0x7ff000;
+bitset<24> s2 = 0xff00;
+s1[0] = 1; // either s1.set(0) or s1.set(0, 1)
+auto s3 = s1 & s2; // s3 = 0xf000
+\end{lstlisting}
+
+Вообще хранение чего угодно ниже минимально адресуемого адресного пространства выглядит в трансляционной модели языка странно и, по идее, должно приводить к проблемам. Но в данном случае речь о хорошо изученном механизме, относительно которого накоплен определённый опыт.
+
+Конечно очень не хватает для битовых масок слайса, но слайса нет и для обычной битовой арифметики.
+
+TODO: неудавшийся \lstinline!array_view! и грядущий \lstinline!span!
 
 \pagebreak
 \subsection{Ввод и вывод}\label{subsec:iostreams}
@@ -17036,6 +17191,27 @@ for (auto elt : cont)
 return elts;
 \end{lstlisting}
 
+По стандарту это работает следующим образом:
+
+\begin{lstlisting}
+for (range_declaration : range_expression)
+  loop_statement;
+\end{lstlisting}
+
+Эквивалентно следующему (начиная с 2017 года, до этого было семантически то же, но с проблемами).
+
+\begin{lstlisting}
+auto && __range = range_expression; 
+auto __begin = std::begin(__range);
+auto __end = std::end(__range);
+for ( ; __begin != __end; ++__begin) {
+  range_declaration = *__begin;
+  loop_statement
+} 
+\end{lstlisting}
+
+Собственно определение того, чем является range-based for менялось дважды -- в 2014 и 2017 годах и каждый раз семантически оставалось неизменным. 
+
 Обычно используется аннотированный и уточненный вид  \lstinline!auto! чтобы не попадать на лишние копирования
 
 \begin{lstlisting}
@@ -17318,7 +17494,9 @@ copy (vec.begin(), vec.end(),
       ostream_iterator<string>(cout, "\n"));
 \end{lstlisting}
 
-Эта простая программа считывает пользовательский ввод по стандартным разделителям (см. \ref{FormattedIO}) в вектор, а потом выводит вектор, побитый переводами строки, на экран. Использованные здесь типы \lstinline!istream_iterator! и \lstinline!ostream_iterator! также могут быть исследованы через механизм \lstinline!print_iterator_type! (см. \ref{subsub:itertraits}).
+Эта простая программа считывает пользовательский ввод по стандартным разделителям (см. \ref{FormattedIO}) в вектор, а потом выводит вектор, побитый переводами строки, на экран. 
+
+Использованные здесь типы \lstinline!istream_iterator! и \lstinline!ostream_iterator! также могут быть исследованы через механизм \lstinline!print_iterator_type! (см. \ref{subsub:itertraits}).
 
 \begin{lstlisting}
 print_iterator_type (istream_iterator<int>()); 
@@ -17412,15 +17590,40 @@ vector<int> vecb (vecf.end(), vecf.begin()); // FAIL
 vector<int> vecb (vecf.rbegin(), vecf.rend());
 \end{lstlisting}
 
-Возвращаясь к указателям, можно изобразить простую диаграмму преобразований для указателей исходя из того, что там есть \lstinline!const_cast! (см. рис. )
+Возвращаясь к указателям, можно изобразить простую диаграмму преобразований для указателей исходя из того, что там есть \lstinline!const_cast! (см. рис. \ref{fig:pt_cpt})
 
-TODO: диаграмма
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.6\textwidth]{illustrations/ptcptdiag-crop.pdf}
+\caption{Диаграмма преобразований для указателей}
+\label{fig:pt_cpt}
+\end{figure}
 
-Для итераторов всё не так просто. Итераторы инвариантны и типы \lstinline!iterator! и \lstinline!const_iterator! не имеют друг с другом ничего общего (про ковариантность и инвариантность в приложении к контейнерам, можно прочитать в \ref{InvArrays}). Тем не менее, какие-то средства преобразования стандарт, разумеется, предусматривает. Первым их свёл в одну диаграмму Скотт Майерс и диаграмма Майерса с учётом современных реалий выглядит как показано на (рис. )
+Для итераторов всё не так просто. Итераторы инвариантны и типы \lstinline!iterator! и \lstinline!const_iterator! не имеют друг с другом ничего общего (про ковариантность и инвариантность в приложении к контейнерам, можно прочитать в \ref{InvArrays}). Тем не менее, какие-то средства преобразования стандарт, разумеется, предусматривает. Первым их свёл в одну диаграмму Скотт Майерс и диаграмма Майерса с учётом современных реалий выглядит как показано на (рис. \ref{fig:itersdiag})
 
-TODO: диаграмма
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.7\textwidth]{illustrations/itersdiag-crop.pdf}
+\caption{Диаграмма преобразований для итераторов}
+\label{fig:itersdiag}
+\end{figure}
 
-Выделенные стрелки означают, что нужно иметь контейнер, чтобы выполнить приведение. Из диаграммы видна самая главная проблема: из константного итератора, как с Дону, выдачи нет. Майерс для аналога \lstinline!const_cast! предлагает использовать advance
+Здесь стрелки отмечены цифрами:
+
+\begin{itemize}
+\item \textbf{(1-4)} Обращение итератора
+\begin{lstlisting}
+auto rit = make_reverse_iterator(it);
+auto it = rit.base();
+\end{lstlisting}
+\item \textbf{(5, 6)} Добавление константности
+\begin{lstlisting}
+Cont::const_iterator cit = it;
+Cont::const_reverse_iterator crit = rit;
+\end{lstlisting}
+\end{itemize}
+
+В случаях 5 и 6, нужно иметь контейнер, чтобы выполнить приведение. Из диаграммы видна самая главная проблема: из константного итератора, как с Дону, выдачи нет. Майерс для аналога \lstinline!const_cast! предлагает использовать advance
 
 \begin{lstlisting}
 Iter i(cont.begin());
@@ -17458,9 +17661,71 @@ cout << *ri << " " << *it << endl;
 ответ 3 и 4, пояснения см. далее в тексте
 \fi
 
-Чтобы понять, что же на экране, полезно посмотреть на то как выглядит контейнер в прямом и в обратном порядке.
+Чтобы понять, что же на экране, полезно посмотреть на то как выглядит контейнер в прямом и в обратном порядке. Пояснение процесса см. на (рис. \ref{fig:backandforth}).
 
-TODO: иллюстрация
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.7\textwidth]{illustrations/backandforth-crop.pdf}
+\caption{Прямое и обратное итерирование}
+\label{fig:backandforth}
+\end{figure}
+
+Можно думать об итераторе как о стрелочке, которая находится до (прямой итератор) или после (обратный итератор) элемента на который указывает и, при обращении, оборачивается на месте.
+
+\subsubsection{Адаптеры итераторов}\label{subsub:iteradapt}
+
+Итераторы так же как и контейнеры можно \textbf{адаптировать} и особенно хорошо это видно на примере адаптации по направлению.
+
+Выше уже рассматривался range-based for (см. \ref{PointersToIterators}).
+
+\begin{lstlisting}
+for (auto elt : vec)
+\end{lstlisting}
+
+Такая запись обходит контейнер vec в прямом порядке.
+
+Можно ли написать адаптер, чтобы обойти тот же контейнер в обратном порядке?
+
+\begin{lstlisting}
+for (auto elt : reverse_cont(vec))
+\end{lstlisting}
+
+Оказывается да, можно. И, мало того, этот адаптер настолько прост, что его наверняка когда-нибудь стандартизируют.
+
+Сначала следует определить тип, для которого будут переопределены глобальные функции \lstinline!begin! и \lstinline!end!.
+
+\begin{lstlisting}
+template <typename T>  struct reversion_wrapper {
+  T& iterable;
+};
+\end{lstlisting}
+
+Теперь собственно переопределение это механическое упражнение, не требующее интеллектуальных усилий.
+
+\begin{lstlisting}
+template <typename T> 
+auto begin (reversion_wrapper<T> w) {
+  return std::rbegin (w.iterable); 
+}
+
+template <typename T> 
+auto end (reversion_wrapper<T> w) {
+  return std::rend (w.iterable); 
+}
+\end{lstlisting}
+
+И ключевой момент это определение адаптера. Всё что нужно это завернуть входной параметр в должный тип, для которого уже всё переопределено.
+
+\begin{lstlisting}
+template <typename T> 
+reversion_wrapper<T> reverse_cont (T&& iterable) {
+  return { iterable };
+}
+\end{lstlisting}
+
+Это работает потому, что range-based обход не использует ничего, кроме \lstinline!std::begin! и \lstinline!std::end!.
+
+Ещё одна распространённая стратегия адаптации это inserters -- специальные итераторы, преобразующие запись по итератору во вставку в контейнер.
 
 \subsubsection{Валидность и инвалидация итераторов}\label{subsub:valinval}
 
@@ -19437,6 +19702,8 @@ TODO: домашняя наработка в каком-то виде
 \bibitem{talk:poluhin} Антон Полухин, \textit{<<Как делать не надо>>}, С++ Russia User Group, 2016
 \bibitem{talk:kalb} Jon Kalb, \textit{<<Exception Safe code (3 parts)>>}, CppCon, 2014
 \bibitem{talk:douglas} Niall Douglas, \textit{<<Mongrel Monads>>}, ACCU, 2017
+\bibitem{talk:parent:seasoning} Sean Parent, C++ Seasoning, GoingNative'2013
+\bibitem{talk:parent:datastruct} Sean Parent, Better Code: Data Structures, CppCon'2015
 %Blog posts
 \bibitem{post:mertz} Arne Mertz, \textit{<<Modern C++ features – keyword noexcept>>}, blog post, 2016
 \end{thebibliography}
