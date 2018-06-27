@@ -18051,6 +18051,47 @@ TODO: объяснялка.
 
 В этот обзор не вошла работа с неинициализированной памятью (такие функции как \lstinline! uninitialized_default_construct!) и наследство стандартной библиотеки C. Легко подсчитать, что здесь не больше 50 пунктов, которые и определяют основное ядро алгоритмов, вместе с суффиксами и всякой экзотикой.
 
+\subsubsection{Идиома erase-remove}\label{subsub:eraseremove}
+
+Удаление элементов из контейнера при работе с итераторами имеет свои контринтуитивные особенности. Формально для удаления служит алгоритм \lstinline!std::remove! и здесь может возникнуть искушение воспользоваться им что называется ``в лоб''.
+
+\begin{lstlisting}
+std::vector<int>& vec = myNumbers;
+std::remove(vec.begin(), vec.end(), number_in);
+\end{lstlisting}
+
+Увы это не работает и не может работать. Ни у какого алгоритма не может быть достаточно информации чтобы по паре входных итераторов произвести честное удаление из обобщенного контейнера, потому что это потребовало бы от них по сути прямого управления памятью контейнера. Что происходит на самом деле проиллюстрировано ниже:
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.9\textwidth]{illustrations/erase-remove-crop.pdf}
+\caption{Идиома erase-remove}
+\label{fig:erase_remove}
+\end{figure}
+
+Произошел сдвиг всех элементов, попадающих под условие удаления в хвост контейнера. Далее чтобы действительно очистить контейнер, нужно вызвать его метод \lstinline!erase! например так:
+
+\begin{lstlisting}
+vector<int>& vec = myNumbers;
+vec.erase(remove(vec.begin(), vec.end(), number_in), vec.end());
+\end{lstlisting}
+
+Этот код записывается слитно очень часто, так что такие паттерны, как использование этой идиомы, опытный разработчик должен распознавать в коде ``на лету''.
+
+Мало того, опознавать идиому erase-remove нужно также в тех случаях, когда там вообще нет remove. Мало ли алгоритмов удаляют данные. Вот, например, unique
+
+\begin{lstlisting}
+vector v = {1, 42, 2, 42, 3, 42, 4};
+sort (v.begin(), v.end());
+v.erase (unique (v.begin(), v.end()), v.end());
+\end{lstlisting}
+
+К счастью, в стандартной библиотеке таких алгоритмов мало (собственно \lstinline!remove!, \lstinline!remove_if! и \lstinline!unique!), но в пользовательском коде может встретиться всякое.
+
+\subsubsection{Абстракция циклов}
+
+TODO: перенести со слайдов и поставить ссылку на Парента.
+
 \subsubsection{Трансформации}
 
 В функциональных языках люди очень любят функции вроде \lstinline!map!, которые абстрагируют применение функтора к последовательности с порождением другой последовательности. В терминах какого-нибудь Haskell, это нечто вроде:
@@ -18106,45 +18147,6 @@ transform(s.begin(), s.end(), s.begin(),
 Эстетика радуется второму варианту, но формально первый вариант создаёт на одну косвенность меньше, так что кто знает. 
 
 TODO: transform и move семантика. Требует рассмотрения move итераторов, а это адаптер.
-
-\subsubsection{Идиома erase-remove}
-
-Удаление элементов из контейнера при работе с итераторами имеет свои контринтуитивные особенности. Формально для удаления служит алгоритм \lstinline!std::remove! и здесь может возникнуть искушение воспользоваться им что называется ``в лоб''.
-
-\begin{lstlisting}
-std::vector<int>& vec = myNumbers;
-std::remove(vec.begin(), vec.end(), number_in);
-\end{lstlisting}
-
-Увы это не работает и не может работать. Ни у какого алгоритма не может быть достаточно информации чтобы по паре входных итераторов произвести честное удаление из обобщенного контейнера, потому что это потребовало бы от них по сути прямого управления памятью контейнера. Что происходит на самом деле проиллюстрировано ниже:
-
-\begin{figure}[h!]
-\centering
-\includegraphics[width=0.9\textwidth]{illustrations/erase-remove-crop.pdf}
-\caption{Идиома erase-remove}
-\label{fig:erase_remove}
-\end{figure}
-
-Произошел сдвиг всех элементов, попадающих под условие удаления в хвост контейнера. Далее чтобы действительно очистить контейнер, нужно вызвать его метод \lstinline!erase! например так:
-
-\begin{lstlisting}
-vector<int>& vec = myNumbers;
-vec.erase(remove(vec.begin(), vec.end(), number_in), vec.end());
-\end{lstlisting}
-
-Этот код записывается слитно очень часто, так что такие паттерны, как использование этой идиомы, опытный разработчик должен распознавать в коде ``на лету''.
-
-Мало того, опознавать идиому erase-remove нужно также в тех случаях, когда там вообще нет remove. Мало ли алгоритмов удаляют данные. Вот, например, unique
-
-\begin{lstlisting}
-vector v = {1, 42, 2, 42, 3, 42, 4};
-sort (v.begin(), v.end());
-v.erase (unique (v.begin(), v.end()), v.end());
-\end{lstlisting}
-
-К счастью, в стандартной библиотеке таких алгоритмов мало (собственно \lstinline!remove!, \lstinline!remove_if! и \lstinline!unique!), но в пользовательском коде может встретиться всякое.
-
-TODO: здесь о плохой идее remove для интрузивных контейнеров
 
 \subsubsection{Бинарный поиск и его варианты}
 
@@ -18217,9 +18219,81 @@ template <typename RandIt, typename OutIt>
 void create_loops(RandIt tbeg, RandIt tend, OutIt lbeg);
 \end{lstlisting}
 
-Теперь эта функция -- обобщённый алгоритм.
+Теперь эта функция -- обобщённый алгоритм. Можно реализовать её, но это техническое упражнение, а здесь хочется сконцентрироваться на идеях.
 
-TODO: дописать
+Теперь применение циклов перестановок. Применение это метод в классе \lstinline!PermLoop<T>! и перестановка может применяться как к числу, так и к вектору. Применение (1 2) к числу 1 даёт 2. Применение (1 3) к вектору [1 2 3 4 5 6] даёт в итоге [3 2 1 4 5 6].
+
+Метод \lstinline!apply! для числа это простое применение цикла, использующее в частности другие алгоритмы STL, например \lstinline!find!.
+
+\begin{lstlisting}
+template <typename T> T PermLoop<T>::apply (T x) const {
+  auto it = find(loop_.begin(), loop_.end(), x);
+  if (it == loop_.end()) return x;
+  auto nxt = next(it);
+  if (nxt == loop_.end()) return *loop_.begin();
+  return *nxt;
+}
+\end{lstlisting}
+
+Сигнатура метода apply для таблицы это снова обобщённый алгоритм, берущий пару итераторов и применяющий перестановку к диапазону.
+
+\begin{lstlisting}
+template <typename T>
+template <typename RandIt>
+void PermLoop<T>::apply(RandIt tbeg, RandIt tend) const;
+\end{lstlisting}
+
+Имя типа и тут и в предыдущем примере подсказывает, что требуются итераторы с произвольным доступом.
+
+Теперь настало время заняться действительно интересной вещью: перемножить перестановки. До сих пор перестановки комбинировались когда они были независимы, например (1 2 4)(3 5).
+
+Но что мешает скомбинировать зависимые перестановки?
+
+Запись (1 2)(2 3) означает $1 \rightarrow 2$ , $2 \rightarrow 1$ и далее $2 \rightarrow 3$ , $3 \rightarrow 2$. В итоге получается, что 1 переходит в 2 а потом в 3, значит 1 переходит в 3, 3 в 2, а 2 в 1.
+
+В циклической записи (1 2)(2 3) = (1 3 2)
+
+Более сложный пример: (1 3 2)(1 2 4)(1 4 3 2) = (1 2)(3)(4)
+
+Какую сигнатуру должна иметь функция перемножения (упрощения массива циклов) перестановок?
+
+И опять есть неправильный, но соблазнительный вариант
+
+\begin{lstlisting}
+template <typename T>
+void simplify_loops (vector<PermLoop<T>> &input);
+\end{lstlisting}
+
+\textbf{Вопрос к студентам:} самостоятельно перечислить все его проблемы.
+
+\ifanswers
+Ответ: в общем всё довольно очевидно и уже было перечислено выше. Вмерзает в код тип контейнера, не поддерживается часть последовательности, всё вот это вот.
+\fi
+
+Правильный вариант в алгоритмическом стиле снова использует итераторы.
+
+\begin{lstlisting}
+template <typename RandIt, typename OutIt>
+void simplify_loops (RandIt tbeg, RandIt tend, OutIt lbeg);
+\end{lstlisting}
+
+Реализация этого алгоритма происходит в терминах двух уже определённых ранее алгоритмов, комбинируя их благодаря механизму итераторов
+
+\begin{lstlisting}
+template <typename RandIt, typename OutIt>
+void simplify_loops (RandIt tbeg, RandIt tend, OutIt lbeg) {
+  using T = typename std::decay<decltype(*tbeg)>::type::value_type;
+  vector<T> table(T::fin - T::start + 1, T::start);
+  iota(table.begin(), table.end(), T::start);
+  for (auto loopit = make_reverse_iterator(tend);
+       loopit != make_reverse_iterator(tbeg);
+       ++loopit)
+    loopit->apply(table.begin(), table.end());
+  create_loops(table.begin(), table.end(), lbeg);
+}
+\end{lstlisting}
+
+Это очень важный код, над ним можно немного помедитировать. Он показывает как в максимально далёкой от стандартной библиотеки предметной области действуют те же подходы, что применялись Степановым и при разработке библиотеки. Именно это -- подлинная мощь библиотеки и мышления в её терминах.
 
 \pagebreak
 \subsection{Ассоциативные контейнеры}\label{AssociativeContainers}
@@ -18569,7 +18643,7 @@ auto orbit_maps(T num, RandIt gensbeg, RandIt gensend) {
     for (auto&& [elem, curgen] : next)
       for (auto igen = gensbeg; igen != gensend; ++igen)
         if (auto newelem = igen->apply(elem); orbit.find(newelem) == orbit.end())
-          tmp.insert(product(curgen, *igen));
+          tmp.insert({newelem, product(curgen, *igen)});
     next.swap(tmp);
   }
   return orbit;
@@ -18580,19 +18654,225 @@ auto orbit_maps(T num, RandIt gensbeg, RandIt gensend) {
 
 \subsubsection{Модификация отображений}
 
-TODO: emplace hints, extract, merge, etc
+В приведённом выше листинге есть места, вызывающие подозрение. В первую очередь это вставка.
+
+\begin{lstlisting}
+tmp.insert({newelem, product(curgen, *igen)});
+\end{lstlisting}
+
+Здесь она сделана через \lstinline!insert!, но ведь есть же \lstinline!emplace!, его не может не быть.
+
+\begin{lstlisting}
+tmp.emplace(newelem, product(curgen, *igen));
+\end{lstlisting}
+
+Это действительно работает, и, казалось бы, этот метод экономит одно крайне тяжёлое копирование одной крайне тяжёлой пары. Увы, это не так. Майерс в \cite{effmoderncpp} посвятил этому целый совет 42, поэтому не стоит подробно останавливаться здесь. Вкратце: для ассоциативных контейнеров из-за того, что у них при вставке есть также поиск места для вставки в, условно говоря, дерево, узел всё равно должен быть создан довольно рано. Метод \lstinline!emplace! просто заносит его создание внутрь и имеет по сравнению с \lstinline!insert! не лучшую производительность и проблемы с исключениями. Об этом методе (в чистом виде) для ассоциативных контейнеров можно просто забыть.
+
+Третий вариант специфичен только для отображений и предполагает использование квадратных скобок.
+
+\begin{lstlisting}
+tmp[newelem] = product(curgen, *igen);
+\end{lstlisting}
+
+Использование квадратных скобок для выражения семантики ``обновление-или-вставка'' -- очень странное проектное решение. Его нет ни в множествах ни даже в мультиотображениях. В самих отображениях такое использование квадратных скобок плохо видно в коде и иногда приводит к странным моментам.
+
+\begin{lstlisting}
+cout << m[x] << endl;
+\end{lstlisting}
+
+Здесь если \lstinline!m! это \lstinline!map!, то вообще-то ключ \lstinline!x! может быть вставлен в отображение!
+
+Впрочем если обновление действительно нужно, использование квадратных скобок эффективно и обоснованно, так что его следует обдумать. В рассматриваемом случае речь не идёт об обновлении, поэтому именно для групп мы его отметаем, но вообще квадратные скобки несмотря на их минусы могут быть удобны.
+
+И, наконец, лучше всего себя показывает четвертый вариант: \lstinline!emplace! с указанием места вставки, так называемый \lstinline!emplace_hint!.
+
+Чтобы его мотивировать, можно рассмотреть не одну строчку а две.
+
+\begin{lstlisting}
+if (auto newelem = igen->apply(elem); orbit.find(newelem) == orbit.end())
+  tmp.insert({newelem, product(curgen, *igen)});
+\end{lstlisting}
+
+И заметить, что здесь дважды делается одна работа: элемент ищется методом \lstinline!find!, а потом ещё раз ищется при вставке через \lstinline!insert! во время поиска позиции для вставки.
+
+\begin{lstlisting}
+auto newelem = igen->apply(elem);
+auto it = orbit.lower_bound(newelem);
+if (it == orbit.end() || it->first != newelem)
+  tmp.emplace_hint(it, newelem, product(curgen, *igen));
+\end{lstlisting}
+
+Использование \lstinline!emplace_hint! как показано выше позволяет не делать лишней работы, а искать один раз и искать целенаправленно позицию для возможной вставки с использованием \lstinline!lower_bound!.
+
+Стандарт C++17 принёс в модификацию отображений два новшества. Во-первых вытащить из дерева целую ноду, при этом удалив её полностью и ребалансировав дерево можно с помощью \lstinline!extract!.
+
+\begin{lstlisting}
+map<int,string> m1 = {{1, "sator"}, {2, "tenet"}, {3, "nope"}};
+auto extval = m1.extract(3);
+\end{lstlisting}
+
+О том, какого типа получается \lstinline!extval! лучше даже не задумываться: в стандарте он помечен как полностью Implementation defined, вплоть до размера и состава полей. Всё, что от него требуется это определённый набор методов, среди которых самые полезные это \lstinline!key()! и \lstinline!value()!
+
+\begin{lstlisting}
+cout << extval.key() << endl; // prints 3
+\end{lstlisting}
+
+Во-вторых соединить два отображения в одно теперь можно с помощью \lstinline!merge!
+
+\begin{lstlisting}
+map<int,string> m1 = {{1, "sator"}, {2, "tenet"}};
+map<int,string> m2 = {{2, "nothing"}, {3, "arepo"},
+                      {4, "opera"}, {5, "rotas"}};
+m1.merge(m2);
+\end{lstlisting}
+
+При этом все элементы \lstinline!m2! по одному вынимаются (например через \lstinline!extract!) и вставляются в \lstinline!m1!. Метод несколько эффективней, чем делать то же самое простым циклом или даже алгоритмом.
 
 \subsubsection{Словари}
 
-TODO: unordered
+Простая орбита с использованием множеств всё-таки не слишком хороша.
 
-\subsubsection{Переход к неупорядоченности}
+\begin{lstlisting}
+for (const auto &elem : next)
+  for (auto igen = gensbeg; igen != gensend; ++igen)
+    if (auto newelem = igen->apply(elem); 
+        orbit.count(newelem) == 0)
+      tmp.insert(newelem);
+\end{lstlisting}
 
-TODO: hash, reserve, rehash
+В главном цикле притаился метод \lstinline!orbit.count!, имеющий, между прочим, сложность O(ln(N)). Этот логарифмический множитель выглядит болезненно и от него хотелось бы избавиться. Обычно для этого надо чем-то пожертвовать.
 
-\subsubsection{Экзотические контейнеры}
+Основная идея, которую приносят \textbf{словари} это пожертвовать в данном случае упорядоченностью.
 
-TODO: flat\_map и bimap
+Словари определены в стандарте как четыре класса: неупорядоченные множество, мультимножество, отображение и мультиотображение.
+
+Неупорядоченное множество.
+
+\begin{lstlisting}
+template<
+  class Key, class Hash = hash<Key>, 
+  class KeyEqual = equal_to<Key>,
+  class Allocator = allocator<Key>
+> class unordered_set;
+\end{lstlisting}
+
+Почти аналогично: неупорядоченное отображение.
+
+\begin{lstlisting}
+template<
+  class Key, class T, class Hash = hash<Key>,
+  class KeyEqual = equal_to<Key>,
+  class Allocator = allocator<pair<const Key, T>>
+> class unordered_map;
+\end{lstlisting}
+
+Мультимножество и мультиотображение по сути аналогичны.
+
+С использованием неупорядоченного множества, вычисление простой орбиты теперь можно переписать более вдохновляющим образом.
+
+\begin{lstlisting}
+template<typename T, typename RandIt>
+auto simple_orbit(T num, RandIt gensbeg, RandIt gensend) {
+  unordered_set<typename T::type> orbit;
+  vector<T> next = {num};
+  while (!next.empty()) {
+    unordered_set<typename T::type> tmp {};
+    orbit.insert(next.begin(), next.end());
+    for (const auto &elem : next)
+      for (auto igen = gensbeg; igen != gensend; ++igen)
+        if (auto newelem = igen->apply(elem); 
+            orbit.count(newelem) == 0) // O(1)+
+          tmp.insert(newelem);
+    next.swap(tmp);
+  }
+  return orbit;
+}
+\end{lstlisting}
+
+Теперь сложность, вероятно, улучшилась, поскольку дерево было заменено на хэш. Но у \lstinline!unordered_set! нет методов \lstinline!lower_bound! и \lstinline!upper_bound!
+
+Пляски с \lstinline!typename T::type! связаны с тем, что \lstinline!T! это что-то вроде \lstinline!IDom<unsigned, 1, 7>! и у него просто лень протягивать хэш и равенство, а проще воспользоваться нижележащим примитивным типом. Но вообще, можно, конечно и добавить, чуть позже об этом пойдёт особый разговор (см. \ref{subsub:selfhash}).
+
+Общий гайдлайн такой: если всё, что нужно это ассоциативный массив и его упорядоченность никак не используется, то механическая замена \lstinline!set! на \lstinline!unordered_set! это первое, что следует попробовать.
+
+Самый частый источник проблем при подобного рода замене это требования к интерфейсу типа. Вместо \lstinline!std::less! теперь по умолчанию идут \lstinline!std::hash! и \lstinline!std::equal_to!. В общем случае сделать оператор ``меньше'' проще, чем сравнение и хэш.
+
+\subsubsection{Переход к неупорядоченности}\label{subsub:selfhash}
+
+Обычный случай это наличие нетривиального класса с методом \lstinline!less!, используемом в операторе ``меньше'', который, скорее всего объявлен вне класса.
+
+\begin{lstlisting}
+struct S {
+  string first_name, last_name;
+  bool less(const S& rhs) const; // для (<)
+};
+\end{lstlisting}
+
+Задача сделать для этого класса сравнение на равенство. Худшее что можно сделать это определить равенство механически.
+
+\begin{lstlisting}
+bool operator==(const S& lhs, const S& rhs) {
+  return !lhs.less(rhs) && !rhs.less(lhs);
+}
+\end{lstlisting}
+
+Гораздо лучше дописать в класс метод equals и определить в его терминах, ну илив  случае с открытым содержимым просто сделать оператор.
+
+\begin{lstlisting}
+bool operator==(const S& lhs, const S& rhs) {
+  return (lhs.first_name == rhs.first_name) &&
+         (lhs.last_name == rhs.last_name);
+}
+\end{lstlisting}
+
+А вот с собственным хэшем это уже не слишком хорошо работает. Конечно можно напрячь фантазию.
+
+\begin{lstlisting}
+result_type 
+operator()(argument_type const& s) const noexcept {
+  result_type const h1 = hash<string>{}(s.first_name);
+  result_type const h2 = hash<string>{}(s.last_name);
+  return h1 ^ (h2 << 1);
+}
+\end{lstlisting}
+
+Сдвиг на единицу нужен для частого случая когда строки одинаковые. В данном случае это работает, но вообще, конечно, хотелось бы механического способа объединения хэшей. В стандарте его нет. На помощь может придти boost, в частности \lstinline!boost::hash_combine!.
+
+\begin{lstlisting}
+result_type 
+operator()(argument_type const& s) const noexcept {
+  result_type const h1 = hash<string>{}(s.first_name);
+  result_type const h2 = hash<string>{}(s.last_name);
+  size_t seed = 0;
+  boost::hash_combine(seed, h1);
+  boost::hash_combine(seed, h2);
+  return seed;
+}
+\end{lstlisting}
+
+Но тут, конечно, многие могут не захотеть затаскивать boost в проект и их можно понять. Что же, рано или поздно это стандартизуют.
+
+Кроме всего прочего, наличие в контейнере требования к такой функции, как \lstinline!hash! открывает на уровне стандарта гораздо больше о внутренней структуре контейнера, чем оператор меньше. Относительно упорядоченных множеств и отображений здесь всегда употреблялось слово ``дерево'', но с некоторой осторожностью. Хотя бы просто потому, что ничего в интерфейсе упорядоченных ассоциативных контейнеров не указывает на то, что там \textbf{должно быть} именно дерево. Может и дерево (и то не вполне ясно какое дерево). А может и не дерево вовсе.
+
+А вот неупорядоченные ассоциативные контейнеры это совершенно точно разновидности хеш-таблиц. Тут всё очевидно и двух мнений быть не может. Даже неясно почему слово \lstinline!hash! не внесли в название, как это сделали, например в Ruby.
+
+Но хеш-таблица сама по себе это непрерывный массив корзин (buckets) из которых растут списки коллизий. А это означает, что она имеет много общего с последовательными контейнерами. В частности, что снова можно подумать о резервировании памяти.
+
+\begin{lstlisting}
+unordered_map<int, Foo> mapNoReserve;
+unordered_map<int, Foo> mapReserve;
+mapReserve.reserve(1000);
+for(int i = 0; i < 1000; ++i) {
+  mapNoReserve.insert({i, Foo()});
+  mapReserve.insert({i, Foo()});
+}
+// ....... control point
+\end{lstlisting}
+
+\textbf{Домашняя наработка:} найдите способ замерить полный размер неупорядоченного отображения в памяти. Проведите эксперимент, как в листинге выше. Какой размер в памяти имеют \lstinline!mapReserve! и \lstinline!mapNoReserve! в контрольной точке?
+
+%\subsubsection{Экзотические контейнеры}
+%TODO: flat\_map и bimap?
 
 \pagebreak
 \subsection{Память своими руками}\label{allocators}
