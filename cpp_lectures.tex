@@ -21,6 +21,10 @@
 \newif\ifmulti
 %\multitrue
 
+% раскомментировать это когда будет готов каркас главы про PImpl
+\newif\ifgalvanic
+%\galvanictrue
+
 % раскомментировать чтобы посмотреть overfull
 %\overfullrule=2cm
 %\righthyphenmin=2
@@ -6329,12 +6333,14 @@ rvalue = xvalue & ~lvalue
 
 Если вы хотите написать свою функцию, которая будет возвращать \lstinline!&&!, это значит, что вы что-то делаете не так, или вы хотите ещё раз написать одну из упомянутых выше функций.
 
+\ifgalvanic
 \pagebreak
 \section{Гальваническая развязка}\label{PImpl}
 
-TODO: после расформирвоания главы про исключения, идиома PImpl осталась неприкаянной. Тут будет что-то про неё, может быть с какими-нибудь примерами
+TODO: после расформирования главы про исключения, идиома PImpl осталась неприкаянной. Тут будет что-то про неё, может быть с какими-нибудь примерами
 
 Кроме того PImpl отлично мотивирует наследование
+\fi
 
 \pagebreak
 \section{Наследование интерфейса\index{Inheritance}\index{Interface inheritance}}\label{IntfInheritance}
@@ -18901,99 +18907,313 @@ for(int i = 0; i < 1000; ++i) {
 \pagebreak
 \section{Память своими руками}\label{allocators}
 
-Интересной идеей в стандартной библиотеке C++ является идея аллокатора. Аллокатором называется класс, инкапсулирующий в себе стратегию выделения и освобождения памяти. Большинство стандартных контейнеров используют аллокаторы. Скажем полное определение уже упоминавшегося в (\ref{vectorarrs}) класса \lstinline!vector! на самом деле выглядит вот так:
+\hfill\textit{Allocator relates to allocation, as vector to vexation}{\vspace{0.5em}}
+
+\hfill\textit{-- Andrei Alexandrescu}
+
+В тех языках, где память это ресурс (которых в современном мире уже, пожалуй, меньшинство), выделение и освобождение памяти это точки дополнительной интеллектуальной нагрузки на разработчика. Даже если оставить в стороне ``проклятие меморилика'', выделение и освобождение памяти это всё равно потенциально дорого, а её неупорядоченное использование чревато странным поведением загадочных внутренних структур процессора, таких как кэши.
+
+Стратегия выделения памяти по умолчанию, своего рода один размер, который подходит всем, это выделение с помощью менеджера памяти стандартной библиотеки (для C++ это глобальные операторы \lstinline!new! и \lstinline!delete!). Особенности этого механизма хорошо изучены, задокументированы в стандарте и нацелены на улучшение работы в среднем случае, когда памяти не выделяется ни мало ни много, а объекты аллокации равномерно большие и маленькие. Но что делать людям, чей софт не попадает под средний случай?
+
+Стандартная библиотека C++ сразу была спроектирована таким образом, чтобы каждому контейнеру можно было предоставить собственный аллокатор, решающий вопросы выделения памяти. Например полный шаблон класса \lstinline!vector! выглядит как:
 
 \begin{lstlisting}
-template <class T, class Allocator = allocator<T> > class vector;
+template <class T, class A = std::allocator<T> > class vector;
 \end{lstlisting}
 
-Поэтому каждый раз, когда создается вектор, у него на самом деле пропускается один параметр:
+Если вдуматься, это решение \textbf{странное}. STL проектировалась в 1992 году и не вполне ясно кому и зачем тогда могли понадобиться такие механизмы расширения.
+
+Всё дело в позабытой ныне концепции near и far pointers. Дело в том, что в те годы было модно организовать память сегментами и указатель, показывающий за сегмент, мог иметь вдвое больший размер, чем глядящий внутрь сегмента. Производители аппаратуры предоставляли свои расширения, такие как \lstinline!int * __huge px!, при этом стандарт языка об этом ничего не знал, понимая только обычные указатели, поэтому эти детали нужно было где-то спрятать.
+
+Это повлияло на проектирование аллокаторов. По сути аллокаторы, исходно спроектированные Степановым, должны были знать всего две вещи:
+
+\begin{itemize}
+\item Откуда взять память
+\item Как преобразовать её к \lstinline!T*! из платформенно-специфичного типа
+\end{itemize} 
+
+Таким образом, исходно аллокаторы вообще не планировались как средство выделения памяти. Они планировались как тонкий слой адаптации к настоящему распределителю.
+
+Вынесенные в эпиграф слова Александреску можно с сохранением образности перевести на русский: ``Аллокатор относится к аллокации как барс к барсетке''.
+
+Именно этот факт и создал впоследствии аллокаторам дурную славу: когда люди в итоге начали использовать аллокаторы для того, чтобы определять с их помощью стратегии выделения памяти, они столкнулись с неизбежными проблемами. И именно поэтому в C++ аллокаторы это наиболее часто пересматриваемый механизм: они существенно менялись в почти каждом стандарте, пока, наконец, в C++17 не стали почти совершенными.
+
+Но об этом чуть позже.
+
+\subsection{Простые аллокаторы}\label{sub:stateless}
+
+Итак, вернёмся в 1998 год. Представьте, что у вас есть нестандартный системный распределитель emalloc, который распределяет память в расширенном адресном пространстве (EMS, если кто помнит). И его хочется завести под вектора, списки, и прочие полезные контейнеры.
+
+Простой аллокатор, который всего лишь знает как сбегать к распределителю и принести память, должен выставить использующему его контейнеру две соновные функции аллокаторного интерфейса: \lstinline!allocate! и \lstinline!deallocate!
 
 \begin{lstlisting}
-std::vector <int> myvec; /* brief form */
-std::vector <int, allocator<int> > myvec; /* full form */
+template<typename T> struct ealloc {
+  typedef T value_type;
+  typedef T* pointer;
+  pointer allocate (size_t n) { 
+    return static_cast<pointer>(emalloc(n * sizeof(T)));
+  }
+  void deallocate(pointer p, size_t n) { efree(p); }
+};
 \end{lstlisting}
 
-В связи с этим полезно знать что такое аллокаторы и как они работают.
-
-\subsection{Пользовательские аллокаторы}
-
-Аллокатор это шаблон для того типа, для которого он аллоцирует:
+Выше показан простой код, с которого вы, вероятно, начали бы. Кажется, что теперь получившийся адаптер можно скормить, например, вектору
 
 \begin{lstlisting}
-template<typename T>
-class Allocator {
+template <typename T> using s_vector = vector<T, ealloc<T>>;
 \end{lstlisting}
 
-В открытой части аллокатор должен определять несколько стандартных имён, например так:
+Не так быстро. Есть две проблемы и обе стали понятны сообществу как раз где-то к 98-му году.
+
+\begin{enumerate}
+\item \textbf{Взаимозаменяемость аллокаторов}
+
+Можно проиллюстрировать так:
+\begin{lstlisting}
+vector<int, ealloc<int>> v1, v2;
+// a lot of code
+v1 = v2; // what is happenning here?
+\end{lstlisting}
+Если аллокатора в каокм-то смысле похож на приведённый выше, то никаких проблем, приваивание и есть присваивание. Но если аллокатор это объект с состоянием, как должно изменяться состояние аллокатора при копировании контейнера?
+\item \textbf{Приведение аллокаторов}
+
+Возмём для примера \lstinline!list<T, ealloc<T> >!. Внутри себя список будет создавать не \lstinline!T!, а \lstinline!__list_node<T>!. То есть ему нужно иметь возможность как-то получить для внутреннего использования тип \lstinline!ealloc<__list_node<T> >!, не имеющий с переданным ему \lstinline!ealloc<T>! ничего общего.
+\end{enumerate}
+
+Первому вопросу было суждено стать ключевым. Второй изначально казался попроще.
+
+Стандарт 98 года решал первый вопрос просто: все конкретные экземпляры любого типа аллокаторов должны были быть эквивалентны. То есть единственная разумная запись операторов сравнения (и вы как программист должны её предоставить) для приведённого выше \lstinline!ealloc! это следующий код.
 
 \begin{lstlisting}
-    typedef T value_type;
-    typedef value_type* pointer;
-    typedef const value_type* const_pointer;
-    typedef value_type& reference;
-    typedef const value_type& const_reference;
-    typedef std::size_t size_type;
-    typedef std::ptrdiff_t difference_type;
+template <typename T, typename U>
+bool operator== (const ealloc<T>&, const ealloc<U>&) {
+  return true;
+}
+
+template <typename T, typename U>
+bool operator!= (const ealloc<T>&, const ealloc<U>&) {
+  return false;
+}
 \end{lstlisting}
 
-Шаблонная вложенная структура \lstinline!rebind! обрабатывает случаи, когда на самом деле созданию подлежат иные типы, чем \lstinline!T!. Скажем \lstinline!list<int>! создаёт не целые числа, а узлы списка. Это внутреннее превращение и называется rebinding:
+Для решения второй проблемы, внутри каждого аллокатора был предусмотрен (опять-таки предоставляемый программистом) шаблонный переходник \lstinline!rebind!
 
 \begin{lstlisting}
-    template<typename U>
-    struct rebind {
-        typedef Allocator<U> other;
-    };
+template<typename T> struct ealloc {
+  // .... all the same ....
+  template<typename U> ealloc(const ealloc<U>&) {}
+  template<typename U>
+  struct rebind { typedef ealloc<U> other; };
+};
 \end{lstlisting}
 
-Стандартная функция \lstinline!address! должна возвращать \lstinline!pointer! или \lstinline!const_pointer!.
+Чтобы ещё немножко усложнить жизнь программистам, от вас также требовалось несколько чисто ритуальных движений: предоставить функции \lstinline!construct! и \lstinline!destroy!, выполняющие функции размещающего \lstinline!new! и явного вызова деструктора (причём в реальности у вас не было вариантов написать их существенно иначе, чем показано ниже). Кроме того, от вас требовалась функция \lstinline!max_size! для ограничения общего размера (которую тоже не было возможности сделать особо умной). А также куча синонимов вложенных типов для \lstinline!reference!, \lstinline!const_pointer! и всего такого.
 
 \begin{lstlisting}
-    inline pointer address(reference r) { return &r; }
-    inline const_pointer address(const_reference r) { return &r; }
+template<typename T> struct ealloc {
+  // .... all the same ....
+  typedef const T* const_pointer;
+  typedef T& reference;
+  typedef const T& const_reference;
+  typedef size_t size_type;
+  typedef ptrdiff_t difference_type;
+
+  void construct(pointer p, const T& t) { new(p) T(t); }
+  void destroy(pointer p) { p->~T(); }
+  size_type max_size() const {
+    return numeric_limits<size_type>::max() / sizeof(T);
+  }
+};
 \end{lstlisting}
 
-Сердце аллокатора: функции выделения и освобождения памяти. Именно здесь можно развернуться с гениальными стратегиями.
+Все эти вещи были вынесены в traits в C++11 и объявлены устаревшими в C++14.
+
+Вот теперь, пожалуй, всё. Такой аллокатор уже может использоваться в коде на C++98.
+
+И тут, разумеется, встаёт главный вопрос: \textbf{для чего} он может использоваться. Хорошо, допустим предназначение \lstinline!ealloc! было описано выше. Но что если хочется чего-то сложнее, чем просто нужную память подтасиквать и ненужную оттаскивать?
+
+Первое, что приходит на ум это логгирующий аллокатор. Возможна также некая реализация защиты стека. Но что если хочется иметь заранее выделенный пул, где выделялись бы более мелкие объекты? Или, например сделать коалескинг при работе с этим пулом?
+
+Короткий ответ: нет. Это также был ответ на большинство вопросов вида ``а можно ли сделать ЭТО с аллокатором'' и в 98 году он почти не зависел от того, чем было ЭТО.
+
+Люди выкручивались как могли. Например собственный аллокатор, реализованный в библиотеке Intel Threading Building Blocks и серьёзно улучшающий производительность на многопоточных приложениях, работает по сути с собственной глобальной ареной, которая является частью рантайма этой библиотеки, также, как арена для malloc является частью рантайма glibc. Но это, конечно, ой.
+
+В техническом развитии к 2003 году, в стандарте кристаллизовались два фундаментальных запрета, которые Мередит назвал ``weasel words''. В точной формулировке они выглядели так:
+
+\begin{itemize}
+\item All instances of a given allocator type are required to be interchangeable and always compare equal to each other.
+\item The typedef members \lstinline!pointer!, \lstinline!const_pointer!, \lstinline!size_type!, and \lstinline!difference_type! are required to be \lstinline!T*!, \lstinline!T const*!, \lstinline!std::size_t!, and \lstinline!std::ptrdiff_t!, respectively 
+\end{itemize}
+
+В простом переводе эти фразы запрещали любые аллокаторы обладающие состоянием (например поддерживающие пул объектов) и любые попытки вернуть из аллокатора что-то кроме простого указателя (например умный указатель).
+
+Это было настолько ограничивающим и мрачным, что такая крупная компания, как Блумберг, вошла в комитет по стандартизации только для того, чтобы найти способ это вычеркнуть.
+
+\subsection{Характеристики и состояние аллокаторов}\label{sub:statefull}
+
+Разумеется, когда к делу подключается тяжёлая артиллерия, многие вопросы решаются сами собой. В 2011 году ожидаемые многими изменения произошли. Если конкретнее:
+
+\begin{itemize}
+\item Аллокаторам разрешили не всегда быть равными, то есть разрешили обладать состоянием. Начиная с C++11 равенство аллокаторов означает, что один может освободить то, что выделил другой.
+\item Были ликвидированы ограничения для зависимого типа \lstinline!pointer!. Теперь это может быть не просто \lstinline!T*!, а практически всё что угодно, с некоторыми ограничениями.
+\item Был введён класс \lstinline!allocator_traits! куда были собраны все редко переопределяемые вещи в качестве разумных умолчаний: \lstinline!value_type!, \lstinline!pointer!, \lstinline!const_pointer! и так далее.
+\item Был введён класс \lstinline!pointer_traits! для определения характеристик указателей.
+\end{itemize}
+
+Интересно, что проблема приведения указателя с помощью \lstinline!rebind! при этом стало сложнее. Теперь из аллокатора типа \lstinline!T! нужно иметь возможность получить не только аллокатор для типа \lstinline!U!, но и характеристики из характеристик для \lstinline!T!. Начиная с C++11 шаблон \lstinline!allocator_traits! содержит зависимые шаблоны \lstinline!rebind_alloc! и \lstinline!rebind_traits!.
+
+Определение для собственного класса тривиально
 
 \begin{lstlisting}
-    inline pointer allocate(size_type cnt, 
-       typename std::allocator<void>::const_pointer = 0) { 
-      return reinterpret_cast<pointer>(::operator new(cnt * sizeof (T))); 
-    }
-    inline void deallocate(pointer p, size_type) { 
-        ::operator delete(p); 
-    }
+namespace std {
+  template <> struct allocator_traits<s_alloc> {
+    // implement all of traits
+  };
+}
 \end{lstlisting}
 
-Бывает полезно ограничить размер доступной памяти (если, например, речь о выделении из статического буфера).
+Но характеристик слишком много и такое переопределение обычно не нужно, так как содержит слишком много лишнего технически-бездумного кода.
+
+На самом деле для того, чтобы изменить характеристику, достаточно переопределить соответствущий зависимый тип прямо в своём классе аллокатора.
+
+Это достигается через SFINAE. Следующий код это выдержка из libstdc++ с несколько менее уродливыми именами, чем там и правда есть.
 
 \begin{lstlisting}
-    inline size_type max_size() const { 
-        return std::numeric_limits<size_type>::max() / sizeof(T);
-    }
+template <typename Alloc> struct allocator_traits {
+private:
+  using value_type = typename Alloc::value_type;
+  template <typename T> using ptrT = typename T::pointer;
+public:
+  // either Alloc::pointer if defined
+  // or Alloc::value_type* if no Alloc::pointer
+  using pointer = detected_or_t<value_type*, ptrT, Alloc>;
 \end{lstlisting}
 
-Считается, что пользовательские \lstinline!construct! и \lstinline!destroy! могут очень сильно отличаться от стандартного размещающего \lstinline!new!.
+Предполагается, что шаблонные параметры определителя \lstinline!detected_or_t! это параметр по умолчанию, шаблон с произвольным числом аргументов и все эти аргументы. Примерно так:
 
 \begin{lstlisting}
-    inline void construct(pointer p, const T& t) { new(p) T(t); }
-    inline void destroy(pointer p) { p->~T(); }
+template<typename Def, template<typename...> class Op,
+	       typename... Args>
 \end{lstlisting}
 
-Как ни странно, аллокаторы чтобы быть совместимыми требуют сравнения на рвенство и неравенство.
+Он возвращает \lstinline!Op<Args...>!, если он определён в sfinae-смысле или \lstinline!Def! если нет. 
+
+\textbf{Вопрос к студентам:} как бы вы написали шаблон \lstinline!detected_or_t!?
+
+\ifanswers
+Красивое упражнение в SFINAE, рекомендуется сделать самому даже если вы читаете этот текст с ответами.
 
 \begin{lstlisting}
-    inline bool operator==(Allocator const&) { return true; }
-    inline bool operator!=(Allocator const& a) { return !operator==(a); }
+// Negative case
+template<typename Def, typename Void,
+	       template<typename...> class Op, typename... Args>
+struct detector {
+  using value_t = false_type;
+  using type = Def;
+};
+
+// Positive case
+template<typename Def, template<typename...> class Op,
+	       typename... Args>
+struct detector<Def, void_t<Op<Args...>>, Op, Args...> {
+  using value_t = true_type;
+  using type = Op<Args...>;
+};
+
+template<typename Def, template<typename...> class Op,
+	       typename... Args>
+using detected_or = detector<Def, void, Op, Args...>;
 \end{lstlisting}
 
-Кода вы разрабатываете свой аллокатор, вы должны быть уверены, что знаете что вы делаете и зачем вам это нужно. В библиотеке Intel Threading Building Blocks например реализовал собственный аллокатор и утверждается, что производительность вектора в многопоточном приложении можно существенно улучшить, объявив его как:
+Ну и далее \lstinline!detected_or_t! это синоним \lstinline!detected_or::type!
+\fi
+
+Аналогичным способом заведены и все остальные члены структур \lstinline!allocator_traits! и \lstinline!pointer_traits!.
+
+Разумеется, характеристики аллокатора также содержат функции \lstinline!allocate! и \lstinline!deallocate!, а также \lstinline!construct! и \lstinline!destroy!. 
+
+Интересно тут следующее: функция \lstinline!allocate! должна работать в терминах \lstinline!pointer!, который может быть почти чем угодно, включая умный указатель или итератор. Но это явно не так для \lstinline!construct!. Эта функция должна делать размещающий \lstinline!new!.
 
 \begin{lstlisting}
-std::vector<T,tbb::scalable_allocator<T> >
+template <typename Alloc> struct allocator_traits {
+  // .... everything else ....
+  static pointer allocate(Alloc &a, size_type n) {
+    return a.allocate(n);
+  }
+
+  template <typename T, typename ... Args>
+  static void construct(Alloc &a, T *p, Args&& ... args) {
+    a.construct(p, forward<Args>(args)...) ||
+      new (static_cast<void*>(p)) T(forward<Args>(args)...);
+  }
+};
 \end{lstlisting}
 
-Ещё примеры -- аллокаторы рассчитанные на ограниченное количество памяти в EASTL, собственные аллокаторы из файла. Скорее всего вам никогда не придется все это писать.
+\subsection{Пример: кэшированное освобождение}\label{sub:freelist}
+
+Идея free list аллокатора: освобождать блоки не в глобальный аллокатор а во free list
+
+\begin{lstlisting}
+list<int, freelist_alloc<int>> l(v.begin(), v.end());
+\end{lstlisting}
+
+Следующие две строчки могут быть дорогостоящими если они действительно освобождают память
+
+\begin{lstlisting}
+l.remove(2); 
+l.remove(6);
+\end{lstlisting}
+
+Но дело как раз в том, что никакого настоящего освобождения памяти тут не происходит. Два блока размером с \lstinline!int! удаляются из списка и помещаются во freelist. Далее следующие две операции:
+
+\begin{lstlisting}
+l.insert(l.begin(), -1);
+l.insert(l.begin(), -3);
+\end{lstlisting}
+
+На самом деле ничего не выделяют, а всего лишь берут два блока из freelist, заполняют и возвращают в список
+
+TODO: дальнейшее изложение примера и устройство freelist 
+
+В приведённом выше примере, видно, что оператор присваивания и перемещающее присваивание действуют очень по разному. Если перечислять все случаи, то аллокаторы могут либо разделять некий ресурс (и тогда они должны пропагировать свой ресурс при копировании) либо каждый экземпляр аллокатора содержит локальный контекст и тогда не копируется (хотя при этом всё же может перемещаться, но это не точно).
+
+И действительно, рассмотрим freelist.
+
+\textbf{Вопрос к студентам:} что будет, если для freelist будет пропагация при копировании?
+
+\ifanswers
+Правильный ответ: голова freelist в этом случае может оказаться поделена между старым и новым элементами.
+\fi
+
+Как именно аллокатор будет вести себя на копировании или перемещении определяется начиная с C++11 следующими typedefs (ниже указаны также значения по умолчанию).
+
+\begin{lstlisting}
+using propagate_on_container_copy_assignment = false_type;
+using propagate_on_container_move_assignment = false_type;
+using propagate_on_container_swap            = false_type;
+using is_always_equal                        = false_type;
+\end{lstlisting}
+
+Некоторые считают, что они довольно уродливы. Да, конечно. Я полагаю, это сделано специально. Далее в этих лекциях немногочисленные ссылки на них будут обозначать сокращение по первым буквам: POCCA, POCMA, POCS, IAE.
+
+Переопределяя любой из них в \lstinline!true_type!, вы, скорее всего, знаете, что делаете. Практически важный частный случай \textbf{локального} (ещё говорят arena-based) аллокатора.
+
+\subsection{Локальные аллокаторы и их арены}\label{sub:localloc}
+
+Локлаьный аллокатор, как следует из его названия, привязан к конкретной локации. Его состояние это состояние распределение в этой конкретной строке, векторе, списке и т.д. При копировании локации, новая локация получает новый аллокатор с новым состоянием, после чего туда заводятся все существовавшие в старой локации элементы без каких-либо попыток пропагировать состояние собственно аллокатора.
+
+Типичный пример полезного использования локального аллокатора это вектор, оптимизированный для использования с небольшим количеством элементов.
+
+\begin{lstlisting}
+template <class T, size_t BufSize = 200>
+using SmallVector = vector<T, short_alloc<T, BufSize, alignof(T)>>;
+\end{lstlisting}
+
+Такой вектор располагается на стеке пока в нём меньше чем BufSize байт и перелоцируется в кучу, когда места на стеке не хватает
+
+Аллокатор \lstinline!short_alloc!, рассматриваемый в этом разделе, предложен Говардом Хинантом \cite{post:hinalloc}.
+
+TODO: продолжить
 
 \pagebreak
 \section{Концепты\index{Concepts}}\label{Concepts}
@@ -20223,6 +20443,7 @@ TODO: домашняя наработка в каком-то виде
 \bibitem{talk:parent:datastruct} Sean Parent, Better Code: Data Structures, CppCon'2015
 %Blog posts
 \bibitem{post:mertz} Arne Mertz, \textit{<<Modern C++ features – keyword noexcept>>}, blog post, 2016
+\bibitem{post:hinalloc} Howard Hinnant, \textit{<<stack\_alloc>>}, github, 2015
 \end{thebibliography}
 
 \pagebreak
