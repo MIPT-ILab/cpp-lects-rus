@@ -19173,9 +19173,71 @@ l.insert(l.begin(), -3);
 
 На самом деле ничего не выделяют, а всего лишь берут два блока из freelist, заполняют и возвращают в список
 
-TODO: дальнейшее изложение примера и устройство freelist 
+\begin{lstlisting}
+template <typename T>
+class freelist_alloc {
+  using ST = aligned_storage_t<sizeof(T), alignof(T)>;
+  union node {
+    node* next;
+    ST storage;
+  };
 
-В приведённом выше примере, видно, что оператор присваивания и перемещающее присваивание действуют очень по разному. Если перечислять все случаи, то аллокаторы могут либо разделять некий ресурс (и тогда они должны пропагировать свой ресурс при копировании) либо каждый экземпляр аллокатора содержит локальный контекст и тогда не копируется (хотя при этом всё же может перемещаться, но это не точно).
+  node* list = nullptr;
+  // ..... etc .....
+\end{lstlisting}
+
+Список устроен не на структуре, а на объединении, так как элемент, возвращаемый в список содержит только указатель для поддержания структуры списка, а при взятии из списка -- только данные.
+
+\begin{lstlisting}
+T* allocate(size_type n) {
+  if (n == 1) {
+    auto ptr = list;
+    if (ptr)
+      list = list->next; // from freelist
+    else
+      ptr = new node; // new node
+    return reinterpret_cast<T*>(ptr);
+  }
+
+  // taking new memory
+  return static_cast<T*>(::operator new(n * sizeof(T)));
+}
+\end{lstlisting}
+
+Здесь показано как происходит выделение. Парная ей функция деаллокации выглядит тоже понятно
+
+\begin{lstlisting}
+void deallocate(T* ptr, size_type n) noexcept {
+  if (n == 1) {
+    auto node_ptr = reinterpret_cast<node*>(ptr);
+    node_ptr->next = list;
+    list = node_ptr;
+    return;
+  } 
+  ::operator delete(ptr);
+}
+\end{lstlisting}
+
+Интересно также посмотреть на присваивание и перемещение. Присваивание не должно делать ничего особенного, поскольку присваивание объекта с таким аллокатором означает просто копирование состояния объекта, а оба аллокатора и слева и справа остаются теми же. А вот перемещение нетривиально, потому что по старому месту весь запасённый там freelist нужно освободить, заменив на свой.
+
+\begin{lstlisting}
+freelist_alloc& operator= (const freelist_alloc&) noexcept {
+  return *this;
+}
+
+freelist_alloc& operator= (freelist_alloc&& other) noexcept {
+  if (this == &other)
+    return *this;
+  clear();
+  list = other.list;
+  other.list = nullptr;
+  return *this;
+}
+\end{lstlisting}
+
+Таким образом, удивительно, но оператор присваивания и перемещение действуют очень по разному, при этом перемещение аллокатора \textbf{сложнее} копирования. 
+
+Если перечислять все случаи, как он могут действовать то аллокаторы могут: либо разделять некий ресурс (и тогда они должны пропагировать свой ресурс при копировании) либо каждый экземпляр аллокатора содержит локальный контекст и тогда не копируется (хотя при этом всё же может перемещаться, но это не точно).
 
 И действительно, рассмотрим freelist.
 
@@ -19213,7 +19275,76 @@ using SmallVector = vector<T, short_alloc<T, BufSize, alignof(T)>>;
 
 Аллокатор \lstinline!short_alloc!, рассматриваемый в этом разделе, предложен Говардом Хинантом \cite{post:hinalloc}.
 
-TODO: продолжить
+Ареной называется класс, управляющий локальным ресурсом
+
+\begin{lstlisting}
+template <size_t N, size_t alignment = alignof(max_align_t)> 
+class arena {
+  char buf_[N] alignas(alignment);
+  char* ptr_;
+public:
+  arena() noexcept : ptr_(buf_) {}
+  arena(const arena&) = delete;
+  arena& operator=(const arena&) = delete;
+  template <size_t ReqAlign> char* allocate(size_t n);
+  void deallocate(char* p, size_t n) noexcept;
+\end{lstlisting}
+
+Но при этом арена не является аллокатором и не реализует интерфейс аллокатора. Что не мешает ей иметь внутри шаблонный метод \lstinline!allocate!
+
+\begin{lstlisting}
+template <size_t N, size_t alignment> 
+template <size_t ReqAlign>
+char *arena<N, alignment>::allocate(size_t n) {
+  auto const aligned_n = align_up(n);
+  auto bsz = static_cast<decltype(aligned_n)>(buf_ + N - ptr_);
+  if (bsz < aligned_n)
+   return static_cast<char*>(::operator new(n));
+  char* tmp = ptr_;
+  ptr_ += aligned_n;
+  return tmp;
+}
+\end{lstlisting}
+
+При аллокации, как и в случае freelist есть развилка. Используется либо временный буфер, либо глобальный \lstinline!new!.
+
+Для того, чтобы связать конкретную арену с интерфейсом аллокатора используется отдельный класс \lstinline!short_alloc!.
+
+\begin{lstlisting}
+template <class T, size_t N, size_t A = alignof(max_align_t)>
+class short_alloc {
+  arena<N, A>& a_;
+public:
+  short_alloc(arena_type& a) noexcept : a_(a) {}
+  T* allocate(size_t n) {
+    char *res = a_.allocate<alignof(T)>(n * sizeof(T));
+    return reinterpret_cast<T*>(res);
+  }
+\end{lstlisting}
+
+Единственное неудобство вектора с таким аллокатором: нужно сначала где-то (например на стеке) выделить арену, а уже потом связать её с экземпляром контейнера.
+
+\begin{lstlisting}
+SmallVector<int>::allocator_type::arena_type a;
+SmallVector<int> v{a};
+\end{lstlisting}
+
+Но после этого небольшого трюка, использование не сложнее, чем использование обычного вектора.
+
+\subsection{Проблемы области видимости}\label{sub:scopedalloc}
+
+Коль скоро у аллокаторов теперь есть состояние, одного их типа более недостаточно, важным становится конкретный экземпляр аллокатора. Это не всегда так, например в случае с \lstinline!short_alloc! имел значение экземпляр арены. Но очень часто это так.
+
+Пусть существует какой-нибудь аллокатор \lstinline!CustomAlloc!. В коде, приведённом ниже, три его разных экземпляра используются как аллокаторы для трёх разных (условно) строк.
+
+\begin{lstlisting}
+using CustomStr = 
+  string <char, char_traits<char>, CustomAlloc<char>>;
+CustomAlloc<char> alloc1(SYSTEM), alloc2(LOCAL), alloc3;
+CustomStr x1(alloc1), x2(alloc2), x3(alloc3);
+\end{lstlisting}
+
+Теперь в программе есть три строки, память которых управляется тремя разными аллокаторами одного и того же типа. Это порождает странные и удивительные проблемы.
 
 \pagebreak
 \section{Концепты\index{Concepts}}\label{Concepts}
