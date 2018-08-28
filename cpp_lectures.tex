@@ -25,6 +25,10 @@
 \newif\ifgalvanic
 %\galvanictrue
 
+% раскомментировать это когда будет готов каркас главы про Modern C++ Design
+\newif\ifmoderncpp
+%\moderncpptrue
+
 % раскомментировать чтобы посмотреть overfull
 %\overfullrule=2cm
 %\righthyphenmin=2
@@ -6222,7 +6226,7 @@ int&& almost_move<int&>(int& a) {
 
 Здесь будут обсуждаться значения как таковые.
 
-В некоторых случаях (например для использование внутри \lstinline!decltype!) хочется получить значение некоего типа. Часто для этого используется конструктор по умолчанию. Но что делать, если его нет? Что такое "значение вообще" для такого типа?
+В некоторых случаях (например для использование внутри \lstinline!decltype!) хочется получить значение некоего типа. Часто для этого используется конструктор по умолчанию. Но что делать, если его нет? Что такое ``значение вообще'' для такого типа?
 
 \begin{lstlisting}
 template <typename T> struct Tricky {
@@ -7013,6 +7017,8 @@ private:
 \textbf{Домашняя наработка:} нарисуйте UML-диаграмму с планетами и небесными телами к этому коду.
 
 Эта идиома называется NVI (non-virtual interface) и крайне полезна. Один из таких полезных случаев будет рассмотрен далее, в (\ref{NameHiding}).
+
+Кроме того, эта идиома окажется на удивление полезной при рассмотрении полиморфных аллокаторов в (\ref{sub:polyalloc}), когда разговор зайдёт за стандартную библиотеку.
 
 \subsection{Тонкости скрытия имён}\label{NameHiding}
 
@@ -13520,9 +13526,10 @@ Acceleration acc = sp1/0.5_s; // ok again
 
 \textbf{Домашняя наработка:} добейтесь работы строчки \lstinline!constexpr Kilogramm mass = 5_kg + 3_lb!, где lb это фунты, на этапе компиляции строящей преобразование фунтов в килограммы.
 
+\ifmoderncpp
+\pagebreak
 \section{Проектирование с учётом шаблонов}
 
-\pagebreak
 \hfill\textit{All problems in computer science}
 
 \hfill\textit{can be solved by another level of indirection}{\vspace{0.5em}}
@@ -13538,6 +13545,7 @@ Acceleration acc = sp1/0.5_s; // ok again
 TODO: traits here
 
 \subsection{Классы политик}\label{subsub:policy}
+\fi
 
 \pagebreak
 \section{Домашняя наработка по шаблонам}
@@ -19331,7 +19339,7 @@ SmallVector<int> v{a};
 
 Но после этого небольшого трюка, использование не сложнее, чем использование обычного вектора.
 
-\subsection{Проблемы области видимости}\label{sub:scopedalloc}
+\subsection{Проблемы области распространения}\label{sub:scopedalloc}
 
 Коль скоро у аллокаторов теперь есть состояние, одного их типа более недостаточно, важным становится конкретный экземпляр аллокатора. Это не всегда так, например в случае с \lstinline!short_alloc! имел значение экземпляр арены. Но очень часто это так.
 
@@ -19345,6 +19353,392 @@ CustomStr x1(alloc1), x2(alloc2), x3(alloc3);
 \end{lstlisting}
 
 Теперь в программе есть три строки, память которых управляется тремя разными аллокаторами одного и того же типа. Это порождает странные и удивительные проблемы.
+
+Например можно рассмотреть кажущийся вполне разумным сценарий, когда они все помещаются в вектор.
+
+\begin{lstlisting}
+vector<CustomStr> vec;
+vec.push_back(x1);
+vec.push_back(x2);
+vec.reserve(4);
+\end{lstlisting}
+
+Результат проиллюстрирован на (рис. \ref{fig:allocs_local})
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.6\textwidth]{illustrations/allocs-local-crop.pdf}
+\caption{Помещение в вектор двух строк с локальными аллокаторами}
+\label{fig:allocs_local}
+\end{figure}
+
+Пока что всё выглядит отлично: в одном векторе живут два элемента, каждый на своей позиции и каждый со своим локлаьным аллокатором.
+
+Увы, следующий крайне простой трюк усложняет вещи совершенно непропорционально.
+
+\begin{lstlisting}
+vec.insert(vec.begin(), x3);
+\end{lstlisting}
+
+Что происходит при выполнении этой строчки? Сначала все элементы должны быть сдвинуты вниз. Первым сдвигается x2 и заводит на новом месте свой аллокатор. За ним вниз ползёт x1, но в ячейке 2 уже есть аллокатор от x2 и он там остаётся. Далее x3 помещается в ячейку 1, где работает аллокатор для 1.
+
+На итоговой картинке (рис. \ref{fig:allocs_scope}) получается довольно устрашающая картина.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.6\textwidth]{illustrations/allocs-scope-crop.pdf}
+\caption{Иллюстрация проблем локальных аллокаторов}
+\label{fig:allocs_scope}
+\end{figure}
+
+Почему так получилось? До некоторой степени мы вообще не хотели бы чтобы строки тащили в ячейки вектора собственные аллокаторы: будет вполне достаточно если они воспользуются аллокатором вектора.
+
+Но для этого вектор должен уметь сообщать каждой помещаемой в него строке, что у него есть свой аллокатор которым она должна пользоваться. Говорят, что у вектора должен быть распространяемый (scoped) аллокатор. Тут есть небольшая омонимия, так как на английском языке scope также означает область видимости.
+
+Для этих целей, служит шаблон \lstinline!scoped_allocator_adapter! в стандарте C++11.
+
+Ниже приведён пример того, как это работает для случае близкого к рассмотренному.
+
+\begin{lstlisting}
+namespace cust 
+{
+  template <typename T> CustomAlloc;
+  template <typename T> using alloc =
+     ::std::scoped_allocator_adapter<CustomAlloc<T>>;
+  template <typename T> using vector = ::std::vector<T, alloc<T>>;
+  template <typename T> using string = 
+     ::std::basic_string<char, char_traits<char>, alloc<char>>;
+}
+
+cust::vector<cust::string> vs(&alloc1); // propagated ok
+\end{lstlisting}
+
+Теперь аллокаторы правильно пропагируются, но поглядите на этот код ещё раз. Он чудовищен. Он не может нравиться эстетически, к нему можно только привыкнуть.
+
+Даже для обычных аллокаторов тотальное загрязнение кода вирусными шаблонами заставляет глаза кровоточить даже у опытных разработчиков.
+
+\begin{lstlisting}
+map <int, float, less<int>, s_alloc<pair<const int, float>>> m;
+basic_string<char, char_traits<char>, s_alloc<char>> s;
+\end{lstlisting}
+
+Но самый убийственный аргумент против аллокаторов, обладающих состоянием это аргумент от сложности написания контейнера, корректно поддерживающего произвольные аллокаторы.
+
+Вот достаточно условное перемещающее присваивание контейнера такого рода. Это песвдокод. В реальности проверки POCMA и IAE будут выглядеть как объяснялось выше (см. \ref{sub:freelist}).
+
+\begin{lstlisting}
+container& operator= (constainer &&rhs) {
+  if (alloc_traits::POCMA) {
+    clear_and_deallocate_memory();
+    alloc_ = move(rhs.alloc_);
+    impl_ = move(rhs.impl_);
+  }
+  else if (alloc_traits::IAE || alloc_ == rhs.alloc_) {
+    clear_and_deallocate_memory();
+    impl_ = move(rhs.impl_);
+  }
+  else {
+    this->assign(move_iterator(rhs.begin()), 
+                 move_iterator(rhs.end());
+  }
+  return *this
+}
+\end{lstlisting}
+
+Здесь написано следующее:
+
+\begin{enumerate}
+\item Если аллокатор пропагируется на перемещающем присваивании, то достаточно обычного перемещения контейнера и перемещения аллокатора на новое место.
+\item Иначе, если аллокатор сравним на равенство и оказался равным аллокатору справа, то достаточно перемещения контейнера
+\item Иначе мы должны провести дорогое копирование содержимого
+\end{enumerate}
+
+По этой причине написание поддерживающего аллокаторы контейнера в реалиях C++11 это крайне интересная тема, но здесь она рассматриваться не будет, потому что, с точки зрения автора, гуманнее включённый миксер в глаза засунуть.
+
+Причём вроде бы на пути к этому ужасу, всё было сделано правильно и логично. Это значит, что неправильный поворот был пройден довольно рано.
+
+Вполне возможно, следует откатится к самому раннему решению: а почему вообще все исходно начали считать, что тип аллокатора должен быть частью типа контейнера?
+
+Допустим аллокатор вообще не должен быть частью типа контейнера. В этом случае он должен быть всегда scoped и никогда не должен копироваться и перемещаться. И это приводит к идее, полноценно реализованной в C++17: идее полиморфного аллокатора.
+
+\subsection{Полиморфные аллокаторы}\label{sub:polyalloc}
+
+Когда в самом начале главы (см. \ref{sub:stateless}) рассматривался возможный дизайн наивного аллокатора, он был спроектирован довольно простым образом
+
+\begin{lstlisting}
+template<typename T>
+struct memory_resource {
+  T* allocate (size_t n);
+  void deallocate(T* p, size_t n);
+};
+\end{lstlisting}
+
+Пока что не следует обращать внимание на то, что я изменил название, скоро это получит своё объяснение. 
+
+Что будет, если из этого кода удалить типы?
+
+\begin{lstlisting}
+struct memory_resource {
+  virtual void* allocate (size_t n, 
+    size_t align = alignof(std::max_align_t)) = 0;
+  virtual void deallocate(void* p, size_t n) = 0;
+  virtual bool is_equal(const memory_resource&) const = 0;
+};
+\end{lstlisting}
+
+Время показало, что также очень полезной функцией для аллокаторов является проверка на равенство, поэтому она здесь добавлена.
+
+Но в целом проектирование тут не слишком удачное, потому что параметр по умолчанию в виртуальной функции это очень нехорошо. Он свяжется статически, а не динамически и породит массу проблем, описанных ранее (см. \ref{DefArguments}).
+
+Выходом тут является идиома NVI (см. \ref{NVI})
+
+\begin{lstlisting}
+struct memory_resource {
+  void* allocate(size_t n, size_t align = alignof(max_align_t));
+  void deallocate(void* p, size_t n);
+  bool is_equal(const memory_resource&) const noexcept;
+protected:
+  virtual void* do_allocate(size_t n, size_t align) = 0;
+  virtual void do_deallocate(void* p, size_t n) = 0;
+  virtual bool do_is_equal(const memory_resource&) const noexcept = 0;
+};
+\end{lstlisting}
+
+Получившийся класс не является аллокатором, потому что теперь он не удовлетворяет требованиям 2011-го года к интерфейсу аллокатора. Но вся прелесть в том, что он и \textbf{не называется} аллокатором. Это полиморфный ресурс в памяти, от которого теперь можно наследовать всякие интересные ресурсы.
+
+В стандарте прописаны следующие стандартные наследники
+
+\begin{itemize}
+\item \lstinline!null_memory_resource! – самый интересный ресурс, всегда nullptr
+\item \lstinline!new_delete_resource! – стандартный ресурс с new/delete
+\item \lstinline!synchronize_pool_resource! – мультипул с многопоточной синхронизацией
+\item \lstinline!unsynchronize_pool_resource! – быстрый мультипул без синхронизации
+\item \lstinline!monotonic_buffer_resource! – монтонное выделение
+\end{itemize}
+
+Тут встречаются два новых термина – мультипул (multipool) и монотонное (monotonic) выделение. Это две стратегии работы с памятью, настолько себя зарекомендовавшие, что их предложили в стандарт. Монотонный ресурс это ресурс, который монотонно выделяет память внутри некоего заранее выделенного буфера. Память не освобождается, в конце работы прибивается сам буфер (стоит памяти при частых аллокациях). Мультипул ресурс это несколько связанных пулов, в которые выделяется и освобождается память. Пулы преаллоцируются и при нехватке, выделяется больший и больший (ускоряет работу при аллокациях/деаллокациях)
+
+Теперь, при наличии ресурса, осталось только сделать к нему адаптер, который является честным C++11 аллокатором.
+
+\begin{lstlisting}
+template<typename T> struct polymorphic_allocator {
+  polymorphic_allocator();
+  polymorphic_allocator(memory_resource *mr);
+  T* allocate (size_t n);
+  void deallocate(T* p, size_t n);
+  // .... etc ....
+private: 
+  memory_resource* mr_;
+};
+\end{lstlisting}
+
+Выше приведён псевдокод, потому что настоящий \lstinline!polymorphic_allocator! должен быть всегда scoped, то есть наследовать от \lstinline!scoped_allocator_adaptor!.
+
+\textbf{Вопрос к студентам:} как бы вы реализовали копирующее присваивание для \lstinline!polymorphic_allocator!?
+
+\ifanswers
+Правильный ответ: тривиально запретить. Он же ограничен по области распространения и значит привязан к месту, а не к объекту.
+
+Более тонкий вопрос тут что делать с конструктором копирования. На удивление самым разумным выбором будет оставить его по умолчанию, то есть копировать значение указателя на \lstinline!memory_resource! по значению. Приходите на мои лекции, там я разбираю ходы в этой позиции и показываю к чему приводят все остальные. Или сделайте это дома сами, тут не высшая математика, тут всё просто.
+\fi
+
+Начиная с C++17, вся стандартная библиотека с полиморфной аллокацией включена в пространство имён \lstinline!std::pmr!.
+
+\begin{lstlisting}
+namespace pmr {
+  template <class T> using vector =
+    ::std::vector<T, std::pmr::polymorphic_allocator<T>>;
+  // .... all other containers ....
+}
+\end{lstlisting}
+
+Для удобства туда же включены классы полиморфного аллокатора, основные ресурсы в памяти и прочее.
+
+Следующий код это пример ещё одного вектора на стеке, на этот раз в реалиях pmr.
+
+\begin{lstlisting}
+constexpr size_t sz = 1000 * sizeof(double);
+char buffer[sz] alignas(double);
+pmr::monotonic_buffer_resource alloc(buffer, sz);
+double start = 0.0;
+pmr::vector<double> v1(&alloc);
+generate_n(back_inserter(v1), 100, 
+  [start] () mutable { return (start += 1.1); });
+\end{lstlisting}
+
+Здесь прекрасно всё, но особенно то, что вообще нет аллокаций в динамическую память.
+
+Иногда стандартных ресурсов недостаточно и хочется написать свой ресурс, который инкапсулировал бы свою уникальную стратегию распределения памяти.
+
+\subsection{Иерархия ресурсов в памяти}\label{sub:testresrc}
+
+Для примера можно разработать тестовый ресурс. Он проверяет что аллокация соответствует деаллокации и пытается отслеживать утечки памяти.
+
+\begin{lstlisting}
+struct test_resource : public pmr::memory_resource {
+  // interface here
+private:
+  struct allocation_rec {
+    void *ptr_;
+    size_t nbytes_, nalign_;
+  };
+  pmr::memory_resource *parent_;
+  pmr::vector<allocation_rec> blocks_;
+};
+\end{lstlisting}
+
+Переопределение \lstinline!do_allocate!
+
+\begin{lstlisting}
+void *test_resource::do_allocate(size_t bytes, size_t align) {
+  void *ret = parent_->allocate(bytes, align);
+  blocks_.emplace_back(ret, bytes, align);
+  return ret;
+}
+\end{lstlisting}
+
+Видно, что тестовый ресурс просто сцепляется с тем, над которым он живёт. Это обычная идея: теперь можно складывать \lstinline!memory_resources! в иерархические стопки.
+
+Но любая иерархия неизбежно порождает вопрос, кто в этой иерархии находится сверху.
+
+\begin{lstlisting}
+static test_resource newdefault{pmr::new_delete_resource()};
+pmr::set_default_resource(&newdefault);
+\end{lstlisting}
+
+Для установки ресурса по умолчанию для pmr контейнеров, в стандарте был оставлен хук \lstinline!pmr::set_default_resource! и это худшее, что там было оставлено. Простейший способ нарваться на проблемы тут, это, например, забыть слово \lstinline!static!.
+
+\textbf{Вопрос к студентам:} кстати, а что будет, если тут забыть слово \lstinline!static!?
+
+\ifanswers
+Правильный ответ: проблемы при выполнении деструкторов объектов, которые будут закладываться на то, что дефолтный ресурс ещё существует.
+\fi
+
+Итак, начиная с 2017 года, собственных аллокаторов писать вообще не надо, так как полиморфного аллокатора хватит на всех, а собственные ресурсы в памяти писать действительно просто. Что насчёт собственных контейнеров? Конечно их тоже стало писать удивительно просто.
+
+\subsection{Собственные контейнеры, пользующиеся аллокаторами}\label{sub:polycont}
+
+Для примера подобного рода контейнера можно взять что-то, чего нет в стандарте. В докладе господина Халперна на CppCon \cite{talk:halpern} рассматривался альтернативный дизайн односвязного списка, поддерживающего быстрый \lstinline!size! ценой медленного \lstinline!splice! и быструю вставку как в хвост, так и в голову. Принципиальное устройство такого списка показано на (рис. \ref{fig:slist}). 
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.6\textwidth]{illustrations/slist-crop.pdf}
+\caption{Альтернативный односвязный список}
+\label{fig:slist}
+\end{figure}
+
+Как может быть утсроен узел для такого контейнера? Очевидная для программиста с первого взгляда схема на листинге ниже имеет один недостаток.
+
+\begin{lstlisting}
+template <typename Tp> struct node;
+template <typename Tp> struct node_base {
+  node<Tp> *next_ = nullptr;
+  node_base(const node_base&) = delete;
+  node_base& operator=(const node_base&) = delete;
+};
+template <typename Tp> struct node : node_base<Tp> {
+  Tp value_;
+};
+\end{lstlisting}
+
+Недостаток тут в том, что сложно придумать разумное значение по умолчанию для \lstinline!value_!. Оно будет инициализировано при конструировании но чем и зачем -- неясно.
+
+Выход в распространённом трюке, использующем union: начиная с 2011 года объединения в C++ могут объединять нетривиальные объекты с учётом, что пользователь сам заботится об их памяти.
+
+\begin{lstlisting}
+template <typename Tp> struct node : node_base<Tp> {
+  union { Tp value_; };
+};
+\end{lstlisting}
+
+Это улучшение позволяет внести немного неочевидной job security в код и, одновременно, сэкономить пару тактов времени исполнения (но последнее не точно). Какой же C++ разработчик удержится.
+
+Скелет для итогового класса списка с некоторыми важными частями внутри приведён ниже.
+
+\begin{lstlisting}
+template <typename T> struct slist { 
+  using value_type = T;
+  using allocator_type = pmr::polymorphic_allocator<byte>;
+  // .... etc ....
+public:
+  slist(allocator_type a = {}) : 
+    head_{}, ptail_{&head_}, size_{0}, alloc_{a} {};
+  allocator_type get_allocator() const { return alloc_; }
+  // .... etc ....
+private:
+  node_base head_;
+  node_base *ptail_;
+  size_t size_;
+  allocator_type alloc_;
+};
+\end{lstlisting}
+
+Тот факт, что список способен пользоваться произвольным полиморфным аллокатором, здесь считывается из двух обязательных пунктов:
+
+\begin{enumerate}
+\item Наличия зависимого типа \lstinline!allocator_type!
+\item Наличия метода \lstinline!get_allocator! 
+\end{enumerate}
+
+Тип \lstinline!polymorphic_allocator<byte>! здесь это как бы общий базовый класс для всех аллокаторов. В принципе содержимое треугольных скобок у него не слишком важно: при наличии ребинда, какая разница для какого он типа. Это всего лишь тяжёлое легаси интерфейса 1998-го года.
+
+Удивительное наблюдение тут состоит в том, что все составляющие хороших и правильных аллокаторов уже были известны в 98-м году, но люди стремились к шаблонной сложности и получили её. Урок состоит к том, что хороший программист стремится не к сложности, а к простоте.
+
+Ключевым методом контейнера \lstinline!slist!, разумеется, является \lstinline!emplace!, поскольку именно в его терминах будет реализована вся остальная вставка.
+
+Скелет правильного создания 
+
+\begin{lstlisting}
+template <typename ... Args> iterator
+emplace (iterator i, Args&& ... args) {
+  void *mem = alloc_.resource()->allocate(sizeof(node), alignof(node));
+  node *ret = static_cast<node*>(mem);
+  ret->next_ = i.prev->next_;
+  alloc_.construct(addressof(ret->value_), forward<Args>(args)...);
+  i.prev->next_ = ret;
+  // .... some corner cases .... 
+}
+\end{lstlisting}
+
+\textbf{Вопрос к студентам: кто видит проблему в этом коде?}
+
+\ifanswers
+Правильный ответ: разумеется она в безопасности исключений. Конкретно исключение с самыми печальными последствиями может прилететь из \lstinline!construct!
+\fi
+
+\subsection{Сводная таблица}\label{sub:taballoc}
+
+Аллокаторы это такой своеобразный и так часто меняющшийся механизм стандартной библиотеки, что в нём ничего не стоит запутаться.
+
+Будут ли они меняться дальше или придуманные в 2017 году полиморфные аллокаторы совершенны? Скорее всего, ещё несколько итераций изменения неизбежны. Простейший аргумент это аргумент от стоимости поддержки.
+
+Представьте обычную структуру, состоящую из целого числа и вектора. 
+
+\begin{lstlisting}
+struct S {  
+  int n;
+  vector<int> v;
+}; 
+\end{lstlisting}
+
+Сейчас, так как она написана, эта структура имеет по умолчанию всё необходимое: копирование, присваивание, всё остальное. Кроме поддержки аллокаторов. Сколько кода надо написать, чтобы завести в ней эту поддержку? Увы, даже сейчас это тонны кода. Но чисто интуитивно в этом случае (вектор плюс один элемент) поддержка не должна стоить ничего: вектор уже всё поддержал и завести ещё одно целое под этот зонтик -- технический момент.
+
+Для простоты отслеживания, изменения сложности простейших задач (в весьма условных попугаях) сведены в таблицу.
+
+\begin{center}
+\begin{tabular}{ | l | l | l | l | }
+  \hline
+  Task &  C++98 & C++11 & C++17 \\ \hline \hline
+  Использование & MEDIUM & MEDIUM & EASY \\ \hline 
+  Создание & MEDIUM & EASY & EASY \\ \hline
+  Создание stateful &  IMPOSSIBLE & EASY & EASY \\ \hline 
+  Создание scoped & IMPOSSIBLE & MEDIUM & EASY \\ \hline
+  Новый контейнер & MEDIUM & HARD & MEDIUM \\ \hline
+  \hline
+\end{tabular}
+\end{center}
+
+Это завершает обсуждение аллокаторов.
 
 \pagebreak
 \section{Концепты\index{Concepts}}\label{Concepts}
@@ -20572,6 +20966,12 @@ TODO: домашняя наработка в каком-то виде
 \bibitem{talk:douglas} Niall Douglas, \textit{<<Mongrel Monads>>}, ACCU, 2017
 \bibitem{talk:parent:seasoning} Sean Parent, C++ Seasoning, GoingNative'2013
 \bibitem{talk:parent:datastruct} Sean Parent, Better Code: Data Structures, CppCon'2015
+\bibitem{talk:merdith} Alisdar Meredith, \textit{<<Making allocators work>>}, CppCon, 2014, parts 1 and 2
+\bibitem{talk:alexandrescu:alloc} Andrei Alexandrescu, \textit{<<std::allocator Is to Allocation what std::vector Is to Vexation>>}, CppCon, 2015
+\bibitem{talk:steagall} Bob Steagall, \textit{<<How to write a custom allocator>>}, CppCon, 2017
+\bibitem{talk:halpern} Pablo Halpern, \textit{<<Allocators, the good parts>>}, CppCon, 2017
+\bibitem{talk:lakos} John Lakos,  \textit{<<Local (arena) memory allocators>>}, CppCon, 2017, parts 1 and 2
+\bibitem{talk:sankel} David Sankel, \textit{<<C++17 std::pmr comes with a cost>>}, C++Now, 2018
 %Blog posts
 \bibitem{post:mertz} Arne Mertz, \textit{<<Modern C++ features – keyword noexcept>>}, blog post, 2016
 \bibitem{post:hinalloc} Howard Hinnant, \textit{<<stack\_alloc>>}, github, 2015
