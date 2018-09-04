@@ -18079,46 +18079,59 @@ copy_n (cont.begin(), N, ostream_iterator<tp_>(cout, "\n"));
 \end{lstlisting}
 \fi
 
+Худшее, что тут может произойти: человек может начать видеть алгоритм \lstinline!for_each! во всех циклах, в том числе и в приведённом выше. Это печальная ошибка. Разновидностей алгоритмов много и каждый спецмализирует цикл своим уникальным образом.
+
 \subsection{Общий обзор}
 
-Все алгоритмы можно разбить на семь основных категорий. Может показаться, что вообще-то хватило бы и первых двух: разбиение на модифицирующие и не модифицирующие алгоритмы выглядит исчерпывающим, казалось бы зачем ещё пять категорий?
+Все алгоритмы можно (сравнительно произвольно) разбить на несколько основных категорий. Может показаться, что вообще-то хватило бы и первых двух: разбиение на модифицирующие и не модифицирующие алгоритмы выглядит исчерпывающим. Стандарт (C++17 28.1) делит алгоритмы на не изменяющие структуру последовательности (non modifying), изменяющие структуру последовательности (mutating) и похожие на сортировку (sorting and related) не считая категории-призрака алгоритмов, унаследованных от языка C. Это похоже на анекдот про три способа делать дело (правильный, неправильный и армейский), но такое усложнение имеет смысл.
 
-TODO: объяснялка.
+Например мы договариваемся классифицировать всё по основному назначению алгоритма. Немодифицирующий алгоритм в этих терминах это просто информационный запрос к контейнеру, в то время, как модифицирующий нужен именно для того, чтобы изменить структуру контейнера. В этом смысле, несомненно, \lstinline!sort! это модифицирующий алгоритм, а \lstinline!is_sorted! -- нет. Но есть нечто большее, связывающее эти два алгоритма: оба они относятся к сортировке и их, поэтому, можно выделить в специальную группу вместе с другими, относящимися к сортировке и разбиению алгоритмами, как модифицирующими, так и не модифицирующими.
 
-\begin{itemize}
-\item \textbf{Немодифицирующие}
+Автор этих лекций в итоге остановился на шести основных категориях.
+
+\subsubsection{Немодифицирующие}
+
 \begin{itemize}
 \item \lstinline!all!, \lstinline!any!, \lstinline!none!
-\item \lstinline!for_each!
-\item \lstinline!count!
+\item \lstinline!for_each (n)!
+\item \lstinline!find (if), count (if)!
+\item \lstinline!search, find_end, find_first_of!
 \item \lstinline!mismatch!
-\item \lstinline!equal!
-\item \lstinline!find!
-\item \lstinline!search!
+\item \lstinline!adjacent_find!
+\item \lstinline!min (element), max (element), minmax (element)!
+\item \lstinline!clamp!
+\item \lstinline!equal, lexicographical_compare!
 \end{itemize}
-\item \textbf{Модифицирующие}
+
+Собранные в этой секции алгоритмы делают запрос самого общего вида. Начиная от \lstinline!all! и заканчивая \lstinline!find_first_of! это всё поиск на несортированных контейнерах. При этом даже если контейнер сортированный, они будут работать с ним как с несортированным.
+Несколько особняком стоит \lstinline!for_each! потому что он, строго говоря, ничего не запрашивает. Но принцип его работы такой же, как у поиска. Только он ``находит'' все элементы контейнера.
+При объяснении на лекциях, наибольший интерес вызывали \lstinline!adjacent_find! и \lstinline!clamp! 
+
+\subsubsection{Модифицирующие}
+
 \begin{itemize}
-\item \lstinline!copy!, \lstinline!move!
-\item \lstinline!fill!
-\item \lstinline!transform!
-\item \lstinline!generate!
-\item \lstinline!remove!
-\item \lstinline!replace!
+\item \lstinline!copy (if) (n) (backward)!, \lstinline!move (backward)!
 \item \lstinline!swap!, \lstinline!swap_ranges!, \lstinline!iter_swap!
-\item \lstinline!reverse!, \lstinline!rotate!
+\item \lstinline!transform!
+\item \lstinline!replace (copy) (if)!
+\item \lstinline!fill (n)!
+\item \lstinline!generate (n)!
+\item \lstinline!remove (copy) (if)!
+\item \lstinline!unique (copy)!
+\item \lstinline!reverse!, \lstinline!rotate (copy)!
 \item \lstinline!shuffle!
 \item \lstinline!sample!
-\item \lstinline!unique!
 \end{itemize}
-\item \textbf{Разбиения и сортировки}
+
+Здесь тоже в целом всё понятно. Обычно некое смущение вызывает алгоритм 
+
+\subsubsection{Сортировка и бинарный поиск}
+
 \begin{itemize}
 \item \lstinline!is_partitioned!, \lstinline!is_sorted!
 \item \lstinline!partition!, \lstinline!stable_partition!
 \item \lstinline!sort!, \lstinline!partial_sort!, \lstinline!stable_sort!
 \item \lstinline!nth_element!
-\end{itemize}
-\item \textbf{Алгоритмы на сортированных интервалах}
-\begin{itemize}
 \item \lstinline!binary_search! 
 \item \lstinline!lower_bound!
 \item \lstinline!upper_bound!
@@ -18127,33 +18140,30 @@ TODO: объяснялка.
 \item \lstinline!includes!
 \item set operations: \lstinline!set_difference!, \lstinline!set_intersection!, etc...
 \end{itemize}
-\item \textbf{Кучи}
+
+\subsubsection{Слияния и кучи}
+
 \begin{itemize}
 \item \lstinline!is_heap!
 \item \lstinline!make_heap!
 \item \lstinline!push_heap!
 \item \lstinline!pop_heap!
 \end{itemize}
-\item \textbf{Минимум, максимум и перестановки}
+
+\subsubsection{Численные}
+
 \begin{itemize}
-\item \lstinline!max!, \lstinline!min!, \lstinline!minmax!
-\item \lstinline!max_element!, \lstinline!min_element!, \lstinline!minmax_element!
-\item \lstinline!clamp!
 \item \lstinline!is_permutation!
 \item \lstinline!next_permutation!
 \item \lstinline!prev_permutation!
-\end{itemize}
-\item \textbf{Численные}
-\begin{itemize}
 \item \lstinline!accumulate!, \lstinline!reduce!
 \item \lstinline!iota!
 \item \lstinline!partial_sum!, \lstinline!exclusive_scan!, \lstinline!inclusive_scan!
 \item \lstinline!adjacent_difference!
 \item \lstinline!inner_product!
 \end{itemize}
-\end{itemize}
 
-В этот обзор не вошла работа с неинициализированной памятью (такие функции как \lstinline! uninitialized_default_construct!) и наследство стандартной библиотеки C. Легко подсчитать, что здесь не больше 50 пунктов, которые и определяют основное ядро алгоритмов, вместе с суффиксами и всякой экзотикой.
+В этот обзор не вошла работа с неинициализированной памятью (такие функции как \lstinline!uninitialized_default_construct!) и наследство стандартной библиотеки C. Легко подсчитать, что здесь не больше 50 пунктов, которые и определяют основное ядро алгоритмов, вместе с суффиксами и всякой экзотикой.
 
 \subsection{Идиома erase-remove}\label{subsub:eraseremove}
 
@@ -18194,7 +18204,7 @@ v.erase (unique (v.begin(), v.end()), v.end());
 
 \subsection{Абстракция циклов}
 
-TODO: перенести со слайдов и поставить ссылку на Парента.
+TODO: перенести со слайдов и поставить ссылку на Парента \cite{talk:parent:seasoning}
 
 \subsection{Трансформации}
 
