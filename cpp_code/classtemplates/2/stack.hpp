@@ -116,7 +116,7 @@ void Stack<T>::pop (void)
   delete topelem;
 }
 
-// extern template class Stack<int>;
+extern template class Stack<int>;
 // extern template Stack<double>::Stack (Stack<float> const &rhs);
 
 // --- service declarations
