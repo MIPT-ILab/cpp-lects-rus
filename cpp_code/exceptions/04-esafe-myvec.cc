@@ -118,7 +118,7 @@ main() {
   cout << v2.size() << endl;
   cout << v3.size() << endl;
 
-#if 0
+#if VECVEC
   MyVector<MyVector<int>> vv(1);
   vv.push(v);
   vv.push(v2);
@@ -126,7 +126,7 @@ main() {
   cout << vv.size() << endl;
 #endif
 
-#if 0
+#if VECREF
   MyVector<RefBind> vr(10);
   vr.push(10);
   MyVector<RefBind> vr2(vr);

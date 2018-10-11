@@ -5,23 +5,13 @@
 
 using std::cout;
 using std::endl;
-using std::forward;
 using std::runtime_error;
-using std::swap;
 
-#if !defined(VTEMPLATES)
 template <typename T> void
 construct (T *p, const T& rhs) 
 {
   new (p) T (rhs);
 }
-#else
-template <typename T, typename ... Ts> void
-construct (T *p, Ts&& ... values) 
-{
-  new (p) T (forward<Ts>(values)...);
-}
-#endif
 
 template <class T> void
 destroy(T* p)
@@ -39,41 +29,27 @@ void destroy (FwdIter first, FwdIter last)
 template <typename T>
 struct MyVectorBuf 
 {
-  MyVectorBuf(const MyVectorBuf&) = delete;
-  MyVectorBuf& operator= (const MyVectorBuf&) = delete;
+  MyVectorBuf(const MyVectorBuf&); // = delete;
+  MyVectorBuf& operator= (const MyVectorBuf&); // = delete;
 protected:
   T *arr_;
   size_t size_, used_;
 
   MyVectorBuf(size_t sz = 0) : 
-    arr_((sz == 0) ? nullptr : 
+    arr_((sz == 0) ? NULL : 
       static_cast<T*>(::operator new(sizeof(T) * sz))), 
     size_(sz), used_(0) {}
 
-  ~MyVectorBuf() noexcept {
+  ~MyVectorBuf() {
     destroy(arr_, arr_ + used_);
     ::operator delete(arr_);
   }
 
-#if !defined(RVREFS)
-  void swap(MyVectorBuf &rhs) noexcept {
+  void swap(MyVectorBuf &rhs) /* noexcept */ {
     std::swap (arr_, rhs.arr_); 
     std::swap (size_, rhs.size_); 
     std::swap (used_, rhs.used_);
   }
-#else
-  MyVectorBuf(MyVectorBuf&& rhs) noexcept: arr_(rhs.arr_), size_(rhs.size_), used_(rhs.used_) {
-    rhs.arr_ = nullptr;
-    rhs.size_ = 0; rhs.used_ = 0;
-  }
-
-  MyVectorBuf& operator= (MyVectorBuf &&rhs) noexcept {
-    swap (arr_, rhs.arr_); 
-    swap (size_, rhs.size_); 
-    swap (used_, rhs.used_);
-  }
-#endif
-  
 };
 
 template <typename T> struct MyVector : 
@@ -93,19 +69,10 @@ template <typename T> struct MyVector :
     }
   }
 
-#if defined(RVREFS)
-  MyVector (MyVector &&rhs) = default;
-  MyVector& operator= (MyVector &&rhs) = default;
-#endif
-
   MyVector& operator= (const MyVector &rhs) 
   {
     MyVector tmp (rhs); 
-#if !defined(RVREFS)
     this->swap(tmp);
-#else	
-    swap (*this, tmp); 
-#endif
     return *this;
   }
 
@@ -130,7 +97,7 @@ template <typename T> struct MyVector :
       while (tmp.size() < used_)
         tmp.push(arr_[tmp.size()]);
       tmp.push(t);
-      swap(*this, tmp);
+      this->swap(tmp);
     }
     else {
       construct(arr_ + used_, t);
