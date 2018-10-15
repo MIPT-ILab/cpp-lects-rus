@@ -13585,7 +13585,7 @@ Acceleration acc = sp1/0.5_s; // ok again
 
 Шаблоны, точно так же, как объектно-ориентированная подсистема не просто дают новые инструменты. Они существенно влияют на проектирование программ. В этом разделе будут рассмотены некоторые распространённые способы и приёмы проектирования с учётом шаблонов
 
-\subsection{Характеристики}\label{subsub:traits}
+\subsection{Характеристики}\label{sub:traits}
 
 Определители и модификаторы типов из (\ref{TypeTraits}) представляют собой неплохую технику распознавания тривиальных свойств. Они позволяют ответить является ли тип указателем или можно ли сконструировать его объект по образцу. Но вообще=-то этого очевидно не достаточно.
 
@@ -14188,7 +14188,11 @@ typedef basic_string<wchar_t> wstring;
 
 Но это не отменяет необходимости реализовать все 89 методов, среди которых могут быть нетривиальные. Самые простые вопросы: как сравнивать символы, что такое завершающий символ, как копировать символы -- это вопросы, ответы накоторые сложно получить, не зная ничего о символе.
 
-По традиции вся эта информация выносится в класс характеристик (traits\index{traits}). Техника характеристик типов уже была описана в (\ref{subsub:traits}), это её применение.
+По традиции вся эта информация выносится в класс характеристик (traits\index{traits}). 
+
+\ifmoderncpp
+Техника характеристик типов уже была описана в (\ref{sub:traits}), это её применение.
+\fi
 
 \begin{lstlisting}
 template <typename CharT> class char_traits;
@@ -17534,7 +17538,9 @@ a--;
 
 Таким образом требование к чему-то ``быть forward итератором'' это аббревиатура к набору условий на этот тип. Для того, чтобы на этапе компиляции различать категории итераторов и даже делать перегрузки функций по этим категориям, служат \textbf{характеристики итераторов}. 
 
-Техника характеристик типов уже была описана в (\ref{subsub:traits}). По сути здесь она просто применяется к итераторам.
+\ifmoderncpp
+Техника характеристик типов уже была описана в (\ref{sub:traits}). По сути здесь она просто применяется к итераторам.
+\fi
 
 Полный перечень характеристик совпадает с перечнем категорий и каждая характеристика это отдельный тип (ничего слишком интересного в себе не содержащий).
 
@@ -20989,10 +20995,8 @@ gather(start, finish, pos, predicate).
 и переводит его в \lstinline!vector<vector<string>>! где номер класса это индекс во внешнем векторе. В данном случае это будет \lstinline!{{lion, bear}, {pear, carrot}, {ford}}!
 \end{enumerate}
 
-\ifmulti
-
 \pagebreak
-\chapter{Толкаясь невидимыми локтями}\label{sec:mt}
+\chapter{Толкаясь невидимыми локтями}\label{chap:mt}
 
 \hfill\textit{I’ve written well over a thousand programs,}
 
@@ -21006,29 +21010,452 @@ gather(start, finish, pos, predicate).
 
 \hfill\textit{-- Donald Knuth}
 
-Многопоточность всегда оставалась за кадром стандартных возможностей C++ и была отдана на откуп API конкретных библиотек и операционной системы. Это порождало различных уродцев, когда заказчик хотел видеть программу портабельной и для Windows и для Unix и программист был вынужден либо сам увешивать свой код условной компиляцией, либо использовать библиотеки, которые уже сделали это за него. Зачастую разные. Зачастую с кривым и несовместимым интерфейсом. В стандарте C++11 решено было наконец покончить с этой вольницей и урегулировать работу с потоками, стандартизовав её и предоставив простые и логичные механизмы для распараллеливания и синхронизации в программах на C++.
+Многопоточность долгое время оставалась за кадром стандартных возможностей C++ и была отдана на откуп API конкретных библиотек и операционной системы. С одной стороны это породило тонны чудовищного легаси, когда в одной программе под условной компиляцией сочетались windows и posix потоки. С другой стороны это позволило отложить проектирование многопоточности в языке и сразу сделать всё более-менее правильно. Начиная с 2011 года многопоточность уверенно вошла в язык, принеся с собой много новых понятий и концепций.
 
-Современный C++ предлагает потрясающие возможности по поддержке многопоточности. Удивительно, но при этом оказывается, что многопоточность как таковая не слишком и нужна: очень многие вещи решаются совмещением конкуретного и асинхронного подходов
+В это части сделана попытка изложить не просто языковые средства многопоточности, но дать представление о самой идее, о специфичной логике таких программ и об основных решениях и идиомах при их проектировании.
 
 \pagebreak
-\section{Нити исполнения и вышивание}
+\section{Нити исполнения и вышивание}\label{sec:threads}
 
-TODO: здесь про базовые механизмы \lstinline!std::thread! и синхронизацию
+Существует своеобразная терминологическая омонимия в русском слове ``поток''. Им обозначают как поток ввода-вывода (то что по английски называется stream) так и нить исполнения программы (то что по английский называется thread). Эта путаница не так страшна, как её иногда малюют. В большинстве случаев всё вполне понятно из контекста. Тем не менее, в этой главе будет использоваться слово ``нить'' позволяющее избежать двусмыленности.
+
+Первая программа hello world как раз задействует потоки в обоих смыслах: создаётся нить исполнения, которая выводит приветствие миру на стандартный поток вывода.
+
+\begin{lstlisting}
+int main () {
+  thread t([](){ cout << "Hello, world!" << endl; });
+  t.join();
+}
+\end{lstlisting}
+
+Две вещи которые вызвавший контекст может сделать с порождённым потоком это дождаться его (\lstinline!t.join!) или отказаться от него (\lstinline!t.detach!). Если не сделать ни того ни другого, то по завершению функции (скажем \lstinline!main! в примере выше), будет вызвана функция (\lstinline!std::terminate!).
+
+\textbf{Вопрос к студентам:} что это означает с точки зрения безопасности относительно исключений?
+
+\ifanswers
+Это означает, что поток это критический ресурс и должен быть либо завернут в какую-нибудь обёртку, либо catch-all и всё вытекающее
+\fi
+
+Важно понимать, что функция \lstinline!main! тоже выполняется в потоке (это основная нить выполнения программы и она неявно присутствует всегда).
+
+\begin{lstlisting}
+int main () {
+  cout << "Parent id: " << std::this_thread::get_id() << endl;
+  thread t([](){ cout << "Spawned id: " 
+                      << std::this_thread::get_id() << endl; });
+  t.join();
+}
+\end{lstlisting}
+
+Нити исполнения естественным образом возникают в различных задачах: например пользовательский интерфейс может работать в одном потоке, пока в другом потоке предвычисляется содержимое его выпадающих списков на случай если пользователь решит их раскрыть. Или некий алгоритм (такой как сортировка) является ключевым в программе и для него хотелось бы использовать все доступные аппаратные возможности: тогда сортировку можно прогнать во много потоков а потом смержить результаты.
+
+В целом параллельное программирование нужно для производительности.
+
+\subsection{Параллельное выполнение}\label{sub:parallel}
+
+Разумеется, чтобы распараллелить какую-нибудь простую задачу, например сортировку или суммирование массива, в потоки надо научится передавать данные и возвращать их.
+
+Здесь всё довольно просто: функция потока принимает произвольное количество аргументов, которые передаются потоку при его создании. Если аргументы нужно передать по ссылке, они заворачиваются в обёртку вроде \lstinline!std::ref!.
+
+\begin{lstlisting}
+void divide(int& result, int a, int b) {
+  result = a / b;
+}
+
+int main () {
+  int result;
+  thread t(divide, std::ref(result), 30, 6);
+  t.join();
+  cout << "result: " << result << endl;
+}
+\end{lstlisting}
+
+И вот пришло время посмотреть как многопоточность дарит нам производительность.
+
+Распараллеливание суммирования элементов массива рассмотрено в большом количестве источников, в частности \cite{williams}. 
+
+Приведённый ниже код неоправданно прост и наивен и всё равно по замерам автора даже на слабеньком core i3 он даёт существенный прирост: 0.15 против 0.2 секунд для массива в 200 миллионов целых.
+
+\begin{lstlisting}
+template <typename Iterator, typename T>
+T parallel_accumulate(Iterator first, Iterator last, T init)
+{
+  long length = distance(first, last);
+  if (0 == length) return init;
+  unsigned nthreads = determine_threads(length);
+  long bsize = length / nthreads;
+
+  vector<thread> threads(nthreads);
+  vector<T> results(nthreads + 1);  
+
+  auto accumulate_block = [](Iterator first, 
+                             Iterator last, T& result) {
+    result = accumulate(first, last, T{});
+  };
+
+  unsigned tidx = 0;
+
+  for (; length >= bsize * (tidx + 1);  first += bsize, tidx += 1)
+    threads[tidx] = thread(accumulate_block, 
+                           first, first + bsize, 
+                           ref(results[tidx]));  
+
+  auto remainder = length - bsize * tidx;
+
+  if (remainder > 0) {
+    assert(tidx == nthreads);
+    results[tidx] = accumulate_block(first, first + remainder, T{});
+  }
+
+  for (auto&& t: threads) 
+    t.join();
+
+  return accumulate(results.begin(), results.end(), init);
+}
+\end{lstlisting}
+
+Хвост массива обрабатывается в том же потоке, что даёт время порождённым потокам завершить работу и не оставляет основной поток ждать без дела.
+
+На строчке 6 здесь определяется количество потоков и это делается довольно глупым образом: берётся просто число 4. В принципе это довольно пессимистично для сильных компьютеров, имеющих много потоков и, вместе с тем, сильно оптимистично для какой-нибудь embedded железки.
+
+\begin{lstlisting}
+unsigned determine_threads(unsigned length) {
+  const unsigned long min_per_thread = 25;
+  unsigned long max_threads = length / min_per_thread;
+  unsigned long hardware_conc = std::thread::hardware_concurrency();
+  return std::min(hardware_conc != 0 ? hardware_conc : 2, max_threads);
+}
+\end{lstlisting}
+
+В этой функции тоже задаётся некий произвольный параметр: минимальное число элементов в подмассиве чтобы ради них вообще имело смысл вызывать отдельный поток, но этот параметр имеет куда больше смысла. Остальное тут определяется через функцию \lstinline!hardware_concurrency!, позволяющую оценить возможности текущей аппаратуры к параллелизму.
+
+Далее использование становится довольно очевидным.
+
+\begin{lstlisting}
+unsigned nthreads = determine_threads(length);
+\end{lstlisting}
+
+\textbf{Домашняя наработка:} нагуглите и реализуйте распараллеливание быстрой сортировки.
+
+Для C++20 сейчас рассматривается Parallelism TS -- параллельные версии алгоритмов для включения в стандартную библиотеку. Во многих современных компиляторах они уже включены в пространство имён \lstinline!experimental! и доступны для того, чтобы с ними играть.
+
+Например параллельный \lstinline!accumulate! это \lstinline!parallel::reduce! и его вовсе не нужно писать руками.
+
+\begin{lstlisting}
+std::experimental::parallel::reduce(
+  std::experimental::parallel::par, 
+  v.begin(), v.end());
+\end{lstlisting}
+
+\textbf{Домашняя наработка:} исследуйте, поддерживает ли ваш компилятор параллельный reduce? Что говорят замеры против реализованного вручную?
+
+Кроме того специальное полустандартное расширение OpenMP позволяет параллелить код в том числе нетривиальный, посредcтвом установки специальных прагм в нужных местах, а остальное компилятор делает за пользователя.
+
+Интенсивный курс по OpenMP можно найти здесь: \url{https://courses.cs.washington.edu/courses/csep524/13wi/omp_tutorial_full.pdf}
+
+\subsection{Обещания и асинхронность}\label{sub:async}
+
+Распараллеливание accumulate, sort и прочих алгоритмов может быть рассмотрено и с другой точки зрения: среда исполнения получает ряд задач, которые асинхронно исполняются. Часть из них могут в принципе исполняться и на одном и том же потоке, программисту не всегда следует лезть в этот механизм руками. Стиль языка C++ всегда гарантирует, что если что, то залезть руками можно, но всегда надо понимать, что более высокий уровень абстракции означает меньше головной боли.
+
+Проблема, как обычно в том, чтобы обобщить коммуникацию между потоками на коммуникацию между задачами. И здесь в игру вступает механизм обещаний.
+
+Функция деления из (\ref{sub:parallel}) выглядела не слишком красиво
+
+\begin{lstlisting}
+void divide(int& result, int a, int b) {
+  result = a / b;
+}
+\end{lstlisting}
+
+Канал коммуникации есть, но он какой-то уж очень самобытный. Вместо этого можно использовать передачу в функцию обещания
+
+\begin{lstlisting}
+void divide(promise<int> result, int a, int b) {
+  result.set_value(a / b);
+}
+\end{lstlisting}
+
+Теперь специальная сигнализация через \lstinline!std::future! позволяет использовать результат ровно тогда, когда он готов
+
+\begin{lstlisting}
+promise<int> result;
+future<int> f = result.get_future();
+thread t(divide, move(result), 30, 6);
+t.detach();
+
+// .... more code ...
+
+cout << "result: " << f.get() << endl;
+\end{lstlisting}
+
+Если к моменту вызова \lstinline!f.get()! результат не будет готов, вызвавший поток заблокируется.
+
+Объект \lstinline!std::promise! позволяет вызывать два метода для установки результата: \lstinline!set_value! и \lstinline!set_exception!. В случае если установлено исключение, оно выстрелит при попытке сделать \lstinline!future::get!. Это очень похоже на механизм \lstinline!expect!, предлагаемый в новый стандарт для исключений.
+
+Чтобы не работать с обещаниями руками, можно завернуть функцию, возвращающую результат, в специальную обёртку, \lstinline!packaged_task! заточенную под использование такого рода
+
+\begin{lstlisting}
+int divide(int a, int b) {
+  return a / b;
+}
+
+packaged_task<int(int, int)> task {divide};
+future<int> f = task.get_future();
+thread(move(task), 30, 6);
+t.detach();
+
+// .... more code ...
+
+cout << "result: " << f.get() << endl;
+\end{lstlisting}
+
+Теперь упакованная задача позволяет не портить саму функцию \lstinline!divide!, а просто завернуть её в класс и отдать потоку.
+
+В качестве примера, можно переписать параллельный accumulate из (\ref{sub:parallel}) с помощью \lstinline!packaged_task!
+
+\begin{lstlisting}
+template <typename Iterator, typename T>
+T parallel_accumulate(Iterator first, Iterator last, T init)
+{
+  long length = distance(first, last);
+  if (0 == length) return init;
+  const unsigned nthreads = determine_threads(length);
+  long bsize = length / nthreads;
+
+  vector<future<T>> results(nthreads);
+
+  auto accumulate_block = [](Iterator first, Iterator last) {
+    return accumulate(first, last, T{});
+  };
+
+  unsigned tidx = 0;
+
+  for (; length >= bsize * (tidx + 1); 
+         first += bsize, tidx += 1) {
+    packaged_task<T(Iterator, Iterator)> task{accumulate_block};
+    results[tidx] = task.get_future();
+    thread t {move(task), first, first + bsize};
+    t.detach();
+  }
+
+  auto remainder = length - bsize * tidx;
+
+  T result = init;
+
+  if (remainder > 0) {
+    assert(tidx < nthreads);
+    result += accumulate_block(first, first + remainder);
+  }
+
+  for (unsigned long i = 0; i < nthreads; ++i)
+    result += results[i].get();
+
+  return result;
+}
+\end{lstlisting}
+
+Основные особенности: теперь не надо хранить массив потоков, о каждом потоке можно просто забыть через \lstinline!detach! и это будет окей, потому что от него уже получено обещание и сохранено в массив обещаний. Теперь финальный сбор \lstinline!results[i].get()! подождёт сколько надо до готовности результата упакованной в поток задачи.
+
+Ещё более удобно вообще не использовать порождение потока в явном виде, а сразу отдать задачу на асинхронное выполнение.
+
+Синтаксический сахар для этого предоставляет \lstinline!std::async!
+
+В итоге сравнительно сложный для понимания код, явно порождающий потоки и отдающий в них задачи в ручном режиме
+
+\begin{lstlisting}
+for (; length >= bsize * (tidx + 1); 
+       first += bsize, tidx += 1) {
+  packaged_task<T(Iterator, Iterator)> task{accumulate_block};
+  results[tidx] = task.get_future();
+  thread t {move(task), first, first + bsize};
+  t.detach();
+}
+\end{lstlisting}
+
+Превращается в совсем простой:
+
+\begin{lstlisting}
+for (; length >= bsize * (tidx + 1); 
+       first += bsize, tidx += 1)
+    results[tidx] = async(accumulate_block, 
+                          first, first + bsize);  
+\end{lstlisting}
+
+Замеры скорости не показывают существенных проседаний, все эти абcтракции вполне прозрачны и бесплатны.
+
+\subsection{Чуть больше про обещания}\label{sub:promises}
+
+Обещание, которое никто не собирается выполнять -- простой способ навсегда заблокировать поток.
+
+\begin{lstlisting}
+promise<int> pr;
+auto fut = pr.get_future();
+fut.get(); // forever
+\end{lstlisting}
+
+С этим связана опасность исполнения \lstinline!async! на пулах потоков: если два зависимых обещания пул распределит в один поток, эта программа не завершится. К сожалению, в стандарте не специфицировано породит ли каждый вызов \lstinline!async! новый тред или будет использован в пуле. Поэтому часто люди плюют на эту головную боль и используют \lstinline!packaged_task! и явные потоки.
+
+Попытка дважды получить \lstinline!future! или дважды поставить значение \lstinline!promise! это исключение времени выполнения
+
+\begin{lstlisting}
+std::promise<int> pr;
+auto fut1 = pr.get_future();
+auto fut2 = pr.get_future();  // Error: future already retrieved
+pr.set_value(10);
+pr.set_value(10);  // Error: promise already satisfied
+\end{lstlisting}
+
+Если объект обещания у которого получено обещание, умирает раньше, чем выполняет его, это ошибка времени выполнения (нарушенное обещание).
+
+\begin{lstlisting}
+promise<int> pr;
+auto fut = pr.get_future();
+
+{
+  promise<int> pr2(move(pr));
+} // Error: broken promise
+\end{lstlisting}
+
+Дополнительно: доклад Пабло Халперна про распараллеливание \url{https://www.youtube.com/watch?v=Ej97699t-G0}
+
+\ifmulti
+
+\pagebreak
+\section{Конкуренция за данные}\label{sec:concurrency}
+
+Это просто отличная ситуация, когда проблему удаётся распараллелить таким образом, чтобы потоки никогда не использовали общих ресурсов и вся система представляла собой набор изолированных процессов, максимум что делающих это обменивающихся сообщениями через опять-таки неконкурентные каналы вроде сокетов.
+
+Но в реальных системах за пределами искуственных или мега-низкоуровневых примеров, такое распараллеливание это сладкий сон. Жизнь, как водится, жёстче. Всегда есть некоторый разделяемый контекст, всегда есть борьба за него у работающих с ним потоков и всегда есть необходимость в синхронизации.
+
+В этом разделе речь пойдёт в основном про так называемые примитивы синхронизации: мьютексы разных типов, условные переменные и т.д., а также про высокоуровневые методы работы с ними посредством так называемых защёлок (\lstinline!lock_guard!, \lstinline!unique_lock!).
+
+\subsection{Гонки}\label{sub:races}
+
+Мой любимый пример на гонку, это, собственно, гонка.
+
+\begin{lstlisting}
+int x = 0;
+
+void race() {  
+  // going up
+  for(int i = 0; i < 100000; ++i) {
+    x += 1;
+    asm volatile("");
+  }
+
+  // going down
+  for(int i = 0; i < 100000; ++i) {
+    x -= 1;
+    asm volatile("");
+  }
+}
+\end{lstlisting}
+
+Эта функция не делает ничего такого: она всего лишь гонит значение глобальной переменной вверх, а потом вниз, обратно к нулю. Пустые ассемблерные вставки там просто для того, чтобы код не соптимизировался слишком умным компилятором.
+
+Очевидно, что если запустить один поток, работающий с этой функцией, то итогом будет ноль.
+
+\begin{lstlisting}
+thread t{race};
+t.join();
+assert(x == 0);
+\end{lstlisting}
+
+
+\subsection{Простая синхронизация}
+
+\subsection{Мёртвые блокировки}
+
+\subsection{Закон Амдалла}
 
 \pagebreak
 \section{Атомарность}
 
 TODO: здесь про атомарность, её хорошие и плохие стороны
 
+\subsection{Модели памяти}
+
+TODO: модели памяти
+
+\subsection{Хрупкость атомарности}
+
+Ричард Пауэлл в своём докладе \cite{talk:powell} приводит пример условного класса \lstinline!DataHolder! с одним недетерминированно долгим методом, вычисляющим контрольную сумму.
+
+\begin{lstlisting}
+class DataHolder {
+  int calc_checksum() const; // may be long
+public:
+  int get_checksum() const {
+    return calc_checksum();
+  }
+};
+\end{lstlisting}
+
+В таком виде этот класс не содержит неконстантных методов и тривиально безопасен для многопоточных программ. Но что если туда хочется добавить кэширование контрольной суммы?
+
+\begin{lstlisting}
+class DataHolder {
+  mutable atomic<int> cached_checksum_ = 0;
+  mutable atomic<bool> cached_ =  false;
+
+  int calc_checksum() const; // may be long  
+
+public:
+  DataHolder() = default;
+  DataHolder(const DataHolder &rhs) :
+    cached_checksum_(rhs.cached_checksum_.load()),
+    cached_(rhs.cached_.load()) {
+  }
+
+  int get_checksum() const {
+    if (!cached_) {
+      cached_ = true;
+      cached_checksum_ = calc_checksum();
+    }
+    return cached_checksum_;
+  }
+};
+\end{lstlisting}
+
+Теперь для безопасности потоков здесь использованы атомики (не брать же всё под мьютекс) и вынужденно добавлен конструктор копирования, потому что атомики убивают копирование по умолчанию.
+
+Это кажется удивительным, но в этом простом и очевидном коде допущены две грубые ошибки, каждая из которых может привести к тонким и сложно обнаружимым багам при работе программы.
+
+Первая ошибка связана с порядком проверки условий внутри \lstinline!get_checksum!
+
+\begin{lstlisting}
+if (!cached_) {
+  cached_ = true;
+  cached_checksum_ = calc_checksum();
+}
+\end{lstlisting}
+
+Сценарий ошибки такой: первый поток заходит в функцию и видит что \lstinline!cached_ == false!. Он выставляет \lstinline!cached_ = true! и тут в функцию входит второй поток, который видит, что \lstinline!cached_ == true! и возвращает кэшированное значение, которое первый поток ещё не вычислил. Упс.
+
+\textbf{Вопрос к студентам:} к счастью эта ошибка решается тривиальным изменением кода. Каким?
+
+\ifanswers
+Правильный ответ: разумеется поменять местами строчки в теле условного оператора.
+\fi
+
+Вторая ошибка гораздо более удивительна: она связана с тем, что один поток может быть внутри \lstinline!get_checksum!, а второй осуществлять чтение того же объекта для создания его копии в конструкторе копирования.
+
+Сценарий ошибки такой: первый поток начинает копированть объект с неинициализированной контрольной суммой и выставляет её. Далее второй поток вычисляет контрольную сумму, устанавливает \lstinline!cached_ = true! и тут просыпается первый поток и записывает в копию \lstinline!cached_!. Упс. Теперь в копии есть и мусорная контрольная сумма и флаг что она корректна.
+
+\textbf{Вопрос к студентам:} к счастью эта ошибка тоже решается тривиальным изменением кода. Каким?
+
+\ifanswers
+Правильный ответ: разумеется снова поменять местами строчки. На этот раз в конструкторе копирования. Но при этом ещё и не забыть поменять местами поля в классе.
+\fi
+
+Эта ошибка -- тоже своего рода race condition, только гонка тут случается не за одну переменную а за пару семантически связанных переменных.
+
 \pagebreak
 \section{Свобода от оков}
 
 TODO: проектирование lock-free контейнеров
 
-\pagebreak
-\section{Обещания и асинхронность}
-
-TODO: механизм future/promise в деталях плюс \lstinline!std::async!
+Дополнительно: Tony Van Eerd ``Lock-free by Example'' \url{https://www.youtube.com/watch?v=Xf35TLFKiO8}
 
 \pagebreak
 \section{Сопрограммы}
@@ -21038,12 +21465,13 @@ TODO: корутины и их варианты
 \pagebreak
 \section{Межпроцессная коммуникация}
 
-TODO: сокеты
+TODO: сокеты, ASIO
+TODO: fibers и async IO \url{https://www.youtube.com/watch?v=e-NUmyBou8Q}
 
 \pagebreak
 \section{Сетевая коммуникация}
 
-TODO: HTTP
+TODO: HTTP as simple as printf
 
 \pagebreak
 \section{Домашняя наработка по многопоточности}
@@ -21079,6 +21507,7 @@ TODO: домашняя наработка в каком-то виде
 \bibitem{exceptionalcpp} Herb Sutter, \textit{<<Exceptional C++: 47 Engineering Puzzles, Programming Problems, and Solutions>>}, Addison-Wesley, 2000
 \bibitem{moreexceptionalcpp} Herb Sutter, \textit{<<More exceptional C++: 40 new engineering puzzles, programming problems, and solutions>>}, Addison-Wesley, 2002
 \bibitem{mcpp} Andrei Alexandrescu, \textit{<<Modern C++ Design. Generic programming and design patterns applied>>}, Addison-Wesley, 2001
+\bibitem{williams} Anthony Williams, \textit{<<C++ Concurrency in Action>>}, Manning, 2012
 %Books on coding style
 \bibitem{mcconnell} Steve McConnell \textit{<<Code Complete, Second Edition>>}, Microsoft Press, 2004
 \bibitem{sutteralexandresku} Herb Sutter and Andrei Alexandrescu \textit{<<C++ Coding Standards: 101 Rules, Guidelines, and Best Practices (C++ in Depth Series)>>}, Addison-Wesley Professional, 2004
@@ -21110,6 +21539,7 @@ TODO: домашняя наработка в каком-то виде
 \bibitem{talk:halpern} Pablo Halpern, \textit{<<Allocators, the good parts>>}, CppCon, 2017
 \bibitem{talk:lakos} John Lakos,  \textit{<<Local (arena) memory allocators>>}, CppCon, 2017, parts 1 and 2
 \bibitem{talk:sankel} David Sankel, \textit{<<C++17 std::pmr comes with a cost>>}, C++Now, 2018
+\bibitem{talk:powell} Richard Powell, \textit{<<The Importance of Being const">>}, CppCon, 2015
 %Blog posts
 \bibitem{post:mertz} Arne Mertz, \textit{<<Modern C++ features – keyword noexcept>>}, blog post, 2016
 \bibitem{post:hinalloc} Howard Hinnant, \textit{<<stack\_alloc>>}, github, 2015
