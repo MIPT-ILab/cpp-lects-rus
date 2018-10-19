@@ -41,6 +41,7 @@ Problem MP -- перемножение полиномов
 Problem UC -- поиск в массиве double
 Problem CS -- обобщение alg SE
 Problem CQ -- обобщение сортировки
+Problem POW2 -- матрицы в степень
 
 Семинар 4 -- строки и файлы
 
