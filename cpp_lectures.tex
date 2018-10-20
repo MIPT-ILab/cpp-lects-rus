@@ -19700,7 +19700,7 @@ pmr::set_default_resource(&newdefault);
 
 \subsection{Собственные контейнеры, пользующиеся аллокаторами}\label{sub:polycont}
 
-Для примера подобного рода контейнера можно взять что-то, чего нет в стандарте. В докладе господина Халперна на CppCon \cite{talk:halpern} рассматривался альтернативный дизайн односвязного списка, поддерживающего быстрый \lstinline!size! ценой медленного \lstinline!splice! и быструю вставку как в хвост, так и в голову. Принципиальное устройство такого списка показано на (рис. \ref{fig:slist}). 
+Для примера подобного рода контейнера можно взять что-то, чего нет в стандарте. В докладе господина Халперна на CppCon \cite{talk:halpern:allocators} рассматривался альтернативный дизайн односвязного списка, поддерживающего быстрый \lstinline!size! ценой медленного \lstinline!splice! и быструю вставку как в хвост, так и в голову. Принципиальное устройство такого списка показано на (рис. \ref{fig:slist}). 
 
 \begin{figure}[ht]
 \centering
@@ -21371,7 +21371,8 @@ auto fut = pr.get_future();
 
 Разумное использование \lstinline!future! и \lstinline!promise! полностью лежит на плечах программиста. Объекты этих классов не могут быть скопированы (да и вряд ли их копирование несло бы полезную семантическую нагрузку), зато могут быть перемещены, в том числе возвращены из функции. Функция, которая возвращает \lstinline!future! называется future provider. Я предпочитаю переводить это как ``дающая обещание'' потому что ``поставщик будущего'' звучит слишком мрачно и торжественно.
 
-\subsection{Другие виды параллелизма}\label{sub:promises}
+\ifmulti
+\subsection{Другие виды параллелизма}\label{sub:otherpar}
 
 Все рассмотренные выше способы организации параллелизма, включая примеры с openmp и cilk, относились к тому, что называется fork-join parallelism. Наверное можно назвать такой параллелизм порождающим: верхняя функция порождает задачу (fork) а потом ждёт результатов и комбинирует их (join).
 
@@ -21397,6 +21398,7 @@ cilk расширение для гиперобъектов
 extern float a[100], b[100];
 a[:] += g(b[:]);
 \end{lstlisting}
+\fi
 
 \pagebreak
 \section{Конкуренция за данные}\label{sec:concurrency}
@@ -21492,7 +21494,7 @@ void race() {
 
 Стоит также обратить внимание как именно закрыты куски кода мьютексами: по факту закрыто ровно то, что нужно. Такие мьютексы называются тонко настроенными (fine-grained). И наоборот если закрыть всю функцию, это будет грубо настроенный (coarse-grained) мьютекс.
 
-Конечно идея делать руками lock и unlock тут же вызывает желание написать обёртку и больше так не делать. Эта обёртка уже есть и она называется \lstinline!lock_guard!. Это очень обобщённая обёртка: она, грубо говоря, берёт что угодно у чего есть методы \lstinline!lock! и \lstinline!unlock! и вызывает \lstinline!lock! в конструкторе и \lstinline!unlock! в деструкторе.
+Конечно идея делать руками \lstinline!lock()! и \lstinline!unlock()! тут же вызывает желание написать обёртку и больше так не делать. Эта обёртка уже есть и она называется \lstinline!lock_guard!. Это очень обобщённая обёртка: она, грубо говоря, берёт что угодно у чего есть методы \lstinline!lock! и \lstinline!unlock! и вызывает \lstinline!lock! в конструкторе и \lstinline!unlock! в деструкторе.
 
 \begin{lstlisting}
 int x;
@@ -21514,24 +21516,22 @@ void race() {
 Очень распространённая ошибка это написать нечто вроде
 
 \begin{lstlisting}
-    lock_guard<mutex> lk(mforx);
+lock_guard<mutex> lk(mforx); // probably WRONG
 \end{lstlisting}
 
-Надо ли пояснять, что это объявление функции lk? Во всех случаях при работе с тредами ваш друг это фигурные скобки, ни в коем случае не круглые.
+Надо ли пояснять, что это объявление функции \lstinline!lk!? Во всех случаях при работе с тредами ваш друг это фигурные скобки, ни в коем случае не круглые.
 
 Вторая распространённая ошибка это не дать гарду имя
 
 \begin{lstlisting}
-    lock_guard<mutex>(mforx);
+lock_guard<mutex>(mforx); // probably WRONG
 \end{lstlisting}
 
 В этом случае всё будет хорошо, будет создан временный объект, который залочит мьютекс, доживёт до конца полного выражения и разлочит мьютекс сразу же в том месте где написана точка с запятой. Это скорее всего не то, что программист хочет, но это часто встречается.
 
-\subsection{Проблемы интерфейсов}
-
 Тот факт, что вы обложились мьютексами, не гарантирует от проблем, заложенных при проектировании интерфейсов.
 
-Рассмотрим буфер с обычными методами: empty, push, pop и top, подобный тому, который рассматривался при разговоре про исключения \ref{subsub:excsafety}
+Рассмотрим буфер с обычными методами: \lstinline!empty!, \lstinline!push!, \lstinline!pop! и \lstinline!top!, подобный тому, который рассматривался при разговоре про исключения \ref{sub:excsafety}
 
 \begin{lstlisting}
 template <typename T> struct MyBuffer {
@@ -21551,15 +21551,16 @@ private:
 \begin{lstlisting}
 template <typename T> T MyBuffer::top() const {
   lock_guard<mutex> lk{bufmut_};
+  // some more mutable context changes
   return arr_[used_ - 1];
 }
 \end{lstlisting}
 
-В принципе это не обязательно, так как честный const означает thread safe, но это защищённый стиль: мало ли что ещё в классе mutable и что ещё происходит в его const методах.
+В принципе это не обязательно, так как честный \lstinline!const! означает thread safe, но это защищённый стиль: мало ли что ещё в классе \lstinline!mutable! и что ещё происходит в его \lstinline!const! методах.
 
 Тем не менее, это не особо спасает. Даже если внутри этого класса каждый метод заведён под единый для объекта мьютекс, существует сразу два сценария, способных потенциально вызвать ошибку
 
-Первый это гонка между pop и empty. Представим следующий кусок кода.
+Первый это гонка между \lstinline!pop()! и \lstinline!empty()!. Представим следующий кусок кода.
 
 \begin{lstlisting}
 if (!s.empty()) {
@@ -21569,21 +21570,49 @@ if (!s.empty()) {
 }
 \end{lstlisting}
 
-Два потока заходят сюда и оба проходят проверку на непустоту, хотя на самом деле остался только один элемент. Далее первый поток пытается его снять (через pop) и второй тоже, получаем взрыв от разыменования нулевого указателя (в лучшем случае assert внутри pop).
+Два потока заходят сюда и оба проходят проверку на непустоту, хотя на самом деле остался только один элемент. Далее первый поток пытается его снять (через \lstinline!pop!) и второй тоже, получаем взрыв от разыменования нулевого указателя (в лучшем случае \lstinline!assert! внутри \lstinline!pop!).
 
-Второй это гонка между top и pop и вот это уже совсем мрачно. Два потока входят в тот же кусок кода когда в стеке есть два элемента. Далее один из них снимает первый и второй снимает первый. Далее оба удаляют каждый свой элемент
+Второй это гонка между \lstinline!top()! и \lstinline!pop()! и вот это уже совсем мрачно. Два потока входят в тот же кусок кода когда в стеке есть два элемента. Далее один из них снимает первый и второй снимает первый. Далее оба удаляют каждый свой элемент
 
-\subsection{Мёртвые блокировки}
+TODO: пересмотр интерфейса
 
-Вторая после гонок проблема это слишком хорошо заблокированный код, в частности мёртвые блокировки (deadlocks).
+Вторая частая проблема интерфейсов состоит в том, что попытка защёлкнуть уже защёлкнутый мьютекс это UB. Таким образом, если в некоем классе в начале каждого метода стоит защёлкивание мьютекса, один метод этого класса уже не может вызвать другой его метод.
 
-Допустим, нужно написать swap для класса MyBuffer. Первая идея как сделать это в потокобезопасном стиле это написать нечто вроде захвата обоих мьютексов:
+Попытка решения может использовать класс \lstinline!recursive_mutex! -- специальный мьютекс с внутренним счётчиком, который считает количество защёлкиваний.
+
+\begin{lstlisting}
+template <typename T> struct sometype {
+  foo() { 
+    lock_guard<recursive_mutex> lk{mut_};
+    // other works
+  }
+  bar() { 
+    lock_guard<recursive_mutex> lk{mut_};
+    foo();
+    // other work
+  }
+
+private:
+  mutable recursive_mutex mut_;
+  // .... etc ....
+};
+\end{lstlisting}
+
+Это работает, но профессионалы считают, что от такого кода дурно пахнет.
+
+История появления рекурсивных мьютексов в POSIX и аргументация против них изложена, например, здесь: \url{http://www.zaval.org/resources/library/butenhof1.html}
+
+\subsection{Взаимные блокировки}\label{deadlock}
+
+Вторая после гонок проблема это слишком хорошо заблокированный код, в частности взаимные или ``мёртвые'' блокировки (deadlocks).
+
+Допустим, нужно написать \lstinline!swap! для класса \lstinline!MyBuffer!. Первая идея как сделать это в потокобезопасном стиле это написать нечто вроде захвата обоих мьютексов:
 
 \begin{lstlisting}
 template <typename T> void 
 MyBuffer::swap(MyBuffer<T> &rhs) noexcept {
-  lock_guard<mutex> lk1{bufmut_};
-  lock_guard<mutex> lk2{rhs.bufmut_};
+  std::lock_guard<mutex> lk1{bufmut_};
+  std::lock_guard<mutex> lk2{rhs.bufmut_};
   std::swap(data_, rhs.data_);
   std::swap(size_, rhs.size_);
   std::swap(used_, rhs.used_);
@@ -21594,13 +21623,130 @@ MyBuffer::swap(MyBuffer<T> &rhs) noexcept {
 
 Но даже игнорируя это (в конце концов, добавить проверку на неравенство несложно), этот код чудовищно плох.
 
-Сценарий ошибки такой: первый поток меняет местами x и y. В это время второй меняет местами y и x. Первый захватил мьютекс для x и ждёт мьютекса для y. Второй в это время взял мьютекс для y и ждёт мьютекса для x. Собственно всё.
+Сценарий ошибки такой: первый поток меняет местами \lstinline!x! и \lstinline!y!. В это время второй меняет местами \lstinline!y! и \lstinline!x!. Первый захватил мьютекс для \lstinline!x! и ждёт мьютекса для \lstinline!y!. Второй в это время взял мьютекс для \lstinline!y! и ждёт мьютекса для \lstinline!x!. Собственно всё.
 
-TODO: \lstinline!lock!, \lstinline!unique_lock!, \lstinline!scoped_lock!
+Хотелось бы захватить оба одновременно и освободить в правильном порядке, избегая мёртвых блокировок. До C++17 это делалось странным образом.
 
-TODO: список при движении навстречу
+\begin{lstlisting}
+template <typename T> void 
+MyBuffer::swap(MyBuffer<T> &rhs) noexcept {
+  std::lock(bufmut_, rhs.bufmut_);
+  std::swap(data_, rhs.data_);
+  std::swap(size_, rhs.size_);
+  std::swap(used_, rhs.used_);
+  bufmut_.unlock();
+  rhs.bufmut_.unlock();
+}
+\end{lstlisting}
+
+Алгоритм \lstinline!std::lock! делает в implementation-defined манере любую грешную магию, чтобы избежать сценариев мёртвых блокировок. К сожалению, это не RAII класс, поэтому об освобождении надо заботиться явно.
+
+Чтобы хоть как-то ввести это в рамки RAII, для \lstinline!lock_guard! был введён параметр конструктора, позволяющий усыновить защёлкнутый кем-то другим замок.
+
+\begin{lstlisting}
+template <typename T> void 
+MyBuffer::swap(MyBuffer<T> &rhs) noexcept {
+  std::lock(bufmut_, rhs.bufmut_);
+  std::lock_guard<mutex> lk1{bufmut_, std::adopt_lock};
+  std::lock_guard<mutex> lk2{rhs.bufmut_, std::adopt_lock};
+  std::swap(data_, rhs.data_);
+  std::swap(size_, rhs.size_);
+  std::swap(used_, rhs.used_);
+}
+\end{lstlisting}
+
+Что здесь происходит? Сначала вызывается \lstinline!lock!, как и раньше. Потом защёлкнутые им в правильно порядке мьютексы захватываются в обёртки. Потом в конце обёртки умирают и в деструкторах мьютексы освобождаются.
+
+Это было работоспособно, но очень уныло и контринтуитивно и в C++17 это наконец поправили с помощью класса \lstinline!scoped_lock!
+
+\begin{lstlisting}
+template <typename T> void 
+MyBuffer::swap(MyBuffer<T> &rhs) noexcept {
+  std::scoped_lock(bufmut_, rhs.bufmut_);
+  std::swap(data_, rhs.data_);
+  std::swap(size_, rhs.size_);
+  std::swap(used_, rhs.used_);
+}
+\end{lstlisting}
+
+Если функция использует внутри себя более одного мьютекса и у вас достаточно свежий компилятор, всегда предпочитайте \lstinline!scoped_lock!.
+
+Ещё одна функция для безопасной условной блокировки множественных мьютексов это \lstinline!std::try_lock!. Она работает в принципе так же, как \lstinline!std::lock!, только для неё так и не ввели scoped варианта, поэтому всё приходится делать по старинке.
+
+Например пусть два потока независимо ведут разные счётчики
+
+\begin{lstlisting}
+void increment_loop (int idx, const char *desc) {
+  for (int i = 0; i < 10; ++i) {
+    {
+      lock_guard<mutex> lock {mut[idx]};
+      ++counter[idx];
+      {
+        lock_guard<mutex> lcout {mcout};
+        cout << desc << ": " << counter[idx] << endl;
+      }
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  }
+}
+\end{lstlisting}
+
+Тогда функция третьего потока который пытается по мере возможности выводить на экран сумму этих счётчиков, может выглядеть так:
+
+\begin{lstlisting}
+void update_loop () {
+  while (overall_count < 20) {
+    int result = try_lock(mut[0], mut[1]); 
+    if (result == -1) {
+      lock_guard<mutex> lock1 {mut[0], std::adopt_lock};
+      lock_guard<mutex> lock2 {mut[1], std::adopt_lock};
+      overall_count = counter[0] + counter[1];
+      {
+        lock_guard<mutex> lcout {mcout};
+        cout << "overall: " << overall_count << endl;
+      }
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+  }
+}
+\end{lstlisting}
+
+В переменную \lstinline!result!, алгоритм \lstinline!std::try_lock! записывает -1 если у него получилось взять все локи или номер (начиная с нуля) того, который не получилось.
 
 \ifmulti
+
+TODO: список при движении навстречу, иерархические мьютексы
+
+\subsection{Условные переменные}
+
+TODO: \lstinline!unique_lock!
+
+TODO: \lstinline!shared_mutex! и \lstinline!shared_lock!
+
+TODO: обедающие философы?
+
+Интересной разновидностью взаимных блокировок являются живые блокировки или лайвлоки (livelocks). При этом два потока продолжают неуклюже ворочаться и что-то делать, но постоянно лезут друг другу под руку и поэтому топчутся на месте
+
+\begin{lstlisting}
+flag[0] = true; 
+while (flag[1]){
+    flag[0] = false; 
+    /*delay */;
+    flag[0] = true;
+}
+/*critical section*/;
+flag[0] = false; 
+
+flag[1] = true;
+while (flag[0]) {
+    flag[1] = false;
+    /*delay */;
+    flag[1] = true;
+}
+/* critical section*/;
+flag[1] = false;
+\end{lstlisting}
+
 \subsection{Закон Амдалла}
 
 Борьба с ограничивающей синхронизацией
@@ -21612,11 +21758,19 @@ TODO: картинка
 \pagebreak
 \section{Атомарность}
 
+В своём докладе \cite{talk:sutter:lockfree}, Саттер привёл интересную аналогию: если традиционный подход к исключительному доступу похож на установку на дорогах светофоров, то работа с атомиками и неблокирующимися структурами данных, похожа на строительство многуровневых кольцевых развязок, когда автомобиль может менять направление движения, почти не снижая скорости и не рискуя разбиться о встречный поток.
+
+Конечно, если такую развязку строит неопытный программист, она с грохотом рушится, увлекая за собой всё.
+
+На самом деле, нельзя сказать, что в прошлых разделах речь совсем не шла об атомиках. Например, что такое мьютекс под капотом? 
+
 TODO: здесь про атомарность, её хорошие и плохие стороны
 
 \subsection{Модели памяти}
 
 TODO: модели памяти
+
+TODO: про observable side effects и оптимизацию циклов
 
 \subsection{Хрупкость атомарности}
 
@@ -21779,7 +21933,8 @@ TODO: домашняя наработка в каком-то виде
 \bibitem{talk:merdith} Alisdar Meredith, \textit{<<Making allocators work>>}, CppCon, 2014, parts 1 and 2
 \bibitem{talk:alexandrescu:alloc} Andrei Alexandrescu, \textit{<<std::allocator Is to Allocation what std::vector Is to Vexation>>}, CppCon, 2015
 \bibitem{talk:steagall} Bob Steagall, \textit{<<How to write a custom allocator>>}, CppCon, 2017
-\bibitem{talk:halpern} Pablo Halpern, \textit{<<Allocators, the good parts>>}, CppCon, 2017
+\bibitem{talk:sutter:lockfree} Herb Sutter, \textit{<<Lock-Free Programming (or, Juggling Razor Blades)>>}, CppCon, 2014
+\bibitem{talk:halpern:allocators} Pablo Halpern, \textit{<<Allocators, the good parts>>}, CppCon, 2017
 \bibitem{talk:halpern:parallelism} Pablo Halpern, \textit{<<Overview of parallel programming in C++>>}, CppCon, 2014
 \bibitem{talk:lakos} John Lakos,  \textit{<<Local (arena) memory allocators>>}, CppCon, 2017, parts 1 and 2
 \bibitem{talk:sankel} David Sankel, \textit{<<C++17 std::pmr comes with a cost>>}, C++Now, 2018
