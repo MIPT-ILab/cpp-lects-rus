@@ -9,19 +9,11 @@ using std::forward;
 using std::runtime_error;
 using std::swap;
 
-#if !defined(VTEMPLATES)
-template <typename T> void
-construct (T *p, const T& rhs) 
-{
-  new (p) T (rhs);
-}
-#else
 template <typename T, typename ... Ts> void
 construct (T *p, Ts&& ... values) 
 {
   new (p) T (forward<Ts>(values)...);
 }
-#endif
 
 template <class T> void
 destroy(T* p)
@@ -55,13 +47,6 @@ protected:
     ::operator delete(arr_);
   }
 
-#if !defined(RVREFS)
-  void swap(MyVectorBuf &rhs) noexcept {
-    std::swap (arr_, rhs.arr_); 
-    std::swap (size_, rhs.size_); 
-    std::swap (used_, rhs.used_);
-  }
-#else
   MyVectorBuf(MyVectorBuf&& rhs) noexcept: arr_(rhs.arr_), size_(rhs.size_), used_(rhs.used_) {
     rhs.arr_ = nullptr;
     rhs.size_ = 0; rhs.used_ = 0;
@@ -71,9 +56,7 @@ protected:
     swap (arr_, rhs.arr_); 
     swap (size_, rhs.size_); 
     swap (used_, rhs.used_);
-  }
-#endif
-  
+  }  
 };
 
 template <typename T> struct MyVector : 
@@ -93,19 +76,13 @@ template <typename T> struct MyVector :
     }
   }
 
-#if defined(RVREFS)
-  MyVector (MyVector &&rhs) = default;
-  MyVector& operator= (MyVector &&rhs) = default;
-#endif
+  MyVector (MyVector &&rhs) noexcept = default;
+  MyVector& operator= (MyVector &&rhs) noexcept = default;
 
   MyVector& operator= (const MyVector &rhs) 
   {
     MyVector tmp (rhs); 
-#if !defined(RVREFS)
-    this->swap(tmp);
-#else	
     swap (*this, tmp); 
-#endif
     return *this;
   }
 
