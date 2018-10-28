@@ -6,11 +6,14 @@ using std::endl;
 
 struct Empty {};
 
+template<typename T> class Type2Type {};
+
 template <typename T>
 void
 foo (const T& t) {
   // use c++filt -t
-  cout << typeid(t).name() << endl;
+  Type2Type<decltype(t)> t2t;
+  cout << typeid(t2t).name() << endl;
 }
 
 int

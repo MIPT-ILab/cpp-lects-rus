@@ -15,8 +15,8 @@ int main (void) {
   auto t = z;
   TD<decltype(t)> tType;
 
-//  foo (&x);
-//  foo (&y);
+  foo (&x);
+  foo (&y);
   foo (z);
 }
 
