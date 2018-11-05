@@ -21328,14 +21328,14 @@ T parallel_accumulate(Iterator first, Iterator last, T init)
   T result {};
   if (last - first < 32) {
     for (auto i = first; i != last; ++i)
-	  result += *i;
+	    result += *i;
   }
   else {
     Iterator mid = first + (last - first) / 2;
-	T a = cilk_spawn parallel_accumulate(first, mid, init);
-	T b = parallel_accumulate(mid, last, init);
-	cilk_sync;
-	result = a + b;
+    T a = cilk_spawn parallel_accumulate(first, mid, init);
+    T b = parallel_accumulate(mid, last, init);
+    cilk_sync;
+    result = a + b;
   }
   return result;
 }
