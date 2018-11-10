@@ -30,7 +30,7 @@ class Stack
   {
     T elem;
     StackElem *next;
-    StackElem (T e, StackElem *nxt) : elem (e), next (nxt) {}
+    StackElem (StackElem *nxt, T e) : elem (e), next (nxt) {}
     
     template< class... Args >
     StackElem (StackElem *nxt, Args&&... args) : elem(std::forward<Args>(args)...), next (nxt) {}
