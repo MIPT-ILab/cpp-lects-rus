@@ -4,7 +4,8 @@ using std::cout;
 using std::endl;
 
 int g = 1;
-int foo (int b) 
+
+void foo (int b) 
 {
   int x = 2;
   static int a = 3;

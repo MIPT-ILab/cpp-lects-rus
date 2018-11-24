@@ -62,8 +62,18 @@ public:
   static ViewPort *
   QueryViewPort (int w, int h, std::function<void(ISurface*)> c)
   {
-    if (!v)
+    if (!v) {
       v = new ViewPort(w, h, c);
+    }
+    else {
+      SDL_FreeSurface(v->screen);    
+      v->width = w;
+      v->height = h;
+      v->callback = c;
+      v->screen = SDL_SetVideoMode(w + 1, h + 1, 0, SDL_DOUBLEBUF);
+      if (v->screen == NULL)
+        throw runtime_error (SDL_GetError());
+    }
     return v;
   }
 

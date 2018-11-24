@@ -50,7 +50,9 @@ main ()
 {
   unsigned delta = 0;
 
-  auto draw_external = [=, &delta] (ISurface *s) { draw_internal (s, and_or_carpet, delta); };
+  auto draw_external = [=, &delta] (ISurface *s) { 
+     draw_internal (s, and_or_carpet, delta); 
+  };
 
   ViewPort *v = ViewPort::QueryViewPort (xsize, ysize, draw_external);
 

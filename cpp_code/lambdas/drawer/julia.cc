@@ -1,6 +1,11 @@
 // Julia sets
+// default is -0.7 0.0
+// try also -0.7 0.1, -0.7 0.2 and -0.7 0.5
+//           -0.9 0.2 is equally well
 
 #include "sdlutil.hpp"
+
+#define DYNAMIC
 
 #include <complex>
 #include <cmath>
@@ -20,6 +25,11 @@ const unsigned xsize = 1024;
 const unsigned ysize = 768;
 const unsigned black = 0xff1010ff;
 const unsigned white = 0xffffffff;
+#ifdef DYNAMIC
+const unsigned maxiter = 30;
+#else
+const unsigned maxiter = 100;
+#endif
 
 static void
 draw_julia (ISurface *s, cdt c)
@@ -30,7 +40,6 @@ draw_julia (ISurface *s, cdt c)
   double stepx = sz / (double) xsize;
   double stepy = sz / (double) ysize;
   double x, y;
-  unsigned maxiter = 100;
 
   s->fillwith (white);
 
@@ -94,8 +103,17 @@ main (int argc, char **argv)
   string s = oss.str();
   v->dump(s.c_str());
 
+#ifdef DYNAMIC
+  double abs = std::abs(c);
+  double arg = std::arg(c);
+#endif
+  
   while (v->poll () == pollres::PROCEED)
     {
+#ifdef DYNAMIC
+      arg += 0.03;
+      c = std::polar(abs, arg);
+#endif
     }
 
   delete v;
