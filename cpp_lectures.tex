@@ -606,8 +606,7 @@ int buz(int x)
 Пусть дан код на C:
 
 \begin{lstlisting}
-char *fst(void)
-{
+char *fst() {
   char *p = "wikipedia";
   p[0] = 'W';
   return p;
@@ -1143,7 +1142,7 @@ unsigned t = SQR(f(x));
 struct command
 {
   char *name;
-  void (*function) (void);
+  void (*function) ();
 };
      
 struct command commands[] =
@@ -1734,7 +1733,7 @@ a = p; /* never */
 \begin{lstlisting}
 typedef int arr_t[10];
 
-arr_t foo (void); /* Error! */
+arr_t foo (); /* Error! */
 \end{lstlisting}
 
 Разумеется, невозможна никакая арифметика массивов -- прибавить один массив к другому или вычесть один массив из другого в языке C невозможно.
@@ -2114,7 +2113,7 @@ ra = b; /* ok, now a == 3 */
 Кроме того, у ссылок нет аналога \lstinline!(void *)! для передачи идиомы ``ссылки на неопределённый тип''. Появившиеся в новом стандарте \lstinline!auto&! всё таки должны быть разрешены на этапе компиляции, что бывает невозможно:
 
 \begin{lstlisting}
-void *read (void);
+void *read ();
 
 // using somewhere below
 
@@ -2879,11 +2878,54 @@ Allocation_handled = 0;
 \pagebreak
 \section{Пространства имён\index{namespaces}}\label{Namespaces}
 
-Каждое объявление в C++ принадлежит некоторому пространству имён. 
+Каждое объявление в C++ принадлежит некоторому пространству имён (namespace). Это общий термин, описывающий своего рода незримый префикс перед именем. 
 
-\subsection{Создание и использование пространств имён}
+Допустим некая библиотека предоставляет функцию \lstinline!open! чтобы открывать картинки по имени файла. Но вы в своём коде тоже хотите функцию \lstinline!open! чтобы открывать сетевые соединения по имени хоста.
 
-Глобальное пространство имён это префикс через два двоеточия, а все стандартные функции принадлежат пространству имён std. Ниже приведен пример hello world с явным указанием пространств имён.
+\begin{lstlisting}
+// piclib.h
+HANDLE open(const char *);
+
+// your code
+#include "piclib.h"
+
+CONNECTION open(const char *); // ERROR
+\end{lstlisting}
+
+В мире языка C принято манглировать библиотечные имена руками
+
+\begin{lstlisting}
+HANDLE piclib_open(const char *);
+\end{lstlisting}
+
+Это хрупко, странно выглядит в коде, который не объявляет своей функции \lstinline!open! и не особо решает проблему. Имя \lstinline!piclib_open! тоже может кому-нибудь понадобиться.
+
+В мире C++ решением проблемы являются пространства имён
+
+\begin{lstlisting}
+// piclib.h
+namespace piclib {
+HANDLE open(const char *);
+}
+
+// your code
+#include "piclib.h"
+
+CONNECTION open(const char *); // OK
+\end{lstlisting}
+
+Теперь правильным именем для \lstinline!open! из библиотеки \lstinline!piclib! в вашей программе будет \lstinline!piclib::open!
+
+\subsection{Использование пространств имён и алиасинг}
+
+Функции которые не принадлежат никакому пространству имён, принадлежат глобальному
+Чтобы специально обратится именно к глобальной функции, используется префикс через два двоеточия.
+
+\begin{lstlisting}
+void *raw = ::operator new(100);
+\end{lstlisting}
+
+Все стандартные функции принадлежат пространству имён \lstinline!std!. Ниже приведен пример hello world с явным указанием пространств имён.
 
 \begin{lstlisting}
 #include <cstdio>
@@ -2892,7 +2934,6 @@ const char * const helloworld = "Hello, world";
 
 int main() {
   std::printf("%s\n", ::helloworld);
-  return 0;
 }
 \end{lstlisting}
 
@@ -2900,33 +2941,63 @@ int main() {
 
 Нужно быть осторожным с теми функциями, которые объявлены в стандартной библиотеке языка C как макросы, а не как функции. Разумеется, макросы не могут быть обернуты никаким пространством имен, поэтому правильно писать \lstinline!assert! а не \lstinline!std::assert!. Макросы в стандартной библиотеке нужны там, где функциональность может быть отключаема -- скажем опция \lstinline!NDEBUG! позволяет сделать сборку более эффективной, отключив все ассерты в приложении. 
 
+Разумеется, гораздо лучше переписать тот же код в новом стиле.
+
+\begin{lstlisting}
+#include <iostream>
+
+const char * const helloworld = "Hello, world";
+
+int main() {
+  std::cout << ::helloworld << std::endl;
+}
+\end{lstlisting}
+
 Засорять собственными именами, такими как \lstinline!::helloworld!, глобальное пространство имён это на самом деле крайне плохая идея. Несколько лучше объявить своё пространство имён, включив туда всё, что специфично именно для вашей программы.
 
 \begin{lstlisting}
-#include <cstdio>
-
 namespace hellowapp {
 const char * const helloworld = "Hello, world";
 }
 
 int main() {
-  std::printf("%s\n", hellowapp::helloworld);
-  return 0;
+  std::cout << hellowapp::helloworld << std::endl;
 }
 \end{lstlisting}
 
 Разумеется, такая педантичность не нужна в маленьких программах и примерах. Однако любая большая программа вынужденно аккуратна с пространствами имён именно до такой степени. В этих лекциях автор обычно избегает таких деталей, но это не должно сбивать с толку: в жизни вам скорее всего придётся писать как-то так.
+
+Если хочется упростить себе жизнь и не писать всюду \lstinline!std::cout!, можно использовать директиву \lstinline!using!, которая добавляет в текущее пространство имён все символы из указанного.
+
+\begin{lstlisting}
+using namespace std;
+
+int main() {
+  cout << hellowapp::helloworld << endl;
+}
+\end{lstlisting}
+
+С этой директивой следует быть очень осторожным, потому что она в действительности делает слишком много. Хорошим тоном является вводить в область видимости только нужные имена
+
+\begin{lstlisting}
+using std::cout;
+using std::endl;
+
+int main() {
+  cout << hellowapp::helloworld << endl;
+}
+\end{lstlisting}
 
 Допустимо объявлять вложенные пространства имён с произвольным количеством уровней вложенности. При помещении в пространство имён функции с большим телом, вполне достаточно поместить в пространство имён явно только объявление (например в заголовочном файле), указав пространство имён при определении (например в файле реализации).
 
 \begin{lstlisting}
 // foo.h 
 namespace foo {
-int bar(void);
+int bar();
 }
 
 // foo.cpp
-int foo::bar(void) { /* .... */ }
+int foo::bar() { /* .... */ }
 \end{lstlisting}
 
 Пространства имён являются областями видимости (как блоки из фигурных скобок) и подчиняются тем же правилам – если имя указано в охватывающем пространстве имён оно может быть использовано без квалификации. Но в отличии от блоков скобок они могут быть поименованы и тогда переменная или функция с квалификацией может быть использована где угодно
@@ -2935,22 +3006,37 @@ int foo::bar(void) { /* .... */ }
 namespace foo {
 int y;
 }
+
 namespace {
 int y;
-void buz(int x) { y = x; } /* ok */
+void buz(int x) { y = x; } // ok
 }
+
 namespace buz {
-void buz(int x) { foo::y = x; } /* ok */
+void buz(int x) { foo::y = x; } // ok
 }
 \end{lstlisting}
 
 Здесь приведён пример неименованного пространства имён (по русски это звучит странно, лучше говорить ``анонимное пространство имён''). Объявленные в анонимном пространстве имён функции доступны только в текущем модуле -- этим они похожи на функции, объявленные с модификатором \lstinline!static!
 
-В пространстве имён \lstinline!buz! есть доступ к \lstinline!foo::y!. Также можно избежать необходимости постоянно ставить некий префикс (например \lstinline!std::!) если включить это пространство имён в текущее с помощью директивы \lstinline!using!. Этой директивой можно включить и одно имя и целое пространство.
-
 \subsection{Поиск Кёнига}\label{subsub:ADL}\index{Argument dependent lookup}
 
-Когда компилятор видит, например, вызов функции, имя этой функции он будет искать:
+Небольшая проблема, связанная с пространствами имён становится ясна, если рассмотреть как работает стандартный вывод.
+
+\begin{lstlisting}
+std::cout << "Hello";
+\end{lstlisting}
+
+Здесь на самом деле (см \ref{OperatorOverloading}) написан вызов перегруженного оператора
+
+\begin{lstlisting}
+operator << (std::cout, "Hello");
+\end{lstlisting}
+
+Но как указать, что сам этот оператор вызывается из пространства имён \lstinline!std!?
+
+По стандарту это решается так. Когда компилятор видит, например, вызов функции, имя этой функции он будет искать:
+
 \begin{itemize}
 \item
 сначала в области видимости вызова и текущем пространстве имён
@@ -2966,29 +3052,15 @@ namespace ns {
   void f (S x) {}
 }
 
-void g(void)
-{
+void g() {
   ns::S x;
-  f(x); /* ok, f is ns::f */
+  f(x); // ok, f is ns::f
 }
 \end{lstlisting}
 
 Впрочем, если компилятор встречает вызов фукции внутри метода некоего класса, то иные члены этого класса и его родительских имеют приоритет над функциями, найденными на основании информации о типах аргументов.
 
 В стандарте C++14 добавлены так называемые встраиваемые пространства имён, которые могут по умолчанию включаться в охватывающее пространство (см. \ref{InlineNameSpaces}) но без особой нужды (обсуждаемое там же версионирование и т.п.) лучше обходиться рассмотренными здесь средствами.
-
-Любая стандартная функция в C++ принадлежит пространству имён std. Каждый раз писать \lstinline!std::printf! или \lstinline!std::memcpy! бывает накладно. Чтобы этого избежать, добавьте строчку \lstinline!using namespace std!\index{using} после включения хедеров. Директива \lstinline!using some_name! также может применяться чтобы внести из произвольного пространства имён только одно имя.
-
-\begin{lstlisting}
-#include <cstdlib>
-#include <cstdio>
-using namespace std;
-
-int main() {
-  printf("%s\n", "Hello, world");
-  return 0;
-}
-\end{lstlisting}
 
 Поиск Кёнига не срабатывает для имён, которые компилятор считает известными
 
@@ -3000,11 +3072,9 @@ namespace N {
   int f(A*);
 }
 
-int g(N::A *a)
-{
-  int i = f(a);
-  /* f is the typedef, not the N::f
-     function: equivalent to int(a) */
+int g(N::A *a) {
+  // f is the typedef, not the N::f
+  int i = f(a); // equivalent to int(a)
   return i;
 }
 \end{lstlisting}
@@ -3019,8 +3089,7 @@ namespace N {
   template <typename T> int f(A*);
 }
 
-int g(N::A *a)
-{
+int g(N::A *a) {
   int i = f<int>(a);
   return i;
 }
@@ -3040,6 +3109,21 @@ template <typename T> void f(int);
 \end{lstlisting}
 
 Несмотря на другие аргументы, такая функция уже будет кандидатом на перегрузку и запустит поиск Кенига по всем остальным местам.
+
+Поиск Кёнига, он же ADL, многие считают весьма страшной аббревиатурой.
+
+\begin{lstlisting}
+namespace X {
+  bool process(std::string s, int t);
+  
+  bool foo() {
+    std::string s;
+    process(s); // may not fail
+  }
+}
+\end{lstlisting}
+
+Такой код может не быть ошибкой компиляции. Не смотря на то, что это явная опечатка, гипотетически функция \lstinline!process! может быть найдена через ADL. И если она будет найдена, вас, вероятно, ждут приключения с отладкой.
 
 \subsection{Встраиваемые пространства имён}\label{InlineNameSpaces}
 
@@ -3097,6 +3181,7 @@ namespace Networking
 
 В этом случае пользователь сможет продолжать использовать структуру \lstinline!Networking::TCPSocket! которая по умолчанию будет разрешена в \lstinline!Networking::V2::TCPSocket!. Также будут работать прямые указания -- \lstinline!Networking::V1::TCPSocket! и \lstinline!Networking::V2::TCPSocket!.
 
+\pagebreak
 \section{Структуры и объединения}
 
 Очень тонкие и сложные вопросы (причем на удивление коварные) при программировании как на C, так и на C++ связаны с объединениями и структурами.
@@ -3638,13 +3723,12 @@ auto main() -> int
 
 Впрочем, это так, отвлечение. Последний стандарт привнес ещё больше радости.
 
-\subsection{Коррективы в вывод типов для C++14}\label{DecltypeAuto14}
+\subsection{Обобщения вывода типов функциями}\label{Auto14}
 
 В некоторых простых случаях компилятору действительно не составляет проблем вывести тип функции: 
 
 \begin{lstlisting}
-auto isquare (int x) -> decltype (x) 
-{ 
+auto isquare (int x) -> decltype (x) { 
   return x*x;
 }
 \end{lstlisting}
@@ -3658,8 +3742,7 @@ auto isquare (int x) { return x*x; }
 Для таких простых вариантов все хорошо, но как быть с рекурсией? Здесь возникает проблема: тип должен быть выведен до того, как рекурсивный вызов произошел:
 
 \begin{lstlisting}
-auto sum_to (int i)
-{
+auto sum_to (int i) {
   if (i < 2)
     return i; // return type deduced as int
   else
@@ -3672,8 +3755,7 @@ cout << sum_to (10) << endl;
 Но если переставить возвраты в вышеприведенном коде, он не будет скомпилирован.
 
 \begin{lstlisting}
-auto bad_sum_to (int i)
-{
+auto bad_sum_to (int i) {
   if (i > 2)
     return bad_sum_to (i-1) + i;
   else
@@ -3681,29 +3763,54 @@ auto bad_sum_to (int i)
 }
 \end{lstlisting}
 
-Впрочем GCC 4.9.2 возвращает вполне человечное описание ошибки:
+Впрочем, GCC возвращает вполне человечное описание ошибки
 
 \begin{verbatim}
 error: use of ‘auto bad_sum_to(int)’ before deduction of ‘auto’
      return bad_sum_to (i-1) + i;
 \end{verbatim}
 
-Увы, как уже было сказано \lstinline!auto! режет типы. 
+С 2014 года также нет проблем с тем, чтобы шаблонные методы выводили свой тип непосредственно из других методов того же класса без явного \lstinline!this! (пример взят из стандарта C++14, 5.1.1.3)
 
 \begin{lstlisting}
-auto Example(int const& i) 
-{ 
-    return i; 
-}
+struct A {
+  char g();
+  template <typename T> auto f(T t) { 
+    return t + /* this-> */ g();
+  }
+};
+\end{lstlisting}
+
+Одно опасное заблуждение связано с идеей использовать \lstinline!auto! в списке параметров функции (не лямбды, для лямбд всё хорошо, см. \ref{GenericLambdas})
+
+Люди пишут нечто вроде следующего кода (обратите внимание на auto в списке параметров), предполагая, что компилятор выведет нечто из аргумента по умолчанию.
+
+\begin{lstlisting}
+auto foo (auto x = 1) { return x; }
+\end{lstlisting}
+
+Во-первых это вообще не C++. Во-вторых, это скомпилируется только благодаря популярному расширению в GCC которое ввели, когда казалось, что в 2017 году такой синтаксис примут в стандарт (нет, не приняли). В третьих, даже как расширение это будет работать вот так
+
+\begin{lstlisting}
+template <typename T> auto foo (T x = 1) { return x; }
+\end{lstlisting}
+
+То есть никакого вывода до точк вызова. Здесь \lstinline!auto! в списке типов просто заменяет явный шаблонный аргумент.
+
+Это крайне неочевидный синтаксис, он был плох для включения в стандарт, он плох как расширение, не надо так делать.
+
+\subsection{Точный вывод и прозрачная оболочка}\label{DecltypeAuto14}
+
+Увы, как уже было сказано \lstinline!auto! режет типы
+
+\begin{lstlisting}
+auto Example(int const& i) { return i; }
 \end{lstlisting}
 
 Здесь возвращаемый тип \lstinline!int!. Конечно, в конкретном коде несложно вернуть квалификацию типа:
 
 \begin{lstlisting}
-auto const& Example(int const& i) 
-{ 
-    return i; 
-}
+auto const& Example(int const& i) { return i; }
 \end{lstlisting}
 
 Но что делать в обобщенном коде?
@@ -3712,74 +3819,27 @@ auto const& Example(int const& i)
 
 \begin{lstlisting}
 template <typename Fun, typename Arg>
-decltype(auto) transparent(Fun fun, Arg arg) 
-{ 
-    return fun(arg); 
+decltype(auto) transparent(Fun fun, Arg arg) { 
+  return fun(arg); 
 }
 \end{lstlisting}
 
 Теперь тип возвращаемого значения будет проброшен точно. Ниже будет показано как написать совершенно прозрачную обертку: пробросив не только возвращаемое значение но и произвольные аргументы (см. \ref{PerfectForw}).
-
-В новом стандарте также нет проблем с тем, чтобы шаблонные методы выводили свой тип непосредственно из других методов того же класса без явного \lstinline!this! (пример взят из стандарта C++14, 5.1.1.3)
-
-\begin{lstlisting}
-struct A 
-{
-  char g();
-  template <class T> auto f(T t) -> decltype(t + g())
-  { return t + g(); }
-};
-\end{lstlisting}
-
-\subsection{Параметры функций и обобщения для C++17}\label{DecltypeAuto17}
-
-Несмотря на то, что до 2017-го ещё далеко, GCC уже поддерживает как расширения некоторые
-
-\textbf{Вопрос к студентам:} Как вы думаете, какой тип будет выведен здесь: 
-\begin{lstlisting}
-auto 
-foo (auto x = 1) /* note default argument value */
-{
-  return x;
-}
-\end{lstlisting}
-
-\ifanswers
-Правильный ответ: этот код не должен вводить вас в заблуждение: тип для \lstinline!x! выводится из типа в точке вызова, а не из аргумента по умолчанию
-\fi
-
-Это вообще-то не должно работать в C++14, но в GCC 5.2 это будет работать точно так же, как если бы вы написали:
-
-\begin{lstlisting}
-template <typename T> auto 
-foo (T x = 1) /* now it is obvious that T is not deduced from 1 */
-{
-  return x;
-}
-\end{lstlisting}
-
-Это сделано в качестве предложения по концептам в новом стандарте и имитирует то, как это устроено для полиморфных лямбд (см. \ref{GenericLambdas}).
-
-Конечно, до принятия нового стандарта лучше не использовать такие возможности.
 
 \subsection{Decaying и минимальные общие типы}\label{Decaying}\index{Decay function}
 
 Decaying уже был рассмотрен, при рассмотрении деградации массивов в указатели (\ref{ArrDecaying}), но если в старом стандарте это была built-in особенность для одной конкретной пары типов, то новый стандарт предлагает интересные варианты обобщения этого понятия на любые типы. Простой случай:
 
 \begin{lstlisting}
-int foo (const int &s)
-{
-  return s + 2;
-}
+int foo (const int &s) { return s + 2; }
 \end{lstlisting}
 
 Здесь в выражении \lstinline!s + 2!, \lstinline!s! ведёт себя так, как будто его тип \lstinline!int!. Тогда можно сказать, что \lstinline!const int &! деградирует к \lstinline!int! в том же смысле, в каком массив деградирует к указателю, etc. Новый стандарт позволяет вручную ``деградировать'' тип:
 
 \begin{lstlisting}
 const int &i;
-std::decay<decltype(i)>::type j; /* int j */
-/* and btw */
-auto k = i; /* int k = i; */
+std::decay<decltype(i)>::type j; // int j 
+auto k = i;                      // int k = i;
 \end{lstlisting}
 
 Автоматический вывод также осуществляет деградацию типов. Поэтому можно считать \lstinline!decay! + \lstinline!decltype! способом вывести тот тип, который вывело бы \lstinline!auto!.
@@ -3787,11 +3847,9 @@ auto k = i; /* int k = i; */
 На механизме \lstinline!decay! неявно построен механизм \lstinline!common_type!, позволяющий вывести минимальный общий тип:
 
 \begin{lstlisting}
-template <typename T, typename S>
-void foo(T lhs, S rhs) {
-{
+template <typename T, typename S> void foo(T lhs, S rhs) {
   std::common_type<decltype(lhs), decltype(rhs)>::type k;
-  // ...
+  // .... etc ....
 }
 \end{lstlisting}
 
@@ -3815,25 +3873,23 @@ typedef decltype(lhs * rhs) product_type;
 В качестве полезного примера, можно привести смешанную арифметику для числового класса:
 
 \begin{lstlisting}
-template <typename T>
-struct Number { T n; };
+template <typename T> struct Number { T n; };
  
 template <typename T, class U>
 Number<typename std::common_type<T, U>::type> 
 operator+(const Number<T>& lhs,
-          const Number<U>& rhs) 
-{
-    return {lhs.n + rhs.n};
+          const Number<U>& rhs) {
+  return {lhs.n + rhs.n};
 }
  
 int main() {
-    Number<int> i1 = {1}, i2 = {2};
-    Number<double> d1 = {2.3}, d2 = {3.5};
-    std::cout << "i1i2: " << (i1 + i2).n 
-              << "\ni1d2: " << (i1 + d2).n 
-              << "\nd1i2: " << (d1 + i2).n 
-              << "\nd1d2: " << (d1 + d2).n 
-              << '\n';
+  Number<int> i1 = {1}, i2 = {2};
+  Number<double> d1 = {2.3}, d2 = {3.5};
+  std::cout << "i1i2: " << (i1 + i2).n 
+            << "\ni1d2: " << (i1 + d2).n 
+            << "\nd1i2: " << (d1 + i2).n 
+            << "\nd1d2: " << (d1 + d2).n 
+            << '\n';
 }
 \end{lstlisting}
 
@@ -3987,8 +4043,7 @@ struct ball
 Представляет ли эта структура данных хорошую абстракцию мяча? Нет, не представляет. Каждый пользователь вашего ``мяча'' может произвольно менять его координаты. Это означает, что в плохо отлаженной программе симуляции, этот мяч сможет свободно ``телепортироваться'', а это явно не то, чего ждут от законченной модели. 
 
 \begin{lstlisting}
-ball foo(void)
-{
+ball foo() {
   ball a_ball;
   a_ball.vx = 5.0; /* sad, but ok */
   a_ball.push(5.0, 0.75); /* ok */
@@ -4023,16 +4078,13 @@ public:
 Модификатор \lstinline!private! означает, что доступ к соответствующим методам и данным имеют только методы этого класса.
 
 \begin{lstlisting}
-void
-ball_t::push(double a_v, double a_alpha)
-{
+void ball_t::push(double a_v, double a_alpha) {
   assert(a_v > 0);
   m_vx += a_v * cosf(a_alpha); /* ok */
   m_vy += a_v * sinf(a_alpha);
 }
 
-ball_t bar(void)
-{
+ball_t bar() {
   ball_t ball;
   ball.m_vx = 5.0; // FAIL
   ball.push(5.0, 0.75); // OK
@@ -4050,7 +4102,7 @@ private:
   int color_;
   // all other fileds ....
 public:
-  int get_color(void) { return color_; }
+  int get_color() { return color_; }
   void set_color(int color) { color_ = color; }
   // all other methods ....
 };
@@ -4117,7 +4169,8 @@ b.foo(1);
 \begin{lstlisting}
 ball_t(double a_x = 0.0, double a_y = 0.0):
   m_x(a_x), m_y(a_y), m_vx(0.0), m_vy(0.0), m_t(0.0) {}
-~ball_t(void) {}
+
+~ball_t() {}
 \end{lstlisting}
 
 Обратите внимание на список инициализации у конструктора в этом примере кода. Можно, конечно, написать инициализацию в теле конструктора, но использование списков инициализации является лучшей идеей. По умолчанию, удовлетворяющий стандарту языка C++ компилятор сгенерирует конструктор (на самом деле несколько конструкторов) и деструктор по умолчанию. Это кажется удобным, но в \ref{RAII} последует обсуждение того, чем это может быть чревато. Конструктор по умолчанию вызывает конструкторы всех членов класса, у которых они есть, деструктор -- их деструкторы.
@@ -4188,8 +4241,7 @@ anytype `op` int => int `op` int
 \begin{lstlisting}
 int emulateBall(ball_t b);
 
-int foo(void)
-{
+int foo() {
   emulateBall(1.0); // ??? but legal
 }
 \end{lstlisting}
@@ -4255,8 +4307,8 @@ int *pt = new int [10](); /* 10 ints are initialized with 0 */
 Отражает ли созданная до сих пор абстракция физический мяч? Всё ещё нет. Мяч в физическом мире обычно виден пользователю, у которого есть возможность считать его координаты. То есть нужны некоторые методы, которые будут, сохраняя состояние мяча, давать возможность прочитать его. Такие методы традиционно называются селекторами.
 
 \begin{lstlisting}
-double get_x(void) const { return m_x; }
-double get_y(void) const { return m_y; }
+double get_x() const { return m_x; }
+double get_y() const { return m_y; }
 \end{lstlisting}
 
 Обратите внимание на const в их объявлении. Внутри объявленного таким образом метода изменить любое поле класса это ошибка компиляции. Исключение составляют поля, объявленные с ключевым словом \lstinline!mutable!, но им не стоит злоупотреблять при проектировании.
@@ -4402,32 +4454,16 @@ class ball_t;
 В общем случае, можно говорить о паре функций: некоей функции \textbf{query} запрашивающей ресурс и функции \textbf{release} освобождающей его. Если ресурс имеет семантику общего владения, добавляется ещё функция \textbf{addref}, добавляющая ресурсу пользователя, но в общем это уже экзотика. Ограничимся пока моделью из функций \textbf{query} и \textbf{release}. Рассмотрим типичный код на C-подмножестве C++, работающий с выделением динамической памяти и дополнительно неким ещё ресурсом \lstinline!res_t!
 
 \begin{lstlisting}
-int
-foo (int n)
-{
+int foo (int n) {
   int *a = new int[n];
-  res_t other = query ();
-  /* ... some code ... */
-  if (condition1)
-    {
-      delete [] a;
-      release (other);
-      return FAILURE1;      
-    }
-  /* ... some code ... */
-  if (condition2)
-    {
-      delete [] a;
-      release (other);
-      return FAILURE2; 
-    }
-  /* ... some code ... */
-  if (condition3)
-    {
-      delete [] a;
-      release (other);
-      return FAILURE3;
-    }
+  res_t other = query();
+  // .... some code ....
+  if (condition) {
+    delete [] a;
+    release (other);
+    return FAILURE;      
+  }
+  // .... some code ....
   delete [] a;
   release (other);
   return SUCCESS;
@@ -4444,78 +4480,44 @@ foo (int n)
 Смотреть седьмую часть документа или просто поиском.
 
 \begin{lstlisting}
-int
-foo (int n)
-{
-  int *a = new int[n];
-  res_t other = query ();
-  int errcode = SUCCESS;
+int *a = new int[n];
+res_t other = query ();
+int errcode = SUCCESS;
 
-  /* ... some code ... */
-  if (condition1)
-    {
-      errcode = FAILURE1;
-      goto cleanup;
-    }
-  /* ... some code ... */
-  if (condition2)
-    {
-      errcode = FAILURE2;
-      goto cleanup;
-    }
-  /* ... some code ... */
-  if (condition3)
-    {
-      errcode = FAILURE3;
-      goto cleanup;
-    }
+// .... some code ....
+if (condition) {
+  errcode = FAILURE;
+  goto cleanup;
+}
+// .... some code ....
 
 cleanup:
-  delete [] a;
-  release (other);
-  return errcode;
-}
-
+delete [] a;
+release (other);
+return errcode;
 \end{lstlisting}
 
 Вообще при упоминании \lstinline!goto! люди нехорошо напрягаются. Использование таких конструкций в языках высокого уровня некрасиво и отчасти может приводить к проблемам, описанным ещё Дейкстрой.
 
-Вариантом первого выхода является \lstinline!do-while hack!, который позволяет организовать \lstinline!goto! без \lstinline!goto!:
+Вторым вариантом является трюк с использованием \lstinline!do-while!, который позволяет организовать \lstinline!goto! без явного \lstinline!goto!:
 
 \begin{lstlisting}
-int
-foo (int n)
-{
-  int *a = new int[n];
-  res_t other = query ();
-  int errcode = SUCCESS;
+int *a = new int[n];
+res_t other = query ();
+int errcode = SUCCESS;
 
-  do {
-    /* ... some code ... */
-    if (condition1)
-      {
-        errcode = FAILURE1;
-        break;
-      }
-    /* ... some code ... */
-    if (condition2)
-      {
-        errcode = FAILURE2;
-        break;
-      }
-    /* ... some code ... */
-    if (condition3)
-      {
-        errcode = FAILURE3;
-        break;
-      }
-  } while (0);
+do {
+  // .... some code ....
+  if (condition) {
+    errcode = FAILURE;
+    break;
+  }
+  // .... some code ....
+} while (0);
 
-  delete [] a;
-  release (other);
-  return errcode;
-}
-
+delete [] a;
+release (other);
+return errcode;
 \end{lstlisting}
 
 Этот поучительный код организует цикл нулевой длины, эксплуатируя возможности языка по принудительному выходу из таких циклов. Он выглядит криво и косо, но, бывает, встречается. Таких мест не надо пугаться -- люди просто боялись \lstinline!goto! и этот страх породил чудовищ.
@@ -4523,27 +4525,15 @@ foo (int n)
 Второй выход известен как вложенная функция -- логика отдаётся в особую функцию, управление ресурсами которой происходит извне. Такой подход также можно часто встретить в открытом коде, например в GCC. Для приведенного примера это будет:
 
 \begin{lstlisting}
-int
-foo1 (int *a, int n, res_t other)
-{
-  /* ... some code ... */
-  if (condition1)
-    return FAILURE1;
-
-  /* ... some code ... */
-  if (condition2)
-    return FAILURE2;
-
-  /* ... some code ... */
-  if (condition3)
-    return FAILURE3;
-
+int foo1 (int *a, int n, res_t other) {
+  // .... some code ....
+  if (condition)
+    return FAILURE;
+  // .... some code ....
   return SUCCESS;
 }
 
-int
-foo (int n)
-{
+int foo (int n) {
   int *a = new int[n];
   res_t other = query ();
 
@@ -4561,51 +4551,28 @@ foo (int n)
 Третий выход известен как oksofar trick, от английского ``Ok so far'' == ``Всё пока что [идёт] хорошо''. Он предлагает рассматривать функцию как последовательность состояний:
 
 \begin{lstlisting}
-int
-foo (int n)
-{
-  int *a = new int[n];
-  res_t other = query ();
-  int errcode = SUCCESS;
-  int oksofar = 1;
+int *a = new int[n];
+res_t other = query ();
+int errcode = SUCCESS;
+int oksofar = 1;
 
-  /* ... some code ... */
+// .... some code ....
 
-  if (oksofar)
-    {
-      /* ... some code ... */
-      if (condition1)
-        {
-          errcode = FAILURE1;
-          oksofar = 0;
-        }
-    }
-
-  if (oksofar)
-    {
-      /* ... some code ... */
-      if (condition2)
-        {
-          errcode = FAILURE2;
-          oksofar = 0;
-        }
-    }
-
-  if (oksofar)
-    {
-      /* ... some code ... */
-      if (condition3)
-        {
-          errcode = FAILURE3;
-          oksofar = 0;
-        }
-    }
-
-  delete [] a;
-  release (other);
-  return errcode;
+if (oksofar) {
+  // .... some code ....
+  if (condition) {
+    errcode = FAILURE1;
+    oksofar = 0;
+  }
 }
 
+if (oksofar) {
+  // .... some code ....
+}
+
+delete [] a;
+release (other);
+return errcode;
 \end{lstlisting}
 
 Этот ужас также можно наблюдать в реальных проектах.
@@ -4619,8 +4586,7 @@ foo (int n)
 Проще всего
 
 \begin{lstlisting}
-struct Buffer
-{
+struct Buffer {
   Buffer (int n) : m_a (new int[n]) {};
   ~Buffer () {delete [] m_a;}
   int *ptr() const {return m_a;}
@@ -4628,8 +4594,7 @@ private:
   int *m_a;
 };
 
-struct Resource
-{
+struct Resource {
   Resource () : m_res(query()) {};
   ~Resource () {release(m_res)};
   const res_t &res() const {return m_res;}
@@ -4637,23 +4602,14 @@ private:
   res_t m_res;
 };
 
-int
-foo (int n)
-{
+int foo (int n) {
   Buffer a(n)
   Resource other;
 
-  /* ... some code ... */
-  if (condition1)
-    return FAILURE1;
-
-  /* ... some code ... */
-  if (condition2)
-    return FAILURE2;
-
-  /* ... some code ... */
-  if (condition3)
-    return FAILURE3;
+  // .... some code ....
+  if (condition)
+    return FAILURE;
+  // .... some code ....
 
   return SUCCESS;
 }
@@ -4680,6 +4636,7 @@ public:
   Empty(const Empty &rhs) { /* default implementation */ }
   ~Empty() { /* default implementation */ }
   Empty& operator=(const Empty &rhs) { /* default implementation */ }
+  // .... and maybe something else ....
 };
 \end{lstlisting}
 
@@ -4701,21 +4658,19 @@ e1 = e2; // assignment called
 
 \begin{lstlisting}
 class CBuffer {
+  char *m_buffer;
+  int m_size;
 public:
   CBuffer(int size = 10) { m_size = size; m_buffer = new char[size]; }
   ~CBuffer() { delete[] m_buffer; }
   char &get(int x) { assert(x >= 0 && x < m_size); return m_buffer[x]; } 
-private:
-  char *m_buffer;
-  int m_size;
 };
 \end{lstlisting}
 
 А потом кто-то по незнанию создал буфер по его образцу внутри какой-то функции.
 
 \begin{lstlisting}
-void wrong(void)
-{
+void wrong() {
   CBuffer b1;
   CBuffer b2 = b1;
 } /* Segfault here */
@@ -4973,61 +4928,41 @@ b = 2.0 + a; /* error! */
 
 Выдаст ошибку компиляции. Ошибка связана с тем, что неявные преобразования применяются только к параметрам, перечисленным в списке параметров. Поэтому \lstinline!a.operator+(2.0)! преобразует \lstinline!double! к \lstinline!Complex!, но для \lstinline!(2.0).operator+(a)! неявный параметр \lstinline!this! -- указатель на объект для которого вызывается метод, не подвергается, согласно стандарту, никаким неявным преобразованиям.
 
-Правильный метод: определить операторы сложения и умножения вне класса как отдельные функции:
+Правильный метод: определить операторы сложения и умножения вне класса как отдельные функции. Очень часто бинарные операции проще всего определить в терминах цепочечных операций, определенных в классе.
 
 \begin{lstlisting}
-class Complex
-{
+class Complex {
+  double re, im;  
 public:
   Complex(double r = 0.0, double i = 0.0) : re(r), im(i) {}
 
-  double get_real(void) const { return re; }
-  double get_imag(void) const { return im; }
-
-private:
-  double re, im;  
+  double get_real() const { return re; }
+  double get_imag() const { return im; }
+  double operator+= (const Complex &rhs);
 };
 
-Complex operator+ (const Complex &x, const Complex &y) 
-{ 
-  return Complex(x.get_real() + y.get_real(), x.get_imag() + y.get_imag()); 
-}
-
-Complex operator* (const Complex &x, const Complex &y) 
-{ 
-  return Complex(x.get_real() * y.get_real() - x.get_imag() * y.get_imag(), 
-                 x.get_real() * y.get_imag() + x.get_imag() * y.get_real()); 
+Complex operator+ (const Complex &lhs, const Complex &y) { 
+  Complex tmp = lhs;
+  tmp += rhs; // <----- call to operator +=
+  return tmp;
 }
 \end{lstlisting}
 
 Точно так же необходимо поступать со всеми функциями, которые по определению должны быть коммутативными. Тогда коммутативность будет сохранена.
 
-Очень часто бинарные операции можно определить вне класса в терминах цепочечных операций, определенных в классе:
-
-\begin{lstlisting}
-Complex operator+ (Complex a, Complex b)
-{
-  Complex tmp = a;
-  tmp += b;
-  return tmp;
-}
-\end{lstlisting}
-
-На самом деле, это предпочтительный метод. Он кроме всего прочего позволяет естественным образом сохранить когерентность \lstinline!+! и \lstinline!+=! или в общем случае -- цепочечной и соответствующей ей бинарной операции.
+На самом деле, можно сделать и иначе через friend функции, но это предпочтительный метод. Он кроме всего прочего позволяет естественным образом сохранить когерентность \lstinline!+! и \lstinline!+=! или в общем случае -- цепочечной и соответствующей ей бинарной операции.
 
 \subsection{Инкремент и декремент}\label{IncrOverload}
 
 Язык C++ получил своё название от унарной операции \lstinline!x++!, которая увеличивает значение переменной в данном случае x, и возвращает старое значение. Такая операция называется постинкрементом. Известен также прединкремент \lstinline!++x!, который увеличивает свой аргумент и возвращает увеличенное значение.
 
 \begin{lstlisting}
-class Complex
-{
+class Complex {
 public:
-  Complex& operator++ ()
-    {
-      re += 1.0;
-      return *this;      
-    }
+  Complex& operator++ () {
+    re += 1.0;
+    return *this;      
+  }
 /*...*/
 };
 \end{lstlisting}
@@ -5035,8 +4970,7 @@ public:
 Такая запись возвращает прединкремент, он совсем простой. Постинкремент в терминах прединкремента может быть определен вот так:
 
 \begin{lstlisting}
-Complex operator++ (int unused)
-{
+Complex operator++ (int unused) {
   Complex result = *this;
   ++(*this);
   return result;
@@ -5046,13 +4980,13 @@ Complex operator++ (int unused)
 Очевидно, что прединкремент в общем случае не требует копирования, которое, как уже выяснилось, может быть очень дорогим. Поэтому очень часто программисты на C++ используют именно прединкремент в циклах:
 
 \begin{lstlisting}
-for (Complex t = 1.0; t < 5.0; ++t) { ... }
+for (Complex t = 1.0; t < 5.0; ++t) { .... }
 \end{lstlisting}
 
 вместо
 
 \begin{lstlisting}
-for (Complex t = 1.0; t < 5.0; t++) { ... }
+for (Complex t = 1.0; t < 5.0; t++) { .... }
 \end{lstlisting}
 
 Обычно замеры показывают что такая запись не несет какого-то особого выигрыша. Она просто показывает, что человек знает внутреннюю механику языка.
@@ -5116,7 +5050,7 @@ assert (3 == t[0] + t[1]);
 \begin{lstlisting}
 struct T {
   int x = 5;
-  int foo (void) { return x; }
+  int foo () { return x; }
 };
 \end{lstlisting}
 
@@ -5549,8 +5483,8 @@ foo (foo (x)); // 1, then 2
 
 \begin{lstlisting}
 struct S {
-  int foo (void) &; // 1
-  int foo (void) &&; // 2
+  int foo () &; // 1
+  int foo () &&; // 2
 };
 extern S bar ();
 S x {};
@@ -5778,7 +5712,7 @@ Buffer& operator= (Buffer&& rhs) {
 Хороший (но не самый простой) способ показать где это нужно это рассмотреть возврат из функции по значению
 
 \begin{lstlisting}
-Buffer foo (void) {
+Buffer foo () {
   Buffer retval;
   // filling retval
   return retval;
@@ -7164,7 +7098,7 @@ public:
 class A {
   public:
     A (const char *s) {}
-    const char *f(void) { return "hello, world"; }
+    const char *f() { return "hello, world"; }
 };
 
 class B : public A {
@@ -7450,17 +7384,17 @@ Derived* temp = dynamic_cast<Derived*>(base);
 
 \begin{lstlisting}
 struct NamedObject {
-  virtual const char *whoareyou(void) const = 0;
+  virtual const char *whoareyou() const = 0;
 };
 \end{lstlisting}
 
 \begin{lstlisting}
 struct Pokemon : NamedObject {
-  const char *whoareyou(void) const { return "Pokemon"; }
+  const char *whoareyou() const { return "Pokemon"; }
 };
 
 struct DartVeider : NamedObject {
-  const char *whoareyou(void) const { return "Dart Veider"; }
+  const char *whoareyou() const { return "Dart Veider"; }
 };
 \end{lstlisting}
 
@@ -8083,8 +8017,8 @@ class Square {
 public:
   Square(double x) : m_x(x) {}
   virtual ~Square() {}
-  double a(void) { return m_x; }
-  virtual double get_sq(void) { return a() * a(); }
+  double a() const { return m_x; }
+  virtual double get_sq() const { return a() * a(); }
 protected:
   double m_x;
 };
@@ -8092,8 +8026,8 @@ protected:
 class Rect: public Square {
 public:
   Rect(double x, double y) : Square(x), m_y(y) {}
-  int b(void) { return m_y; }
-  virtual double get_sq(void) { return a() * b(); }
+  int b() const { return m_y; }
+  double get_sq() const override { return m_x * m_y; }
 private:
   double m_y;
 };
@@ -8917,23 +8851,20 @@ void qsort (void *base, size_t nmemb, size_t size,
 \item Исключена возможность inline-подстановки сравнения. При этом сравнение обычно сводится к чему-то очень простому (скажем простому ``меньше, чем'') и подставить его бывает очень полезно.
 \end{itemize}
 
-Всех этих недостатков лишена реализация в стиле C++, которая может выглядеть примерно как:
+Всех этих недостатков лишена реализация в стиле C++, которая может выглядеть примерно так (предполагаем, что для типа \lstinline!Element! уже есть оператор сравнения на меньше).
 
 \begin{lstlisting}
-/* we suppose that Element class have 
-   operator< () redefinition */
 template <typename Element>
 void qsortpp (Element *base, size_t nmemb);
 \end{lstlisting}
 
-Это лучше, проще, более безопасно относительно типов и это гораздо эффективнее. Платой за это является объём кода, который компилятор теперь сгенерирует для каждой инстанциации \lstinline!qsort!, но это недорого.
+Это лучше, проще, более безопасно относительно типов и это гораздо эффективнее. Платой за это является объём кода, который компилятор теперь сгенерирует для каждой инстанциации \lstinline!qsortpp!, но это не всегда дорого.
 
 На самом деле стандарт C++98 регламентирует (C++98 25.3.1.1) даже более изящную сигнатуру для стандартной сортировки:
 
 \begin{lstlisting}
-template <class RandomAccessIterator>
-void sort (RandomAccessIterator first, 
-           RandomAccessIterator last);
+template <class RandIt>
+void sort(RandIt first, RandIt last);
 \end{lstlisting}
 
 Но вся её мощь, красота и обобщённость проявятся позже, когда речь пойдёт о стандартной библиотеке.
@@ -8984,16 +8915,15 @@ int main () {
 \begin{lstlisting}
 template <typename T>
 class Stack {
+  struct StackElem {
+    T elem;
+    StackElem *next;
+  } *m_top;
 public:
   Stack() : m_top(NULL) {}
   void push(const T& elem);
   void pop();
   T top() const { return m_top->elem; }
-private:
-  struct StackElem {
-    T elem;
-    StackElem *next;
-  } *m_top;
 }; 
 \end{lstlisting}
 
@@ -9001,8 +8931,7 @@ private:
 
 \begin{lstlisting}
 template <typename T>
-void Stack<T>::push(const T& elem)
-{
+void Stack<T>::push(const T& elem) {
   StackElem *newelem = new StackElem;
   newelem->elem = elem;
   newelem->next = m_top;
@@ -9010,10 +8939,8 @@ void Stack<T>::push(const T& elem)
 }
 
 template <typename T>
-void Stack<T>::pop(void)
-{
-  if (NULL == m_top)
-    return;
+void Stack<T>::pop() {
+  if (NULL == m_top) return;
   StackElem *topelem = m_top;
   m_top = m_top->next;
   delete topelem;
@@ -9023,7 +8950,7 @@ void Stack<T>::pop(void)
 \textbf{Вопрос к студентам:} чего здесь явно не хватает?
 
 \ifanswers
-Ожидается хоровой ответ: деструктор, копирующий конструктор и оператор присваивания. Позвать кого-нибудь к доске разобрать как их писать.
+Ожидается хоровой ответ: деструктор, копирование и перемещение
 \fi
 
 Давайте посмотрим как применять разработанный шаблонный класс:
@@ -9132,11 +9059,13 @@ template <typename T, typename U> class MyClass { .... };
 Возможно написать, например, такие специализации
 
 \begin{lstlisting}
-/* partial specialization: T = U */ 
+// partial specialization: T == U 
 template <typename T> class MyClass<T,T> { .... }; 
-/* partial specialization: U = int */ 
+
+// partial specialization: U == int
 class MyClass<T,int> { .... }; 
-/* partial specialization: T = T1*, U = T2* */
+
+// partial specialization: T == T1*, U == T2*
 template <typename T1, typename T2> 
 class MyClass<T1*,T2*> { .... };
 \end{lstlisting}
@@ -9171,15 +9100,13 @@ class MyClass<T*,T*> { .... };
 Саттер в известной публикации \url{http://www.gotw.ca/publications/mill17.htm} предлагает способ разрешить нечто вроде частичной специализации для функций:
 
 \begin{lstlisting}
-template<class T> 
-struct FImpl;
+template <typename T> struct FImpl;
 
-template<class T> 
-void f( T t ) { FImpl<T>::f( t ); } 
+template <typename T> void f(T t) { 
+  FImpl<T>::f(t);
+} 
 
-template<class T> 
-struct FImpl 
-{ 
+template <typename T> struct FImpl { 
   static void f( T t ); 
 };
 \end{lstlisting}
@@ -9190,7 +9117,7 @@ struct FImpl
 
 \textbf{Дискуссия в аудитории:} вы -- член комитета стандартизации и решаете сделать ли частичную специализацию доступной для функций. Ваши аргументы за и против?
 
-\textbf{Домашняя наработка:} допишите частично специализированный для указателей стек.
+\textbf{Домашняя наработка:} допишите частично специализированный для указателей стек
 
 \subsection{Шаблонные параметры по умолчанию}
 
@@ -9244,8 +9171,7 @@ auto &&y = x;
 
 \begin{lstlisting}
 template <typename T, class Allocator = allocator<T>>
-class Stack
-{
+class Stack {
 // .... some stack impl .... 
 public:
   void push_back(T&& x);
@@ -9268,7 +9194,7 @@ s.push_back (x);
 
 \begin{lstlisting}
 template <typename T> struct Foo {
-  int use () { return illegal_name; }
+  int use() { return illegal_name; }
 };
 \end{lstlisting}
 
@@ -9438,14 +9364,11 @@ template<typename T> void bar() {
 Время для небольшой тренировки. Совместное использование двух рассмотренных ключевых слов иногда критично для уточнения грамматики. Пусть задан код следующего вида.
 
 \begin{lstlisting}
-template <typename Type> struct Outer
-{
-  template <typename InType> struct Inner
-  {
-    template <typename X> void nested(void)
-      {
-        printf("victory\n");
-      }
+template <typename Type> struct Outer {
+  template <typename InType> struct Inner {
+    template <typename X> void nested() {
+      printf("victory\n");
+    }
   };
 }; 
 \end{lstlisting}
@@ -9453,12 +9376,10 @@ template <typename Type> struct Outer
 Необходимо написать вызов метода \lstinline!nested!, параметризованного типом \lstinline!int! из класса, в свою очередь параметризованного двумя независимыми типами (один из них можно использовать как \lstinline!Type!, а второй как \lstinline!InType!).
 
 \begin{lstlisting}
-template <typename T1, typename T2> struct Usage
-{
-  void caller( /* parameter type */ &obj )
-    {
-      /* obj.nested<int>(); */
-    }
+template <typename T1, typename T2> struct Usage {
+  void caller( /* parameter type */ &obj ) {
+    /* obj.nested<int>(); */
+  }
 };
 \end{lstlisting}
 
@@ -9473,10 +9394,9 @@ u.caller(obj);
 Сам по себе этот пример представляет собой лишь изящную головоломку, но полезен для иллюстрации концепции. В реальных проектах эти проблемы могут всплыть в гораздо более сложном коде и нужно вдоволь натренироваться на простых примерах, чтобы уметь их угадывать. Правильный ответ выглядит несколько необычно:
 
 \begin{lstlisting}
-  void caller(typename Outer<T1>::template Inner<T2> &obj) 
-    { 
-      obj.template nested<int>();
-    }
+void caller(typename Outer<T1>::template Inner<T2> &obj) { 
+  obj.template nested<int>();
+}
 \end{lstlisting}
 
 Но что произойдёт если забыть ключевое слово \lstinline!template!? Примерно та же проблема, что и с \lstinline!typename! -- компилятор не будет в точности знать как ему трактовать треугольную скобку, открывающуюся после имени типа \lstinline!Inner! или после имени функции \lstinline!nested!. И в том и в другом случае, без явного указания ключевого слова template, он будет трактовать эту скобку как переопределённый оператор ``меньше'' (снова нечто невероятное). Это может привести вас к массе неявных но интересных ошибок.
@@ -9765,26 +9685,23 @@ b.bar(); /* forall */
 Первый вариант ответа может быть примерно такой:
 
 \begin{lstlisting}
-template <typename T1, typename T2>
-class A
-{
+template <typename T1, typename T2> class A {
 public:
-  void func(void) { 
+  void func() { 
     T1 dummy; internal_func (dummy); 
   }
 private:
-  template< class V >
-  void internal_func (V) { cout << "forall\n"; }
-
-  void internal_func (int) { cout << "forint\n"; }
+  template <typename V>
+  void internal_func(V) { cout << "forall" << endl; }
+  
+  void internal_func(int) { cout << "forint" << endl; }
 };
 \end{lstlisting}
 
 Но тут есть проблема -- заранее неизвестно, что именно делает конструктор объекта класса \lstinline!T1!. Стандартный выход из ситуации -- подход с использованием переходника: 
 
 \begin{lstlisting}
-template <typename T>
-struct Type2Type {
+template <typename T> struct Type2Type {
   typedef T OriginalType;
 };
 \end{lstlisting}
@@ -9792,11 +9709,9 @@ struct Type2Type {
 Подход с переходником позволяет не закладываться на конструктор класса \lstinline!T1! и сделать максимально легкий псевдо параметр.
 
 \begin{lstlisting}
-template <typename T1, typename T2>
-class A
-{
+template <typename T1, typename T2> class A {
 public:
-  void func(void) { internal_func (Type2Type<T1>()); }
+  void func() { internal_func (Type2Type<T1>()); }
 private:
   template <class V>
   void internal_func (Type2Type<V>)
@@ -9818,7 +9733,7 @@ class X {
 public:
   X() : private_(1) {}
   template <typename T> void f(const T& t) { /* ... */ }
-  int Value(void) const { return private_; }
+  int Value() const { return private_; }
 private:
   int private_;  
 };
@@ -9844,11 +9759,10 @@ void X::f(const Y&) {
 \begin{lstlisting}
 template <typename T> 
 class Dynamic { 
-  public: 
-    virtual ~Dynamic();
-    template <typename T2> 
-    virtual void copy (T2 const&); 
-....
+public: 
+  virtual ~Dynamic();
+  template <typename T2> virtual void copy (T2 const&); 
+  //  .... etc ....
 };
 \end{lstlisting}
 
@@ -9887,39 +9801,33 @@ class MyClass : private T1, private T2 {
 С помощью шаблонного наследования можно параметризовать виртуальность или невиртуальность функции, поскольку она зависит от определения функции в базовом классе:
 
 \begin{lstlisting}
-class NotVirtual { 
-}; 
+struct NotVirtual {}; 
 
-class Virtual { 
-public: 
-  virtual void foo() {} 
-}; 
+struct Virtual {
+  virtual void foo() = 0;
+};
 \end{lstlisting}
 
 Здесь класс \lstinline!NotVirtual! очень поучителен. Важно не то, что в нем есть, а то, чего в нем нет. Теперь иерархия с этими классами
 
 \begin{lstlisting}
-template <typename VBase> 
-class Base : private VBase { 
-  public: 
-    void foo();
-}; 
+template <typename VBase> struct Base : private VBase {  
+  void foo() /* may be override */;
+};
 
-template <typename V> 
-class Derived : public Base<V> { 
-  public: 
-    void foo();
+template <typename V> class Derived : public Base<V> { 
+  void foo() /* may be override */;
 }; 
 \end{lstlisting}
 
 Использование очевидно и даже красиво:
 
 \begin{lstlisting}
-    Base<NotVirtual>* p1 = new Derived<NotVirtual>; 
-    p1->foo();  // calls Base::foo() 
+Base<NotVirtual>* p1 = new Derived<NotVirtual>; 
+p1->foo();  // <------- calls Base::foo() 
 
-    Base<Virtual>* p2 = new Derived<Virtual>; 
-    p2->foo();  // calls Derived::foo() 
+Base<Virtual>* p2 = new Derived<Virtual>; 
+p2->foo();  // <------- calls Derived::foo() 
 \end{lstlisting}
 
 Разумеется в этом примере параметризована виртуальность одной только функции \lstinline!foo!, что, в общем, так себе. Может быть имеет смысл назвать класс \lstinline!Virtual_foo! и в общем случае сделать макрос, порождающий имя \lstinline!Virtual_X! для любого \lstinline!X!.
@@ -10034,12 +9942,12 @@ call_interface (&d);
 \begin{lstlisting}
 template <typename S, typename T>
 struct ABase {
-  void func(void) {static_cast<S*>(this)->forall(); }
+  void func() {static_cast<S*>(this)->forall(); }
 };
 
 template <typename S>
 struct ABase <S, int> {
-  void func(void) { static_cast<S*>(this)->forint(); }
+  void func() { static_cast<S*>(this)->forint(); }
 };
 
 template <typename T1, typename T2>
@@ -10062,7 +9970,7 @@ template <typename S, typename T> class ABase {
     }
   };
 public:
-  void func(void) { ACC::access_forall(static_cast<S*>(this)); }
+  void func() { ACC::access_forall(static_cast<S*>(this)); }
 };
 \end{lstlisting}
 
@@ -11419,12 +11327,9 @@ struct overload : F
 $\lambda$-выражение с пустой спецификацией захвата неявно приводится к обычному указателю на функцию в стиле C.
 
 \begin{lstlisting}
-int test(void)
-{
-  typedef int (*fptr_t)();
-  fptr_t fptr = [] { return 2; };
-  return fptr();
-}
+typedef int (*fptr_t)();
+fptr_t fptr = [] { return 2; };
+int x = fptr(); // ok
 \end{lstlisting}
 
 При необходимости использовать лямбду в шаблонном контексте, неявное приведение не работает для вывода типов. В этом случае используется унарный плюс для того, чтобы форсировать приведение.
@@ -11447,8 +11352,7 @@ foo ( +[](double x) { return int(x); } );
 Пусть теперь есть необходимость создать $\lambda$-выражение с захватом контекста. Можно создать его использовав \lstinline!auto! переменную:
 
 \begin{lstlisting}
-int one_more_test(int x, int y)
-{
+int one_more_test(int x, int y) {
   auto f1 = [&x, &y] { return x + y; };
   return f1(); 
 }
@@ -12283,8 +12187,7 @@ template <typename T> T::value_type negate(const T& t) {
 SFINAE является очень мощной техникой, позволяющей делать интересные вещи. Например определить на этапе компиляции имеет ли некий тип вложенный зависимый тип с определённым именем.
 
 \begin{lstlisting}
-template <typename T>
-struct has_typedef_foobar {
+template <typename T> struct has_typedef_foobar {
   typedef char yes[1];
   typedef char no[2];
  
@@ -12305,12 +12208,10 @@ struct foo {
 struct bar {    
 };
 
-int main(void)
-{
-  printf("foo: %d, bar: %d\n", 
-         has_typedef_foobar<foo>::value,
-         has_typedef_foobar<bar>::value);
-  return 0;
+int main() {
+  cout << "foo: " << has_typedef_foobar<foo>::value
+       << "\nbar: " << has_typedef_foobar<bar>::value
+       << endl;
 }
 \end{lstlisting}
 
@@ -14590,8 +14491,7 @@ MyBuffer& operator= (const MyBuffer &rhs) {
 Для ответа на этот вопрос, проще всего рассмотреть следующую задачу: пусть хочется для класса \lstinline!MyBuffer! написать метод \lstinline!pop! который возвращает последний элемент сохранённый в памяти и удаляет его из буфера.
 
 \begin{lstlisting}
-public: 
-T pop (void) {
+T pop () {
   assert(used_ > 0);
   T result = arr_[used_ - 1];
   used_ -= 1;
@@ -20941,8 +20841,8 @@ gather(start, finish, pos, predicate).
 Первая программа hello world как раз задействует потоки в обоих смыслах: создаётся нить исполнения, которая выводит приветствие миру на стандартный поток вывода.
 
 \begin{lstlisting}
-int main () {
-  thread t([](){ cout << "Hello, world!" << endl; });
+int main() {
+  thread t([]{ cout << "Hello, world!" << endl; });
   t.join();
 }
 \end{lstlisting}
@@ -22440,8 +22340,6 @@ if (!cached_) {
 Эта ошибка -- тоже своего рода race condition, только гонка тут случается не за одну переменную а за пару семантически связанных переменных.
 
 \ifmulti
-
-TODO: обедающие философы?
 
 \subsection{Закон Амдалла}
 

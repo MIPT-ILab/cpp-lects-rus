@@ -2,7 +2,7 @@
 
 #include "myres.h"
 
-using std::unque_ptr;
+using std::unique_ptr;
 
 template <typename T> 
 struct Brittle 
@@ -15,5 +15,5 @@ int
 main () 
 {
   // CE here
-  Brittle<uniue_ptr<MyRes>> b (unique_ptr<MyRes>(new MyRes(42, 42.0)));
+  Brittle<unique_ptr<MyRes>> b (unique_ptr<MyRes>(new MyRes(42, 42.0)));
 }

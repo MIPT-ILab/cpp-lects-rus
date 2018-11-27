@@ -12,9 +12,7 @@ using std::unique_ptr;
 using std::make_shared;
 using std::shared_ptr;
 
-void*
-operator new (size_t sz)
-{
+void* operator new (size_t sz) {
   void* p = malloc(sz);
   printf("alloc: %llu\n", (unsigned long long)(sz));
   return p;
@@ -31,11 +29,11 @@ void MyFuncDeleter(T *t) {
   delete [] t;
 }
 
-int
-main ()
-{
+int main () {
   auto *ui0 = new int[1000];
   delete [] ui0;
+
+#ifdef UNIQUE
   auto ui1 = make_unique<int[]>(1000);
   unique_ptr<int[]> ui2 (new int[1000]());  
   unique_ptr<int, MyClassDeleter<int>> ui3 (new int[1000]());
@@ -49,12 +47,14 @@ main ()
        << "\tui4:" << sizeof(ui4)
        << "\tui5:" << sizeof(ui5)
        << endl;
-
+#endif
+       
+#ifdef SHARED
   // what about this way?
   // auto si1 = make_shared<int[]>(1000);
 
-  shared_ptr<int> si2 (new int[1000], default_delete<int[]>());
-  shared_ptr<int> si3 (new int[1000], MyClassDeleter<int>());  
+  shared_ptr<int> si2 (new int[1000], default_delete<int[]>{});
+  shared_ptr<int> si3 (new int[1000], MyClassDeleter<int>{});  
   shared_ptr<int> si4 (new int[1000], &MyFuncDeleter<int>);
  
 //       << "\tsi1:" << sizeof(si1)
@@ -62,5 +62,6 @@ main ()
        << "\tsi3:" << sizeof(si3)
        << "\tsi4:" << sizeof(si4)
        << endl;
+#endif
 }
 

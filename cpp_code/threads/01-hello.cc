@@ -6,7 +6,7 @@ using std::endl;
 using std::thread;
 
 int main () {
-  thread t([](){ cout << "Hello, world!" << endl; });
+  thread t([]{ cout << "Hello, world!" << endl; });
 #if defined(JOIN)
   t.join();
 #elif defined(DETACH)
