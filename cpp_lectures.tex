@@ -21724,10 +21724,8 @@ void foo() {
 \begin{lstlisting}
 if (!resptr) {
   lock_guard<mutex> lk{resmut};
-  {
-    if (!resptr)
-      resptr = new resource();
-  }
+  if (!resptr)
+    resptr = new resource();
 }
 resptr->use();
 \end{lstlisting}

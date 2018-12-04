@@ -4,6 +4,7 @@
 
 using std::cout;
 using std::endl;
+using std::unique_ptr;
 
 template <typename Data> 
 class Tree
@@ -12,12 +13,12 @@ class Tree
     unique_ptr<Node> left, right;
     Data d;
     Node(Data din) : left(nullptr), right(nullptr), d(din) {}
-    ~Node() { cout << "destroying " << d << endl;
+    ~Node() { cout << "destroying " << d << endl; }
   };
 
-  unique_ptr<Node> top_;
+  Node *top_;
 public:
-  explicit Tree(int n[], int size) // tree out of array
+  explicit Tree(int *n, int size) // tree out of array
     {
     }
 
