@@ -7,32 +7,40 @@
 using std::cout;
 using std::endl;
 
-struct MyRes {
+class MyRes {
+  int content_;
   int valid_;
 
-  MyRes() : valid_(1) { 
+public:
+  MyRes(int c) : content_(c), valid_(1) { 
     cout << "MyRes ctor ()" << endl; 
   }
 
-  MyRes(int, double) : valid_(1) { 
+  MyRes(int c, double) : content_(c), valid_(1) { 
     cout << "MyRes ctor (int, double)" << endl; 
   }
 
-  MyRes(const MyRes& rhs) : valid_(rhs.valid_) { 
+  MyRes(const MyRes& rhs) : 
+    content_(rhs.content_), valid_(rhs.valid_) 
+  { 
     cout << "MyRes copy ctor" << endl; 
     if (valid_ == 0)
-      cout << "Copying expired object!" << endl; 
+      cout << "Copying moved-from object" << endl; 
   }
 
-  MyRes(MyRes&& rhs) : valid_(rhs.valid_) {    
+  MyRes(MyRes&& rhs) :
+    content_(rhs.content_), valid_(rhs.valid_) 
+  {    
     cout << "MyRes move ctor" << endl; 
     if (valid_ == 0)
-      cout << "Moving from expired object!" << endl; 
+      cout << "Moving from moved-from object!" << endl; 
+    rhs.content_ = 0;
     rhs.valid_ = 0;
   }
 
   MyRes& operator=(const MyRes& rhs) { 
-    cout << "MyRes copy assign" << endl; 
+    cout << "MyRes copy assign" << endl;
+    content_ = rhs.content_;    
     valid_ = rhs.valid_;
     return *this; 
   }
@@ -41,22 +49,23 @@ struct MyRes {
     cout << "MyRes move assign" << endl;
     if (&rhs != this) {
       valid_ = rhs.valid_;
+      content_ = rhs.content_;
       rhs.valid_ = 0;
-    } 
+      rhs.content_ = 0;
+    }
+    if (valid_ == 0)
+      cout << "Moving from moved-from object!" << endl; 
     return *this; 
   }
 
   ~MyRes() { 
-    cout << "MyRes dtor" << endl;
-    if (valid_ == 0)
-      cout << "Destructing expired object (may be double deletion)" << endl;
-    valid_ = 0;
+    cout << "MyRes dtor: " << content_ << endl;
   }
 
   void use() { 
-    cout << "MyRes used" << endl; 
+    cout << "MyRes used: " << content_ << endl; 
     if (valid_ == 0)
-      cout << "Using expired object" << endl;
+      cout << "Using moved-from object" << endl;
   }
 };
 

@@ -50,14 +50,11 @@ int main () {
 #endif
        
 #ifdef SHARED
-  // what about this way?
-  // auto si1 = make_shared<int[]>(1000);
-
+  // auto si1 = make_shared<int[]>(1000); //can not do it this way
   shared_ptr<int> si2 (new int[1000], default_delete<int[]>{});
   shared_ptr<int> si3 (new int[1000], MyClassDeleter<int>{});  
   shared_ptr<int> si4 (new int[1000], &MyFuncDeleter<int>);
  
-//       << "\tsi1:" << sizeof(si1)
   cout << "\tsi2:" << sizeof(si2)
        << "\tsi3:" << sizeof(si3)
        << "\tsi4:" << sizeof(si4)
