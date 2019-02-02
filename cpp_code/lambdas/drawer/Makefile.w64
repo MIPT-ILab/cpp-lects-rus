@@ -1,6 +1,7 @@
 # Drawer makefile
+# mingw32-make to make things
 
-CXX=C:\Users\kvladimi\Downloads\MinGW\bin\g++
+#CXX=C:\Users\kvladimi\Downloads\MinGW\bin\g++
 
 CXXFLAGS=-O2 -Wall -Wextra -I SDLw64/include 
 LDFLAGS=-L SDLw64/lib -lSDLmain -lSDL -mwindows
