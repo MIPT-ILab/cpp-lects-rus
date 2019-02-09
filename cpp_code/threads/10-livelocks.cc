@@ -20,6 +20,10 @@ struct User {
   atomic<bool> done {false};
   void useItPolitely(Resource &res, User &other) {
     while (!done) {
+      // if no owner, take resource
+      if (res.owner == nullptr)
+        res.owner = this;
+      
       // if owner not me, wait
       if (res.owner != this) {
         std::this_thread::yield();
@@ -27,12 +31,16 @@ struct User {
       }
 
       // if owner me, but other not done, yield
+#if !defined(NOLIVELOCK)
       if (!other.done) {
-        res.owner = &other;
+        res.owner = nullptr;
         continue;
       }
+#endif      
       
       res.use();
+      res.owner = nullptr;
+      done = true;
     }
   }
 };
