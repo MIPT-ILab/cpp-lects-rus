@@ -41,8 +41,10 @@ void producer() {
     // critical section
     {
       unique_lock<mutex> lk{mut};
-      while (ncur == BUFSIZE) 
-        data_cond_p.wait(lk);        
+      data_cond_p.wait(lk, []{
+        return ((ncur != BUFSIZE) || (nsolved > MAXTASKS));
+      });
+      if (nsolved > MAXTASKS) break;
       buffer[ncur] = nsolved;
       ncur += 1;
 #ifdef SHOW
@@ -51,6 +53,7 @@ void producer() {
     }
     data_cond_c.notify_one();
   }
+  data_cond_c.notify_all();
 }
 
 void consumer() {
@@ -58,18 +61,19 @@ void consumer() {
     // critical section
     {
       unique_lock<mutex> lk{mut};
-      while (ncur == 0)
-        data_cond_c.wait(lk);
+      data_cond_c.wait(lk, []{
+        return ((ncur != 0) || (nsolved > MAXTASKS));
+      });
       nsolved += 1;
       ncur -= 1;
 #ifdef SHOW
       cout << "-";
 #endif
-      if (nsolved > MAXTASKS)
-        exit(0);
+      if (nsolved > MAXTASKS) break;
     }
     data_cond_p.notify_one();
   }
+  data_cond_p.notify_all();
 }
 
 int main() {
@@ -88,4 +92,5 @@ int main() {
   p2.join();
   c2.join();
 #endif
+  cout << " ... done" << endl;
 }

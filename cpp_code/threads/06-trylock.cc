@@ -24,10 +24,12 @@ void increment_loop (int idx, const char *desc) {
     {
       lock_guard<mutex> lock {mut[idx]};
       ++counter[idx];
+#if 1
       {
         lock_guard<mutex> lcout {mcout};
         cout << desc << ": " << counter[idx] << endl;
       }
+#endif
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
