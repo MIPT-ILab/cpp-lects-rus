@@ -30,10 +30,9 @@ public:
 #if defined(MYMUT2)
   void lock() {
     unsigned i = 0;
-    while (flag.test_and_set()) {
+    while (flag.test_and_set())
       if ((i++ % 100) == 0)
         std::this_thread::yield(); 
-    }
   }
 #endif
 
@@ -79,25 +78,17 @@ void threadfunc(int wload) {
 
 // number of tasks
 constexpr int WORKLOAD = 50000000;
-constexpr int NTHREADS = 3; 
-constexpr int NATTEMPTS = 10; 
+constexpr int THREAD_MIN = 1;
+constexpr int THREAD_MAX = 20;
 
 int
 main(int argc, char **argv) {
   auto wload = WORKLOAD;
-  auto nthr = NTHREADS;
-  auto natt = NATTEMPTS;
 
   if (argc > 1)
     wload = std::stoi(argv[1]);
-
-  if (argc > 2)
-    nthr = std::stoi(argv[2]);
-
-  if (argc > 3)
-    natt = std::stoi(argv[3]);
   
-  for (int attidx = 0; attidx < natt; ++attidx) {
+  for (int nthr = THREAD_MIN; nthr <= THREAD_MAX; ++nthr) {
     auto tstart = high_resolution_clock::now();
 
     vector<thread> threads(nthr);
@@ -108,7 +99,7 @@ main(int argc, char **argv) {
       threads[i].join();
   
     auto tfin = high_resolution_clock::now();
-    cout << attidx << " " << duration_cast<milliseconds>(tfin - tstart).count() << endl;
+    cout << nthr << " " << duration_cast<milliseconds>(tfin - tstart).count() << endl;
     cnt = 0;
   }
 }
