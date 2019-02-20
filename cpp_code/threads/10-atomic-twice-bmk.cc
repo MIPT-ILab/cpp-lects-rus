@@ -26,12 +26,15 @@ struct Counters {
 atomic<Counters> cnt{{0, 0}};
 void threadfunc(int wload) {  
   for (;;) {
-    auto cnl = cnt.load();
-    cnl.a += 1;
-    cnl.b += 2;
-    if (cnl.a + cnl.b >= wload)
-      break;
-    cnt.store(cnl);
+    Counters cnl, cnn;
+    do {
+      cnl = cnt.load();
+      if (cnl.a + cnl.b >= wload)
+        return;
+      cnn = cnl;
+      cnn.a += 1;
+      cnn.b += 2;
+    }  while (!cnt.compare_exchange_weak(cnl, cnn)); 
   }
 }
 #else

@@ -12,8 +12,9 @@ using std::shared_ptr;
 template <typename T>
 class slist_t {
   struct Node {
-    shared_ptr<Node> next;
+    shared_ptr<Node> next {nullptr};
     T t;
+    Node(shared_ptr<Node> n_, T t_) : next(move(n_)), t(move(t_)) {} 
   };
   shared_ptr<Node> head {nullptr};
 
@@ -30,8 +31,7 @@ public:
   T* find(T t) const;
   void push_front(T t);
   void pop_front();
-  
-  // ~slist_t() = default;
+  ~slist_t() = default;
 };
 
 template <typename T>
@@ -44,7 +44,8 @@ T* slist_t<T>::find(T t) const {
 
 template <typename T>
 void slist_t<T>::push_front(T t) {
-  auto p = make_shared<Node>(Node{head, move(t)});
+  auto h = atomic_load(&head);
+  auto p = make_shared<Node>(h, move(t));
   while(!atomic_compare_exchange_strong(&head, &p->next, p)) {}
 }
 

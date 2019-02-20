@@ -47,13 +47,13 @@ void slist_t<T>::push_front(T t) {
   // head = p;
 
   // Good idea:
-  while(!head.compare_exchange_strong(p->next, p)) {}
+  while(!head.compare_exchange_weak(p->next, p)) {}
 }
 
 template <typename T>
 void slist_t<T>::pop_front() {
   auto p = head.load();
-  while(p && !head.compare_exchange_strong(p, p->next)) {}
+  while(p && !head.compare_exchange_weak(p, p->next)) {}
   delete p;
 }
 

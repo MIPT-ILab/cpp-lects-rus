@@ -120,6 +120,9 @@ int
 main () {
   struct tree_t *t = read_tree();
   pretty_print_tree(stdout, t, 0);
-  free_tree(t);
+  print_preorder(t); printf("\n");
+  print_inorder(t); printf("\n");
+  print_postorder(t); printf("\n");
+  free_tree(t); 
 }
 

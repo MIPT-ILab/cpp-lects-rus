@@ -31,7 +31,7 @@ public:
   void lock() {
     unsigned i = 0;
     while (flag.test_and_set())
-      if ((i++ % 100) == 0)
+      if ((i++ % 128) == 0)
         std::this_thread::yield(); 
   }
 #endif
