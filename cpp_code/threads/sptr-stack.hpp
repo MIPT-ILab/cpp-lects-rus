@@ -16,7 +16,7 @@ class slist_t {
     T t;
     Node(shared_ptr<Node> n_, T t_) : next(move(n_)), t(move(t_)) {} 
   };
-  shared_ptr<Node> head {nullptr};
+  shared_ptr<Node> head {nullptr}; // not atomic, but really is!
 
 public:
   class reference {
@@ -46,12 +46,12 @@ template <typename T>
 void slist_t<T>::push_front(T t) {
   auto h = atomic_load(&head);
   auto p = make_shared<Node>(h, move(t));
-  while(!atomic_compare_exchange_strong(&head, &p->next, p)) {}
+  while(!atomic_compare_exchange_weak(&head, &p->next, p)) {}
 }
 
 template <typename T>
 void slist_t<T>::pop_front() {
   auto p = atomic_load(&head);
-  while(p && !atomic_compare_exchange_strong(&head, &p, p->next)) {}
+  while(p && !atomic_compare_exchange_weak(&head, &p, p->next)) {}
 }
 
