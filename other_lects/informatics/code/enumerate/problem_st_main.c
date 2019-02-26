@@ -1,33 +1,31 @@
-#include "problem_lx.h"
+#include "problem_st.h"
 
 enum { MAXLEN = 1024 };
 
-int test_dump() {
-  struct lexem_t lxs[5] = {
-    {BRACE, LBRAC}, {NUM, 2}, {OP, MUL}, {NUM, 2}, {BRACE, RBRAC}
-  };
-  
-  struct lex_array_t larr = {lxs, 5, 5}; 
-  dump_lexarray(larr);
-}
-
 int main() {
-  int res;
+  int res, result;
   struct lex_array_t larr;
+  struct node_t *stree;
   char inp[MAXLEN] = {0};
   
   res = scanf("%1023c", inp);
   assert(res == 1);
   
+  // lex to array of lexems
   larr = lex_string(inp);
-
+  
   if (larr.lexems == NULL) {
     printf("ERROR\n");
     return 0;
   }
+  
+  stree = build_syntax_tree(larr);
 
-  dump_lexarray(larr);
+  result = calc_result(stree);
+  
+  printf("%d\n", result);
 
+  free_syntax_tree(stree);
   free(larr.lexems);
   return 0;
 }

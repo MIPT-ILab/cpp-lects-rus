@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -37,11 +38,14 @@ unsigned long long bitstring(int n) {
   return res;
 }
 
-struct tree_t *
+static struct tree_t *
 rec_decode_tree(unsigned long long bitstring, int n, int *resdata, 
                 int *cnt, int *rescnt) {
   struct tree_t *res;
-  int oldval = *cnt;
+  int oldval;
+
+  assert(cnt != NULL && resdata != NULL && rescnt != NULL);
+  oldval = *cnt;
   
   if (oldval == n)
     return NULL;
@@ -51,7 +55,9 @@ rec_decode_tree(unsigned long long bitstring, int n, int *resdata,
   if (0 == (bitstring & (1ull << oldval)))
     return NULL;
 
-  res = (struct tree_t *) calloc(1, sizeof(struct tree_t));  
+  res = (struct tree_t *) calloc(1, sizeof(struct tree_t));
+  assert(res != NULL);
+  
   res->left = rec_decode_tree(bitstring, n, resdata, cnt, rescnt);
   res->data = resdata[*rescnt];
   *rescnt += 1;
@@ -59,7 +65,7 @@ rec_decode_tree(unsigned long long bitstring, int n, int *resdata,
   return res;
 }
 
-struct tree_t *
+static struct tree_t *
 decode_tree(unsigned long long bitstring, int n, int *resdata) {
   struct tree_t *ret;
   int cnt = 0, rescnt = 0;
@@ -67,13 +73,13 @@ decode_tree(unsigned long long bitstring, int n, int *resdata) {
   return ret;
 }
 
-int
+static void
 print_num(int n) {
   fprintf(fexpr, "%d", n);
   fprintf(flexed, " NUMBER:%d", n);
 }
 
-int
+static void
 print_brace(int opcode) {
   switch(opcode) {
     case 0: 
@@ -84,10 +90,12 @@ print_brace(int opcode) {
       fprintf(fexpr, ")");
       fprintf(flexed, " RBRAC");
       break;
+    default:
+      assert(0 && "unknown bracket");
   }
 }
  
-int
+static void
 print_op(int opcode) {
   switch(opcode) {
     case 0: 
@@ -106,10 +114,20 @@ print_op(int opcode) {
       fprintf(fexpr, " / ");
       fprintf(flexed, " DIV");
       break;
+    default:
+      assert(0 && "unknown opcode");
   }
 }
 
-int
+static inline int iabs(int x) {
+  return (x > 0) ? x : -x;
+}
+
+static inline int isgn(int x) {
+  return (x > 0) ? x : -x;
+}
+
+static int
 rec_print_tree(struct tree_t *t) {
   int opcode, leftval, rightval;
 
@@ -134,10 +152,30 @@ rec_print_tree(struct tree_t *t) {
   if (opcode < 2) print_brace(1);
 
   switch(opcode) {
-    case 0: return leftval + rightval;
-    case 1: return leftval - rightval;
-    case 2: return leftval * rightval;
-    case 3: assert(rightval != 0); return leftval / rightval;
+    case 1: rightval = -rightval; // fall through
+    case 0: {
+      if ((isgn(rightval) == isgn(leftval)) &&
+          (iabs(leftval) > INT_MAX - iabs(rightval))) {
+        printf("Sorry, integer overflow happened. Please re-run\n");
+        abort();
+      }        
+      return leftval + rightval;
+    }
+    case 2: {
+      if ((rightval != 0) &&
+          (iabs(leftval) > INT_MAX / iabs(rightval))) {
+        printf("Sorry, integer overflow happened. Please re-run\n");
+        abort();
+      }
+      return leftval * rightval;
+    }
+    case 3: 
+      if (rightval == 0) {
+        printf("Sorry, division by zero happened. Please re-run\n");
+        abort();        
+      }
+      else
+        return leftval / rightval;
     default: break;
   }
 
@@ -145,20 +183,21 @@ rec_print_tree(struct tree_t *t) {
   __builtin_unreachable();
 }
 
-void free_tree(struct tree_t *t) {
+static void
+free_tree(struct tree_t *t) {
   if (t == NULL) return;
   free_tree(t->left);
   free_tree(t->right);
   free(t);
 }
 
-void
+static void
 do_generate(unsigned long long bitstring, int n) {
   struct tree_t *rest;
-  int res, i, *resdata, *linearized;
+  int res, i, *resdata;
   
   resdata = (int *) calloc(n, sizeof(int));
-  assert(resdata);
+  assert(resdata != NULL);
 
   for (i = 0; i < n; ++i)
     resdata[i] = i;

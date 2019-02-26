@@ -36,7 +36,10 @@ struct lex_array_t {
 // initial capacity
 enum { ICAP = 10 };
 
+// string to lexem array: see Problem LX on slides
 struct lex_array_t lex_string(const char *str);
 
+// printing
+void print_lexem(struct lexem_t lxm);
 void dump_lexarray(struct lex_array_t pl);
 
