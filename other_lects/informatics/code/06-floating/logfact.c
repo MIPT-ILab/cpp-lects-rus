@@ -2,7 +2,7 @@
 #include <stdio.h>
 
 double
-logFact(int n) {
+log_fact(int n) {
   double sum = 0.0;
   for (int i = 2; i <= n; ++i)
     sum += log((double)i);
@@ -15,7 +15,7 @@ main() {
   double res = 2.245100430901328e+16;
   
   // via logFact
-  x = exp(logFact(200) - logFact(190) - logFact(10));
+  x = exp(log_fact(200) - log_fact(190) - log_fact(10));
   printf("200!/(190!*10!) = %lf\n", x);
   printf("rounding error = %lf\n", fabs(x - res));
   

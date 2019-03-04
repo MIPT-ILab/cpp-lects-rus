@@ -1,0 +1,21 @@
+
+add.o:     file format pe-i386
+
+
+Disassembly of section .text:
+
+00000000 <_add>:
+int add(int x, int y) {
+  return x + y;
+   0:	8b 44 24 08          	mov    eax,DWORD PTR [esp+0x8]
+   4:	03 44 24 04          	add    eax,DWORD PTR [esp+0x4]
+}
+   8:	c3                   	ret    
+   9:	90                   	nop
+   a:	90                   	nop
+   b:	90                   	nop
+   c:	90                   	nop
+   d:	90                   	nop
+   e:	90                   	nop
+   f:	90                   	nop
+add.c:
