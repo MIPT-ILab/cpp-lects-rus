@@ -6,16 +6,28 @@ Disassembly of section .text:
 
 00000000 <_add>:
 int add(int x, int y) {
+   0:	55                   	push   ebp
+   1:	89 e5                	mov    ebp,esp
   return x + y;
-   0:	8b 44 24 08          	mov    eax,DWORD PTR [esp+0x8]
-   4:	03 44 24 04          	add    eax,DWORD PTR [esp+0x4]
+   3:	8b 55 08             	mov    edx,DWORD PTR [ebp+0x8]
+   6:	8b 45 0c             	mov    eax,DWORD PTR [ebp+0xc]
+   9:	01 d0                	add    eax,edx
 }
-   8:	c3                   	ret    
-   9:	90                   	nop
-   a:	90                   	nop
-   b:	90                   	nop
-   c:	90                   	nop
-   d:	90                   	nop
-   e:	90                   	nop
-   f:	90                   	nop
+   b:	5d                   	pop    ebp
+   c:	c3                   	ret    
+
+0000000d <_addu>:
+
+unsigned addu(unsigned x, unsigned y) {
+   d:	55                   	push   ebp
+   e:	89 e5                	mov    ebp,esp
+  return x + y;
+  10:	8b 55 08             	mov    edx,DWORD PTR [ebp+0x8]
+  13:	8b 45 0c             	mov    eax,DWORD PTR [ebp+0xc]
+  16:	01 d0                	add    eax,edx
+}
+  18:	5d                   	pop    ebp
+  19:	c3                   	ret    
+  1a:	90                   	nop
+  1b:	90                   	nop
 add.c:

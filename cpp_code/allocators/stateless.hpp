@@ -11,9 +11,17 @@ using std::numeric_limits;
 
 template<typename T> 
 struct logging_alloc {
+  typedef T value_type;
+  typedef T* pointer;
+
+  logging_alloc() { printf("default ctor\n"); }
+
+  logging_alloc(const logging_alloc&) { 
+    printf("copy ctor\n");
+  }
+
 #if __cplusplus < 201103L
 // -- 0.1. these required only for C++98, but having it is good practice
-  typedef T* pointer;
   typedef const T* const_pointer;
   typedef T& reference;
   typedef const T& const_reference;
@@ -21,7 +29,9 @@ struct logging_alloc {
   typedef ptrdiff_t difference_type;
 
 // --- 0.2. rebind will be deprecated in C++20, but required in C++98
-  template <typename U> struct rebind { typedef logging_alloc<U> other; };
+  template <typename U> struct rebind { 
+    typedef logging_alloc<U> other;
+  };
 
 // --- 0.3. C++98 also requires construct and destroy
   void construct(pointer p, const T& t) { 
@@ -42,7 +52,6 @@ struct logging_alloc {
 #endif
 
 // --- 1. basic functionality C++11
-  typedef T value_type;
   T* allocate (size_t n) {
     printf("allocate %zu elements\n", n);
     return static_cast<T*>(::operator new(n * sizeof(value_type))); 
@@ -53,9 +62,6 @@ struct logging_alloc {
   }
 
 // --- 3. coercion
-  logging_alloc() { printf("default ctor\n"); }
-  logging_alloc(const logging_alloc&) { printf("copy ctor\n"); }
-
   template<typename U> 
   logging_alloc(const logging_alloc<U>&) {
     printf("coercion ctor\n");
@@ -64,12 +70,14 @@ struct logging_alloc {
 
 // --- 2. comparisons
 template <typename T, typename U>
-bool operator== (const logging_alloc<T>&, const logging_alloc<U>&) {
+bool operator== (const logging_alloc<T>&,
+                 const logging_alloc<U>&) {
   return true;
 }
 
 template <typename T, typename U>
-bool operator!= (const logging_alloc<T>&, const logging_alloc<U>&) {
+bool operator!= (const logging_alloc<T>&,
+                 const logging_alloc<U>&) {
   return false;
 }
 

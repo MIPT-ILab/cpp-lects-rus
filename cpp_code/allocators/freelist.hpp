@@ -8,12 +8,17 @@
 #include <type_traits>
 
 using std::aligned_storage;
+using std::size_t;
+using std::true_type;
 
 template <typename T>
 class freelist_alloc {
+  using storage_type = 
+     typename aligned_storage<sizeof(T), alignof(T)>::type;
+
   union node {
     node* next;
-    typename aligned_storage<sizeof(T), alignof(T)>::type storage;
+    storage_type storage;
   };
 
   node* list = nullptr;
@@ -31,8 +36,8 @@ class freelist_alloc {
 
 public:
   using value_type = T;
-  using size_type = std::size_t;
-  using propagate_on_container_move_assignment = std::true_type;
+  using size_type = size_t;
+  using propagate_on_container_move_assignment = true_type;
 
   freelist_alloc() noexcept = default;
   freelist_alloc(const freelist_alloc&) noexcept {}
@@ -40,15 +45,19 @@ public:
   template <typename U>
   freelist_alloc(const freelist_alloc<U>&) noexcept {}
 
-  freelist_alloc(freelist_alloc&& other) noexcept :  list(other.list) {
+  freelist_alloc(freelist_alloc&& other) noexcept :
+    list(other.list) 
+  {
     other.list = nullptr;
   }
 
-  freelist_alloc& operator= (const freelist_alloc&) noexcept {
+  freelist_alloc& operator= (const freelist_alloc&) noexcept 
+  {
     return *this;
   }
 
-  freelist_alloc& operator= (freelist_alloc&& other) noexcept {
+  freelist_alloc& operator= (freelist_alloc&& other) noexcept
+  {
     if (this == &other)
       return *this;
     clear();
@@ -95,13 +104,15 @@ public:
 };
 
 template <typename T, typename U>
-bool operator == (const freelist_alloc<T>&, const freelist_alloc<U>&) {
-    return true;
+bool operator == (const freelist_alloc<T>&, 
+                  const freelist_alloc<U>&) {
+  return true;
 }
 
 template <typename T, typename U>
-bool operator != (const freelist_alloc<T>&, const freelist_alloc<U>&) {
-    return false;
+bool operator != (const freelist_alloc<T>&, 
+                  const freelist_alloc<U>&) {
+  return false;
 }
 
 #endif

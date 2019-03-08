@@ -4,6 +4,8 @@
 
 #include "short_alloc.hpp"
 
+using std::vector;
+
 // Replace new and delete just for the purpose of demonstrating that
 //  they are not called.
 
@@ -34,15 +36,25 @@ void memuse()
 //   down to alignof(T) because vector doesn't allocate anything but T's.
 //   And if we're wrong about that guess, it is a compile-time error, not
 //   a run time error.
+#if defined(NOALLOC)
+template <class T>
+using SmallVector = vector<T, std::allocator<T>>;
+#else
 template <class T, size_t BufSize = 200>
-using SmallVector = std::vector<T, short_alloc<T, BufSize, alignof(T)>>;
+using SmallVector = 
+  vector<T, short_alloc<T, BufSize, alignof(T)>>;
+#endif
 
 int main()
 {
+#if defined(NOALLOC)
+    SmallVector<int> v;
+#else
     // Create the stack-based arena from which to allocate
     SmallVector<int>::allocator_type::arena_type a;
     // Create the vector which uses that arena.
     SmallVector<int> v{a};
+#endif
     // Exercise the vector and note that new/delete are not getting called.
     v.push_back(1);
     memuse();
