@@ -15,10 +15,15 @@
 #include <iterator>
 #include <memory>
 
-#include "boost/container/pmr/polymorphic_allocator.hpp"
+#if defined(EXPERIMENTAL)
+#include <experimental/memory_resource>
+#else
+#include <memory_resource>
+#endif
 
 using std::addressof;
 using std::allocator_traits;
+using std::byte;
 using std::equal;
 using std::forward;
 using std::forward_iterator_tag;
@@ -26,7 +31,13 @@ using std::move;
 using std::ptrdiff_t;
 using std::swap;
 
-using byte = unsigned char;
+#if defined(EXPERIMENTAL)
+using std::experimental::pmr::polymorphic_allocator;
+using std::experimental::pmr::monotonic_buffer_resource;
+#else
+using std::pmr::polymorphic_allocator;
+using std::pmr::monotonic_buffer_resource;
+#endif
 
 namespace slist_details {
 
@@ -89,7 +100,9 @@ struct iterator : public const_iterator<Tp> {
   using reference         = Tp&;
 
   reference operator*()  const { return this->prev_->next_->value_; }
-  pointer   operator->() const { return addressof(this->prev_->next_->value_); }
+  pointer   operator->() const { 
+    return addressof(this->prev_->next_->value_); 
+  }
 
   iterator& operator++() { Base::operator++(); return *this; }
   iterator  operator++(int) { iterator tmp(*this); ++*this; return tmp; }
@@ -109,7 +122,7 @@ public:
   using const_reference = value_type const&;
   using difference_type = ptrdiff_t;
   using size_type       = size_t;
-  using allocator_type  = boost::container::pmr::polymorphic_allocator<byte>;
+  using allocator_type  = polymorphic_allocator<byte>;
   using iterator        = slist_details::iterator<Tp>;
   using const_iterator  = slist_details::const_iterator<Tp>;
   using traits          = allocator_traits<allocator_type>;
@@ -191,14 +204,14 @@ slist<Tp>::slist(const slist<Tp>& other, allocator_type a)
 }
 
 template <typename Tp>
-slist<Tp>::slist(slist<Tp>&& rhs) noexcept: slist<Tp>(rhs.get_allocator()) { 
+slist<Tp>::slist(slist<Tp>&& rhs) noexcept:
+    slist<Tp>(rhs.get_allocator()) { 
   head_ = move(rhs.head_);
   ptail_ = move(rhs.ptail_); 
 }
 
 template <typename Tp>
-slist<Tp>::slist(slist&& other, allocator_type a)
-  : slist(a) {
+slist<Tp>::slist(slist&& other, allocator_type a): slist(a) {
   operator=(move(other));
 }
 
@@ -252,7 +265,7 @@ slist<Tp>::emplace(iterator i, Args&&... args) {
   catch (...) {
     // Recover resources if exception on constructor call.
     alloc_.resource()->deallocate(new_node,
-                                       sizeof(node), alignof(node));
+                                  sizeof(node), alignof(node));
     throw;
   }
 
@@ -276,7 +289,8 @@ slist<Tp>::erase(iterator b, iterator e) {
     node* old_node = erase_next;
     erase_next = erase_next->next_;
     --size_;
-    alloc_.destroy(addressof(old_node->value_));
+    // alloc_.destroy(addressof(old_node->value_));
+    addressof(old_node->value_)->~Tp();
     alloc_.resource()->deallocate(old_node, sizeof(node), alignof(node));
   }
 

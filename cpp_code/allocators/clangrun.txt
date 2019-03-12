@@ -1,0 +1,3 @@
+clang++ 04-memres.cc --std=c++17 -Xclang -flto-visibility-public-std
+
+g++  --std=c++17 -Wfatal-errors 05-globresource-2.cc -O0 -gdwarf -DEXPERIMENTAL

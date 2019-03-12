@@ -6,30 +6,46 @@
 #include <string>
 #include <vector>
 
+#if defined(EXPERIMENTAL)
 #include <experimental/memory_resource>
-#include <experimental/string>
-#include <experimental/vector>
+#else
+#include <memory_resource>
+#endif
+
+#include <string>
+#include <vector>
 
 using std::cout;
 using std::endl;
 using std::find_if;
 
-using namespace std::experimental;
+#if defined(EXPERIMENTAL)
+using std::experimental::pmr::get_default_resource;
+using std::experimental::pmr::memory_resource;
+using std::experimental::pmr::polymorphic_allocator;
+template <typename T>
+using vector = std::vector<T, polymorphic_allocator<T>>;
+#else
+using std::pmr::get_default_resource;
+using std::pmr::memory_resource;
+using std::pmr::vector;
+#endif
 
-class test_resource : public pmr::memory_resource {
+class test_resource : public memory_resource {
   struct allocation_rec {
     void *ptr_;
     size_t nbytes_, nalign_;
   };
 
-  pmr::memory_resource *parent_;
-  pmr::vector<allocation_rec> blocks_;
+  memory_resource *parent_;
+  vector<allocation_rec> blocks_;
 
 public:
-  explicit test_resource(memory_resource *parent = pmr::get_default_resource()): 
+  explicit test_resource(memory_resource *parent = 
+                          get_default_resource()): 
     parent_(parent), blocks_(parent) {}
 
-  pmr::memory_resource *parent() const { return parent_; }
+  memory_resource *parent() const { return parent_; }
 
   ~test_resource() {
     cout << "leaked " <<  blocks_.size() << " blocks" << endl;
@@ -42,7 +58,7 @@ public:
 protected:
   void *do_allocate(size_t bytes, size_t alignment) override {
     void *ret = parent_->allocate(bytes, alignment);
-    cout << "a: " << bytes << " to: " << ret << endl;
+    cout << "a: " << bytes << "\t to: " << ret << endl;
     blocks_.push_back(allocation_rec{ret, bytes, alignment});
     return ret;
   }
@@ -51,7 +67,7 @@ protected:
     auto i = find_if(blocks_.begin(), blocks_.end(),
                       [p](const allocation_rec& r){ return r.ptr_ == p; });
     if (i == blocks_.end())
-      throw std::invalid_argument("deallocate: Invalid pointer");    
+      throw std::invalid_argument("deallocate: Invalid pointer");     
     blocks_.erase(i);
     parent_->deallocate(p, bytes, alignment);
   }
@@ -60,18 +76,5 @@ protected:
     return this == &other;
   }
 };
-
-namespace std _GLIBCXX_VISIBILITY(default)
-{
-namespace experimental
-{
-inline namespace fundamentals_v2
-{
-namespace pmr {
-  using string = ::std::basic_string<char, std::char_traits<char>, pmr::polymorphic_allocator<char>>;
-}
-}
-}
-}
 
 #endif

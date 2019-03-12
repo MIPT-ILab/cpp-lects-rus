@@ -14,6 +14,7 @@ using std::cout;
 using std::endl;
 using std::generate_n;
 using std::shuffle;
+using std::pmr::vector;
 
 auto mtgen() {
   static std::random_device rd;
@@ -25,14 +26,15 @@ void pmrvec_testresource() {
   cout << "--- pmr::vector + test resource test ---" << endl;
   test_resource talloc;
 
-  talloc.allocate(10, 4);
+  // allocate smth to leak
+  (void)talloc.allocate(10, 4);
 
   double start = 0.0;
-  pmr::vector<double> v1(&talloc);
+  vector<double> v1(&talloc);
   generate_n(back_inserter(v1), 100, 
     [start] () mutable { return (start += 1.1); });
 
-  pmr::vector<double> v2(&talloc);
+  vector<double> v2(&talloc);
   v2.assign(v1.begin(), v1.end());
   shuffle(v2.begin(), v2.end(), mtgen()); 
   

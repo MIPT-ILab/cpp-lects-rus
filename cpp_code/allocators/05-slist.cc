@@ -1,19 +1,9 @@
 // slist example
-// C:\Users\kvladimi\Downloads\MinGW\bin\g++ -Wfatal-errors --std=c++17  05-slist.cc -I "C:\Users\kvladimi\Downloads\MinGW\include" -L "C:\Users\kvladimi\Downloads\MinGW\lib" -lboost_container
+// clang++ --std=c++17 -Xclang -flto-visibility-public-std 05-slist.cc
 
-#include <iostream>
+#include <cstdio>
 
 #include "slist.hpp"
-
-#include "boost/container/pmr/memory_resource.hpp"
-#include "boost/container/pmr/monotonic_buffer_resource.hpp"
-#include "boost/container/pmr/polymorphic_allocator.hpp"
-
-using boost::container::pmr::monotonic_buffer_resource;
-using boost::container::pmr::polymorphic_allocator;
-
-using std::cout;
-using std::endl;
 
 size_t memory = 0;
 size_t alloc = 0;
@@ -33,15 +23,15 @@ void  operator delete(void* p) noexcept
 
 void memuse()
 {
-    std::cout << "memory = " << memory << '\n';
-    std::cout << "alloc = " << alloc << '\n';
+  printf("memory = %zu\n", memory);
+  printf("alloc = %zu\n", alloc);
 }
 
 int
 main ()
 {
   constexpr size_t sz = 1000 * sizeof(int);
-  char buffer[sz] alignas(int);
+  alignas(int) char buffer[sz];
 
   monotonic_buffer_resource res(buffer, sz);
 
@@ -55,7 +45,7 @@ main ()
   slist<int> s2(move(s1));
 
   for (auto x : s2)
-    cout << x << endl;
+    printf("%d\n", x);
 
   memuse();
 }
