@@ -1,0 +1,66 @@
+#include <stdio.h>
+
+int fact(int);
+
+int
+main () {
+  4015bf:	90                   	nop
+
+004015c0 <_main>:
+  4015c0:	55                   	push   ebp
+  4015c1:	89 e5                	mov    ebp,esp
+  4015c3:	83 e4 f0             	and    esp,0xfffffff0
+  4015c6:	83 ec 20             	sub    esp,0x20
+  4015c9:	e8 f2 00 00 00       	call   4016c0 <___main>
+  int x = fact(5);
+  4015ce:	c7 04 24 05 00 00 00 	mov    DWORD PTR [esp],0x5
+  4015d5:	e8 22 00 00 00       	call   4015fc <_fact>
+  4015da:	89 44 24 1c          	mov    DWORD PTR [esp+0x1c],eax
+  printf("%d\n", x);
+  4015de:	8b 44 24 1c          	mov    eax,DWORD PTR [esp+0x1c]
+  4015e2:	89 44 24 04          	mov    DWORD PTR [esp+0x4],eax
+  4015e6:	c7 04 24 44 40 40 00 	mov    DWORD PTR [esp],0x404044
+  4015ed:	e8 ea 0f 00 00       	call   4025dc <_printf>
+  4015f2:	b8 00 00 00 00       	mov    eax,0x0
+}
+  4015f7:	c9                   	leave  
+  4015f8:	c3                   	ret    
+  4015f9:	90                   	nop
+  4015fa:	90                   	nop
+int fact(int x) {
+  4015fb:	90                   	nop
+
+004015fc <_fact>:
+  4015fc:	55                   	push   ebp
+  4015fd:	89 e5                	mov    ebp,esp
+  4015ff:	83 ec 10             	sub    esp,0x10
+  int acc = 1;
+  401602:	c7 45 fc 01 00 00 00 	mov    DWORD PTR [ebp-0x4],0x1
+
+  if (x < 2)
+  401609:	83 7d 08 01          	cmp    DWORD PTR [ebp+0x8],0x1
+  40160d:	7f 13                	jg     401622 <_fact+0x26>
+    return x;
+  40160f:	8b 45 08             	mov    eax,DWORD PTR [ebp+0x8]
+  401612:	eb 17                	jmp    40162b <_fact+0x2f>
+
+  while (x > 0) {
+    acc = acc * x;
+  401614:	8b 45 fc             	mov    eax,DWORD PTR [ebp-0x4]
+  401617:	0f af 45 08          	imul   eax,DWORD PTR [ebp+0x8]
+  40161b:	89 45 fc             	mov    DWORD PTR [ebp-0x4],eax
+    x -= 1;   
+  40161e:	83 6d 08 01          	sub    DWORD PTR [ebp+0x8],0x1
+  while (x > 0) {
+  401622:	83 7d 08 00          	cmp    DWORD PTR [ebp+0x8],0x0
+  401626:	7f ec                	jg     401614 <_fact+0x18>
+  }
+  
+  return acc;
+  401628:	8b 45 fc             	mov    eax,DWORD PTR [ebp-0x4]
+}
+  40162b:	c9                   	leave  
+  40162c:	c3                   	ret    
+  40162d:	90                   	nop
+  40162e:	90                   	nop
+  40162f:	90                   	nop
