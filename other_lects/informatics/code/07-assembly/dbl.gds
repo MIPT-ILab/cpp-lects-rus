@@ -1,0 +1,37 @@
+
+dbl.o:     file format pe-i386
+
+
+Disassembly of section .text:
+
+00000000 <_foo>:
+float
+foo (float f1, float f2) {
+   0:	55                   	push   %ebp
+   1:	89 e5                	mov    %esp,%ebp
+   3:	83 ec 10             	sub    $0x10,%esp
+  float ftmp;
+  ftmp = f1 / 3.0;
+   6:	d9 45 08             	flds   0x8(%ebp)
+   9:	d9 05 00 00 00 00    	flds   0x0
+   f:	de f9                	fdivrp %st,%st(1)
+  11:	d9 5d fc             	fstps  -0x4(%ebp)
+  f1 = 1.0 - f1;
+  14:	d9 e8                	fld1   
+  16:	d8 65 08             	fsubs  0x8(%ebp)
+  19:	d9 5d 08             	fstps  0x8(%ebp)
+  f1 = f2 * f1;
+  1c:	d9 45 08             	flds   0x8(%ebp)
+  1f:	d8 4d 0c             	fmuls  0xc(%ebp)
+  22:	d9 5d 08             	fstps  0x8(%ebp)
+  f2 = f1 + ftmp;
+  25:	d9 45 08             	flds   0x8(%ebp)
+  28:	d8 45 fc             	fadds  -0x4(%ebp)
+  2b:	d9 5d 0c             	fstps  0xc(%ebp)
+  return f2; 
+  2e:	d9 45 0c             	flds   0xc(%ebp)
+}
+  31:	c9                   	leave  
+  32:	c3                   	ret    
+  33:	90                   	nop
+dbl.c:
