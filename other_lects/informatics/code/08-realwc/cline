@@ -1,0 +1,1 @@
+gcc cmystery.c -O2 -S -masm=intel -fno-asynchronous-unwind-tables

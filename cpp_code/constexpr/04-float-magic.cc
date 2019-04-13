@@ -1,4 +1,5 @@
 #include <cfenv>
+#include <iomanip>
 #include <iostream>
 
 using std::cerr;
@@ -10,10 +11,12 @@ constexpr float ct = 1.0f / 3.0f;
 void __attribute__ ((noinline))
 magic_func (float x, float y)
 {
-//  fesetround (FE_DOWNWARD);
+#ifdef BUGGY
+  fesetround (FE_DOWNWARD);
+#endif
   float rt = x / y;
   if (ct != rt) 
-    cerr << "Failure: " << ct << " != " << rt << endl;  
+    cerr << "Failure: " << std::setprecision(9) << ct << " != " << rt << endl;  
 }
 
 int
