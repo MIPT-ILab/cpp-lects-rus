@@ -24,7 +24,6 @@ constexpr bool ct_string::operator==(ct_string rhs) {
   return true;
 }
 
-
 constexpr pair<ct_string, int> ct_map[] = {{"one", 1}, {"two", 2}, {"three", 3}};
 
 template <typename P, size_t N>

@@ -19,21 +19,15 @@ using Meter = Unit<1,0,0>; // unit: meter
 using Second = Unit<0,0,1>; // unit: sec
 using Second2 = Unit<0,0,2>; // unit: second*second
 
-constexpr Value<Meter> operator"" _m(long double d)
- // a f-p literal suffixed by ‘s’
-{
+constexpr Value<Meter> operator"" _m(long double d) {
  return Value<Meter> (d);
 }
 
-constexpr Value<Second> operator"" _s(long double d)
- // a f-p literal suffixed by ‘s’
-{
+constexpr Value<Second> operator"" _s(long double d) {
  return Value<Second> (d);
 }
 
-constexpr Value<Second2> operator"" _s2(long double d)
- // a f-p literal suffixed by ‘s2’
-{
+constexpr Value<Second2> operator"" _s2(long double d) {
  return Value<Second2> (d);
 }
 

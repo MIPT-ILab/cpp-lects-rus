@@ -34,40 +34,40 @@ decltype(auto) operator<<(ostream& os, const Tuple &t)
 }
 
 template<size_t start, typename Tuple, size_t... Is>
-constexpr auto subtuple_impl(Tuple &&t, index_sequence<Is...>) {
-  return make_tuple(get<Is + start>(forward<Tuple>(t))...);
+constexpr auto subtuple_impl(Tuple t, index_sequence<Is...>) {
+  return make_tuple(get<Is + start>(t)...);
 }
 
 template<size_t start, size_t finish, typename Tuple>
-constexpr auto subtuple(Tuple&& t) {
+constexpr auto subtuple(Tuple t) {
   static_assert(start <= finish);
   constexpr size_t sz = finish - start;
-  return subtuple_impl<start>(forward<Tuple>(t), make_index_sequence<sz>{});
+  return subtuple_impl<start>(t, make_index_sequence<sz>{});
 }
 
 template<size_t rotval, typename Tuple>
-constexpr auto rotate_r (Tuple &&t) {
+constexpr auto rotate_r (Tuple t) {
   constexpr size_t sz = tuple_size<decay_t<Tuple>>::value;
   constexpr size_t fh_size = sz - (rotval % sz);
-  auto first_half = subtuple<0, fh_size>(forward<Tuple>(t));
-  auto second_half = subtuple<fh_size, sz>(forward<Tuple>(t));
+  auto first_half = subtuple<0, fh_size>(t);
+  auto second_half = subtuple<fh_size, sz>(t);
   return tuple_cat(second_half, first_half);
 }
 
 template<size_t rotval, typename Tuple>
-constexpr auto rotate_l (Tuple &&t) {
+constexpr auto rotate_l (Tuple t) {
   constexpr size_t sz = tuple_size<decay_t<Tuple>>::value;
-  return rotate_r<sz - (rotval % sz)>(forward<Tuple>(t));
+  return rotate_r<sz - (rotval % sz)>(t);
 }
 
 template<typename Tuple>
-constexpr auto tuple_tail(Tuple &&t) {
+constexpr auto tuple_tail(Tuple t) {
   constexpr size_t sz = tuple_size<decay_t<Tuple>>::value;
-  return subtuple<1, sz>(forward<Tuple>(t));
+  return subtuple<1, sz>(t);
 }
 
 template<size_t Nx, size_t Mx, typename Tuple>
-constexpr auto swap_elts (Tuple &&t) {
+constexpr auto swap_elts (Tuple t) {
   constexpr size_t sz = tuple_size<decay_t<Tuple>>::value;
   if constexpr (Nx == Mx) return t;
   constexpr size_t Ny = Nx % sz;
@@ -79,7 +79,7 @@ constexpr auto swap_elts (Tuple &&t) {
 
   auto&& nth = make_tuple(get<N>(t));
   auto&& mth = make_tuple(get<M>(t));
-  auto&& tmp1 = tuple_cat(mth, tuple_tail(rotate_l<N>(forward<Tuple>(t))));
+  auto&& tmp1 = tuple_cat(mth, tuple_tail(rotate_l<N>(t)));
   auto&& tmp2 = tuple_cat(nth, tuple_tail(rotate_l<M-N>(tmp1)));
   return rotate_r<M>(tmp2);
 }
@@ -87,19 +87,19 @@ constexpr auto swap_elts (Tuple &&t) {
 // based on observation, that:
 // (x1, x2, x3, x4, ...) = (x1, x2) * (x1, x3, x4, ...)
 template<size_t I, size_t J, size_t... Is, typename Tuple>
-constexpr auto permute_elts (Tuple &&t) {
+constexpr auto permute_elts (Tuple t) {
   if constexpr(sizeof...(Is) > 0) {
-    return permute_elts<I, Is...>(swap_elts<I, J>(forward<Tuple>(t)));
+    return permute_elts<I, Is...>(swap_elts<I, J>(t));
   }
   else
-    return swap_elts<I, J>(forward<Tuple>(t));
+    return swap_elts<I, J>(t);
 }
 
 template<typename Tuple, size_t... Is>
 void
-print_rotates(Tuple &&t, index_sequence<Is...>) {  
+print_rotates(Tuple t, index_sequence<Is...>) {  
   cout << "Left rotations: " << endl;
-  ((cout << Is << ": " << rotate_l<Is>(forward<Tuple>(t)) << endl), ...);
+  ((cout << Is << ": " << rotate_l<Is>(t) << endl), ...);
 }
 
 int
@@ -120,7 +120,6 @@ main () {
   auto ltest = make_tuple(1, 1.5, 2, 2.5, 3, 3.5);
   auto ltestperm23140 = permute_elts<2, 3, 1, 4, 0>(ltest);
   auto rtestperm23140 = permute_elts<2, 3, 1, 4, 0>(make_tuple(1, 1.5, 2, 2.5, 3, 3.5));
-  cout << "After (2 3 1 4 0) permutation: " << testperm23140 << endl;
   cout << "After (2 3 1 4 0) permutation: " << ltestperm23140 << endl;
   cout << "After (2 3 1 4 0) permutation: " << rtestperm23140 << endl;
 }

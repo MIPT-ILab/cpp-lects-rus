@@ -1,0 +1,1 @@
+-S -masm=intel -fno-asynchronous-unwind-tables
