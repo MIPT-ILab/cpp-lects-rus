@@ -39,7 +39,7 @@ finiterange() {
   nextf = f + 1.0f;
 
   fone = 1.0f;
-  feps = 0.00000005f;
+  feps = FLT_EPSILON;
   fenext = fone + feps;
 
   d = 9007199254740992.0; // 2^53
