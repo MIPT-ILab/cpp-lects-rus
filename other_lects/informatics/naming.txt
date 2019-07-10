@@ -10,6 +10,7 @@ Problem EE -- расширенный алгоритм E
 Problem FD -- разряды чисел Фибоначчи
 Problem FM -- вычисления по модулю m
 Problem PP -- периоды Пизано
+Problem NS -- системы счисления
 Problem SF -- система чисел Фибоначчи
 Алгоритм FR -- рекурсивный алгоритм F
 Problem MF -- matrix Fibonacci (optional)
