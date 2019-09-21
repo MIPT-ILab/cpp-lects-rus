@@ -7,5 +7,5 @@ unsigned long long fib (unsigned n) {
 }
 
 int main () {
-  printf("%d\n", fib(5));
+  printf("%d\n", fib(50));
 }

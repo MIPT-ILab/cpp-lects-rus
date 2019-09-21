@@ -165,4 +165,6 @@ Problem LC -- LRU кэш
 
 SS, TP, PM, SC, AI
 
-Допсеминар -- OpenCL
+Допсеминар -- OpenCL?
+
+Занято IL под Information letter
