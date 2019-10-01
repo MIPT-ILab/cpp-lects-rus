@@ -7,5 +7,8 @@ unsigned long long fibd(unsigned n) {
 }
 
 int main () {
-  printf("%d\n", fibd(5));
+  int i;
+  for (i = 30; i < 46; ++i) 
+    printf("%llu ", fibd(i * 2));
+  printf("\n");
 }
