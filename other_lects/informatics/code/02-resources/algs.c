@@ -11,6 +11,7 @@ struct sieve_t {
 struct sieve_t 
 init_sieve (unsigned n) 
 {
+  int i, j;
   assert(n > 2);
   unsigned char *sieve = calloc(n, sizeof(unsigned char));
   struct sieve_t res = { n, sieve };
@@ -18,7 +19,12 @@ init_sieve (unsigned n)
   unsigned r = (unsigned) sqrt (n) + 1;
   res.sieve[0] = res.sieve[1] = 1;
 
-  // TODO: your code here
+  for (i = 2; i * i <= n; ++i) {
+    if (res.sieve[i] != 0)
+      continue;
+    for (j = i * i; j <= n; j += i) 
+  }
+
   return res;
 }
 

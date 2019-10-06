@@ -810,7 +810,7 @@ int * const xc3 = 0;
 Ответы на первые два вопроса очевидны, но ответ на третий может быть несколько экзотичен: если этот указатель \lstinline!register! переменная, которая определяет область памяти откуда идёт чтение и которая при этом соответсвует не настоящему регистру а некоему устройству, притворяющемуся регистром, но допускающему смену состояний, то конструкция обретает смысл.
 \fi
 
-Кроме того константность и волатильность также могут комбинироваться. Скажем возможен \lstinline!const volatile! указатель на \lstinline!const volatile! данные. В стандарте и прочих нормативных документах константность и волатильность любят объединять под общим названием ``cv-qualifier''\index{cv-qualifier} (C++14 3.9.3). Далее также будет употребляться термин ``cv-квалифи\-цированный тип'', это значит тип, к которому (возможно) добавлена константность, волатильность или обе сразу.
+Кроме того константность и волатильность также могут комбинироваться. Скажем возможен \lstinline!const volatile! указатель на \lstinline!const volatile! данные. В стандарте и прочих нормативных документах константность и волатильность любят объединять под общим названием ``cv\-qualifier''\index{cv-qualifier} (C++14 3.9.3). Далее также будет употребляться термин ``cv\-квалифи\-цированный тип'', это значит тип, к которому (возможно) добавлена константность, волатильность или обе сразу.
 
 \textbf{Вопрос к студентам:} чем отличается \lstinline!const volatile int! от \lstinline!const int!?
 
@@ -1247,8 +1247,8 @@ mkstr(x ## y)
 \begin{lstlisting}
 extern int bar;
 extern int g(int, int);
-double f(int, double); /* extern can be omitted for function declarations */
-class foo; /* no extern allowed for class declarations */
+double f(int, double); // extern can be omitted for function declarations
+class foo;             // no extern allowed for class declarations
 \end{lstlisting}
 
 Нужно обратить внимание на перегруженный смысл ключевого слова \lstinline!extern! в этом контексте. В (\ref{Inline}) оно использовалось для задания внешнего/внутреннего связывания, тогда как здесь используется оно же, но для указания, что переменная объявлена, но не определена.
@@ -1309,10 +1309,10 @@ int x = 2;
 
 \begin{lstlisting}
 typedef void T();
-T t; /* declaration of function "t" */
+T t; // declaration of function "t"
 
 typedef int T;
-T t; /* definition of object "t" */
+T t; // definition of object "t"
 \end{lstlisting}
 
 Эта ассимметрия связана с (исторической) ассиметрией объявлений функций и переменных.
@@ -1321,14 +1321,14 @@ T t; /* definition of object "t" */
 
 \begin{lstlisting}
 static int x;
-extern int x;
+extern int x; // x still static
 \end{lstlisting}
 
 А вот так нельзя:
 
 \begin{lstlisting}
 extern int x;
-static int x;  /* BOOM! */
+static int x; // compilation error
 \end{lstlisting}
 
 Во втором случае storage class переменной уже заявлен как внешний и не может быть переопределен.
@@ -1352,8 +1352,7 @@ static int x;  /* BOOM! */
 \textbf{Вопрос к студентам:} охарактеризуйте следующий код:
 
 \begin{lstlisting}
-int foo(int x) 
-{
+int foo(int x) {
   int y, *p;
 
   {
@@ -1373,8 +1372,7 @@ int foo(int x)
 \textbf{Вопрос к студентам:} теперь охарактеризуйте следующий код:
 
 \begin{lstlisting}
-int foo(int x) 
-{
+int foo(int x) {
   int y, *p;
 
   {
@@ -1425,9 +1423,8 @@ int *p = malloc (sizeof(int));
 int *q = realloc (p, sizeof(int));
 *p = 1;
 *q = 2;
-if (p == q) {
+if (p == q)
   printf ("%d %d\n", *p, *q);
-}
 \end{lstlisting}
 
 И на тогдашнем clang, этот код распечатал ему ``1 2'', что, вообще говоря, безумие, потому что получается, что в программе есть два одинаковых указателя, которые указывают на разные объекты.
@@ -1563,20 +1560,19 @@ int *foo (int x) { return &x; }
 Ответ: увы, нет. Никакая переменная не ``знает'' о том, что кто-то взял её адрес и т.п.
 \fi
 
-Это, вообще говоря, сильно снижает возможности компиляторов к оптимизации:
+Это, вообще говоря, сильно снижает возможности компиляторов к оптимизации.
 
 \begin{lstlisting}
 float *b; 
 int x;
-/* ... */
+// ...... (etc)
 x = 1;
 *b = 5;
 x = x + 3;
 foo (x);
-}
 \end{lstlisting}
 
-Эта функция могла бы быть оптимизирована к:
+Этот код мог бы быть оптимизирован как показано ниже
 
 \begin{lstlisting}
 x = 4;
@@ -1584,7 +1580,7 @@ x = 4;
 foo (4);
 \end{lstlisting}
 
-Но компилятор не имеет права этого делать: в строчках кода помеченных троеточием вполне могло встретится нечто вроде:
+Но компилятор не имеет права этого делать: в строчках кода помеченных троеточием вполне могло встретится нечто вроде утечки адреса с конвертацией типа
 
 \begin{lstlisting}
 b = (float *) &x;
@@ -1597,9 +1593,7 @@ b = (float *) &x;
 Кроме того, в стандарте языка C99 (но не C++) для указателей поддерживается модификатор \lstinline!restrict! (C99 6.7.3)
 
 \begin{lstlisting}
-void 
-f (int n, int * restrict p, int * restrict q)
-{
+void f (int n, int * restrict p, int * restrict q){
   while (n-- > 0)
   *p++ = *q++;
 }
@@ -1617,12 +1611,12 @@ f (int n, int * restrict p, int * restrict q)
 int arr[] = {0, 1, 2, 3, 4, 5};
 int a = 0; 
 int *b = &arr[0];
-int *c = b + a; /* ok */
-int *d = a + b; /* ok */
-int *e = c + d; /* error */
-ptrdiff_t f = c - d; /* ok */
-int *g = c - a; /* ok */
-int *h = a - c; /* error */
+int *c = b + a;      // ok
+int *d = a + b;      // ok
+int *e = c + d;      // ok
+ptrdiff_t f = c - d; // ok
+int *g = c - a;      // ok
+int *h = a - c;      // error
 \end{lstlisting}
 
 Следует обратить внимание на тип \lstinline!ptrdiff_t! в коде выше -- это специальный тип, достаточно широкий, чтобы хранить разность указателей. Следует по возможности пользоваться им, но, как запасной вариант, есть тип \lstinline!long! (которого увы не хватает для LLP64 систем, таких как Win64, но он вполне пригоден для почти всех unix-специфичных приложений). Он находится в хедере \lstinline!<stddef.h>!.
@@ -1646,15 +1640,15 @@ ptrdiff_t d = t - &k; /* ok? */
 Но во всех распространенных архитектурах \lstinline!NULL == 0! и чтобы сохранить обратную совместимость существующего кода, стандарт определяет правила неявной конверсии \lstinline!0! в \lstinline!NULL! при сравнении с ним указателей (C99 6.3.2.3).
 
 \begin{lstlisting}
-int *t = malloc (sizeof(int));
-assert (t); /* ok */
+int *t = malloc(sizeof(int));
+assert(t); // ok, means assert(t != NULL)
 \end{lstlisting}
 
 Здесь условие под \lstinline!assert! будет неявно сконвертировано в правильную форму. Конечно, программист, заботящийся о стиле, сразу пишет правильно:
 
 \begin{lstlisting}
 int *t = malloc (sizeof(int));
-assert (t != NULL); /* great */
+assert (t != NULL); // great 
 \end{lstlisting}
 
 Но и в первом варианте нет ошибки.
@@ -1705,9 +1699,9 @@ x[0] = x[1];
 \begin{lstlisting}
 int foo (int *t);
 int *p = &x[0];
-*p = x; /* decay */
-a = *(x + 3); /* decay */
-a = foo (x + 5); /* decay */
+*p = x;          // decay
+a = *(x + 3);    // decay 
+a = foo (x + 5); // decay 
 \end{lstlisting}
 \end{enumerate}
 
@@ -1724,8 +1718,8 @@ a = foo (x + 5); /* decay */
 int v = 5;
 int *p = &v;
 int a[1] = {v};
-p = a; /* ok */
-a = p; /* never */
+p = a; // oks
+a = p; // never
 \end{lstlisting}
 
 По той же причине нет возможности вернуть массив из функции:
@@ -1733,7 +1727,7 @@ a = p; /* never */
 \begin{lstlisting}
 typedef int arr_t[10];
 
-arr_t foo (); /* Error! */
+arr_t foo (); // Error!
 \end{lstlisting}
 
 Разумеется, невозможна никакая арифметика массивов -- прибавить один массив к другому или вычесть один массив из другого в языке C невозможно.
@@ -1759,15 +1753,15 @@ assert (a[3] == b[3]);
 Между прочим, строковые литералы в инициализации указателей это счастливое (исторически сложившееся) исключение. Строчка 2 в следующем примере не будет скомпилирована:
 
 \begin{lstlisting}
-float a[] = {1.0, 2.0, 3.0}; /* ok */
-float *b = {1.0, 2.0, 3.0}; /* ka-boom! */
+float a[] = {1.0, 2.0, 3.0}; // ok
+float *b = {1.0, 2.0, 3.0};  // ka-boom!
 \end{lstlisting}
 
 \textbf{Вопрос к студентам:} есть ли разница между следующими двумя объявлениями?
 
 \begin{lstlisting}
-int foo (int x[]);
-int foo (int *x);
+int foo(int x[]);
+int foo(int *x);
 \end{lstlisting}
 
 \ifanswers
@@ -1777,7 +1771,7 @@ int foo (int *x);
 \textbf{Вопрос к студентам:} означает ли эта запись:
 
 \begin{lstlisting}
-int foo (int x[16]);
+int foo(int x[16]);
 \end{lstlisting}
 
 что \lstinline!foo! принимает массив из 16 символов?
@@ -1849,11 +1843,11 @@ hhhhhhhhhhhhhhhhh
 
 \begin{lstlisting}
 int arr[] = {0, 1, 2, 3, 4, 5};
-int *a = arr; /* ok, decaying as &arr[0] */
-int *b = a + 3; /* ok, *b == 3 */
-int *c = a + 6; /* ok, c is one past arr */
-int *d = a + 7; /* undefined behavior */
-d = d - 4; /* even here, *d is undefined */
+int *a = arr;   // ok, decaying as &arr[0]
+int *b = a + 3; // ok, *b == 3
+int *c = a + 6; // ok, c is one past arr
+int *d = a + 7; // undefined behavior
+d = d - 4;      // even here, *d is undefined
 \end{lstlisting}
 
 Пятая строчка здесь создает UB и весь код поcле этой строчки теряет предсказуемость. Даже если программа, ничего не меняя за границами массива, ``честно'' возвращается в допустимую область, тем не менее, UB уже случилось, жесткий диск уже отформатирован, всё пропало.
@@ -1882,14 +1876,14 @@ $get(set(A,I,V),J)=get(A,J)|I \neq J$
 Из-за этого в точке обращения к массиву существует контекстная зависимость -- неясно обращение к чему именно происходит: к jagged-вектору или к одномерному статическому массиву с двумерной адресацией?
 
 \begin{lstlisting}
-assert(a[3][4] == *(a + 3*jmax + 4); /* option 1 */
-assert(a[3][4] == *(*(a + 3) + 4); /* option 2 */
+assert(a[3][4] == *(a + 3*jmax + 4); // option 1
+assert(a[3][4] == *(*(a + 3) + 4);   // option 2 
 \end{lstlisting}
 
 Статические массивы в памяти должны всегда быть непрерывны. Для многомерных массивов раскладка в памяти идёт построчно (см. рис. \ref{fig:c_arrays}). При этом последние индексы идут последними. Так же и с инициализацией.
 
 \begin{lstlisting}
-float flt[][3] = {{1.0, 2.0, 3.0}, {4.0, 5.0}}; /* ok */
+float flt[][3] = {{1.0, 2.0, 3.0}, {4.0, 5.0}}; // ok
 \end{lstlisting}
 
 При этом наиболее вложенные скобки относятся к последним индексам. Первый индекс ясен из контекста и его можно опускать в инициализаторе.
@@ -1916,7 +1910,7 @@ int func(int (*a)[3], int n);
 Точно так же нельзя, даже указав нужные инициализаторы, определить двумерный массив, для которого компилятор дедуцирует оба размера
 
 \begin{lstlisting}
-int a[][] = {{1, 2}, {3, 4}}; /* Error! */
+int a[][] = {{1, 2}, {3, 4}}; // Error!
 \end{lstlisting}
 
 Увы, но здесь, как и в прототипах функций, должны быть указаны все размеры, кроме, может быть, первого.
@@ -1926,7 +1920,7 @@ int a[][] = {{1, 2}, {3, 4}}; /* Error! */
 \begin{lstlisting}
 int func(int **a, int n, int m);
 int a[2][3];
-func (a, 2, 3); /* wrong! */
+func (a, 2, 3); // huh?
 \end{lstlisting}
 
 \ifanswers
@@ -1956,7 +1950,7 @@ func (&a[0][0], 2, 3); /* ok */
 int x = 5;
 int &xref = x;
 xref += 1;
-assert (x == 6);
+assert(x == 6);
 \end{lstlisting}
 
 Каждая ссылка обязательно должна быть инициализирована в точке определения. ``Ссылка сама по себе'' так же как ``нулевая ссылка'' не могут существовать. Указатель сам по себе является местом для хранения данных, ссылка – это просто имя. Поэтому ссылки не нуждаются в явном разыменовании – каждое обращение к ним это уже разыменование. Поэтому различия существенны:
@@ -1967,7 +1961,7 @@ int &xref = x[0];
 int *xptr = &x[0];
 xref += 1;
 xptr += 1;
-assert ((xref == 11) && (*xptr == 20));
+assert((xref == 11) && (*xptr == 20));
 \end{lstlisting}
 
 \subsection{Использование ссылок}
@@ -1975,7 +1969,9 @@ assert ((xref == 11) && (*xptr == 20));
 Главный паттерн для использования ссылок это передача по ссылке входных (неизменяемых) аргументов функций, особенно если типы являются жирными:
 
 \begin{lstlisting}
-struct T { /* ... */ }
+struct T {
+  // a lot of content here
+};
 
 int foo(const T &a);
 \end{lstlisting}
@@ -1986,10 +1982,10 @@ int foo(const T &a);
 
 \begin{lstlisting}
 int do_r (T &a);
-int do_p (T *a);
-/* ... */
-do_r (b); /* should b be changed? */
-do_p (&b); /* b should be changed! */
+int do_p (T *a); // maybe a is array?
+
+do_r (b); // should b be changed?
+do_p (&b);
 \end{lstlisting}
 
 Некоторые считают, что это создаёт неоднозначность в точке использования. Другие считают, что указатели также создают неоднозначность между массивом и указателем.
@@ -2012,15 +2008,14 @@ int foo(int a);
 
 \begin{lstlisting}
 int &current = big_global_array[calc_index(t)];
-current += 1; /* ok, big_global_array changed */
+current += 1; // ok, big_global_array changed
 \end{lstlisting}
 
 В этом деле ссылки настолько удобны, потому что по стандарту они продлевают время жизни автоматических переменных:
 
 \begin{lstlisting}
 const int &c = a + foo();
-/* ... */
-use (c); /* ok, c holds temporary value */
+use (c); // ok, c holds temporary value
 \end{lstlisting}
 
 В противовес этому использование в этом контексте указателя создало бы UB.
@@ -2095,11 +2090,11 @@ const int &lv = xret (1);
 int a = 2;
 int b = 3;
 
-int *pa = &a; /* ok */
-pa = &b; /* ok, now *pa == 3 */
+int *pa = &a;
+pa = &b;      // ok, now pa == &b
 
-int &ra = a; /* ok */
-ra = b; /* ok, now a == 3 */
+int &ra = a;
+ra = b;       // ok, now a == 3, ra still means a
 \end{lstlisting}
 
 Вторая строчка в случае ссылок -- не перевязывает ссылку, а присваивает значение тому lvalue на которое она ссылается. Поэтому ссылки нельзя использовать для создания динамических структур данных, таких как стеки, очереди, деревья.
@@ -2150,11 +2145,11 @@ long long bar (long long z) { return z; }
 
 \begin{verbatim}
 _Z3barc:
-...
+....
 _Z3bari:
-...
+....
 _Z3barx:
-...
+....
 \end{verbatim}
 
 Конвенции манглирования не документированы и являются зависимыми от реализации, так что закладываться на них не надо. Но грамотно использовать механизм перегрузки функций в C++ бывает очень выгодно для облегчения читаемости вашей программы.
@@ -2166,13 +2161,11 @@ _Z3barx:
 Иногда требуется из кода на C++ сделать некую функцию или переменную (обычно входящую в интерфейс модуля) ``линкуемой в C стиле'' -- т.е. отображаемой в ассемблер один в один. Для этого используется спецификатор линковки \lstinline!extern "C"!. Им можно как аннотировать функцию или переменную, так и брать их в блоки.
 
 \begin{lstlisting}
-extern "C" void 
-foo(int);
+extern "C" void foo(int);
 
-extern "C"
-{
-   void g(char);
-   int i;
+extern "C" {
+  void g(char);
+  int i;
 }
 \end{lstlisting}
 
@@ -2249,12 +2242,12 @@ foo(10);
 А чуть ранее объявлены следующие функции:
 
 \begin{lstlisting}
-int foo (char x) { return 0;}        // 1
-int foo (short x) { return 1;}       // 2
-int foo (int x) { return 2;}         // 3
-int foo (...) { return 3;}           // 4
-int foo (int &x) { return 4;}        // 5
-int foo (const int &x) { return 5;}  // 6
+int foo(char x) { return 0;}        // 1
+int foo(short x) { return 1;}       // 2
+int foo(int x) { return 2;}         // 3
+int foo(...) { return 3;}           // 4
+int foo(int &x) { return 4;}        // 5
+int foo(const int &x) { return 5;}  // 6
 \end{lstlisting}
 
 При таком множестве перегрузки, вызов не скомпилируется, поскольку здесь есть конфликт между (3) и (6), которые подходят одинаково хорошо.
@@ -2264,10 +2257,10 @@ int foo (const int &x) { return 5;}  // 6
 Если теперь стереть (3), то будет ошибка компиляции:
 
 \begin{lstlisting}
-int foo (char x) { return 0;}        // 1
-int foo (short x) { return 1;}       // 2
-int foo (...) { return 3;}           // 4
-int foo (int &x) { return 4;}        // 5
+int foo(char x) { return 0;}        // 1
+int foo(short x) { return 1;}       // 2
+int foo(...) { return 3;}           // 4
+int foo(int &x) { return 4;}        // 5
 \end{lstlisting}
 
 Конфликт между двумя равноправными функциями (1) и (2), обе работают через один шаг стандартных преобразований. Если далее стереть одну из них, например (2) всё снова становится норм, программа вернёт 0. Если стереть оставшуюся функцию (1), то следующей пойдёт (4).
@@ -2275,13 +2268,13 @@ int foo (int &x) { return 4;}        // 5
 Если убрать всё и оставить только (5), то будет ошибка компиляции: функция \lstinline!foo! выиграет перегрузку, но константа не может быть связана с неконстантной lvalue ссылкой. Зато такое ссылочное связывание засчитывается как точное совпадение если вызов происходит для lvalue.
 
 \begin{lstlisting}
-void foo (int x); // 1
-void foo (int &x); // 2
-void foo (const int &x); // 3
+void foo(int x); // 1
+void foo(int &x); // 2
+void foo(const int &x); // 3
 
 int x = 42;
-foo (x); // (1, 2) or (1, 3) -> conflict 
-         // (2, 3) -> (2) 
+foo(x); // (1, 2) or (1, 3) -> conflict 
+        // (2, 3) -> (2) 
 \end{lstlisting}
 
 Если вдуматься в эти правила они уже не выглядят столь марсианскими, правда? Хех. Это от того, что я рассказал вам их \textbf{не все}. На уровне C подмножества, всё выглядит довольно логично, но вы уже сейчас можете заглянуть в перегрузку с учётом шаблонов (см. \ref{TemplOverloading})
@@ -2293,14 +2286,14 @@ foo (x); // (1, 2) or (1, 3) -> conflict
 int foo (int number);
 
 // not for char or bool
-int foo (bool) = delete;
-int foo (char) = delete;
+int foo(bool) = delete;
+int foo(char) = delete;
 \end{lstlisting}
 
 Такой синтаксис запрещает перегрузку с заданными типами аргументов. Тем не менее, эти функции участвуют в перегрузке, поэтому при точном совпадении
 
 \begin{lstlisting}
-foo (true); // error, not foo(int)
+foo(true); // error, not foo(int)
 \end{lstlisting}
 
 будет именно ошибка компиляции, вместо неявного приведения типа.
@@ -2432,7 +2425,7 @@ _Z14transpose_pair4pair:
 По умолчанию \lstinline!this! можно опускать, чтобы не загромождать код. Имена полей класса всё равно являются идентификаторами из наиболее охватывающего пространства имён. Поэтому следующий код является и законным и совершенно эквивалентным приведенному выше:
 
 \begin{lstlisting}
-pair_t pair_t::transpose_pair () {
+pair_t pair_t::transpose_pair() {
   pair_t pr = {y, x};
   return pr;
 } 
@@ -2572,8 +2565,7 @@ int res = strcmp(astr.c_str(), bstr.c_str());
 
 \begin{lstlisting}
 template <typename T> inline const T
-min (const T a, const T b)
-{
+min (const T a, const T b) {
   return (a < b) ? a : b;
 }
 \end{lstlisting}
@@ -2805,9 +2797,9 @@ int main () {
 
 \subsection{Отказ от исключений}\label{subsub:basic_noexcept}
 
-Есть несколько способов отказаться от исключений в ваших программах пока вы к ним не готовы. Во-первых это опция компилятора вроде \lstinline!--no-exceptions! которая просто убирает возможность их использовать.
+Есть несколько способов отказаться от исключений в ваших программах пока вы к ним не готовы. Во первых это опция компилятора вроде \lstinline!--no-exceptions! которая просто убирает возможность их использовать.
 
-Во-вторых у вас есть спецификация \lstinline!throw()!, которую вы можете повесить на функцию, чтобы функция не генерировала исключений.
+Во вторых у вас есть спецификация \lstinline!throw()!, которую вы можете повесить на функцию, чтобы функция не генерировала исключений.
 
 Например
 
@@ -2826,7 +2818,6 @@ FILE *open_file (const char *name) throw();
 Для опытных программистов на C этот раздел показывает как может быть устроено нечто похожее на механизм исключений в этом языке.
 
 Допустим функция \lstinline!allocate! вызывает \lstinline!malloc! чтобы выделить n байт, и возвращает указатель, который вернул \lstinline!malloc!. Если же \lstinline!malloc! возвращает нулевой указатель, что индицирует нехватку памяти, \lstinline!allocate! делает нечто похожее на возбуждение исключения \lstinline!Allocate_Failed! (без размотки стека и вызова деструкторов пока что). Исключение само по себе имеет тип \lstinline!jmp_buf!, который определён в стандартном хедере \lstinline!setjmp.h!:
-
 
 \begin{lstlisting}
 #include <setjmp.h>
@@ -3205,8 +3196,7 @@ struct VAROBJECT
 Но очень часто на практике их используют для техники, которая называется ``type punning''. Английское слово ``pun'' обозначает специфическую разновидность юмора (примерно соответствует русскому сленговому слову ``прикол''). В русской википедии используется термин ``каламбур типа'' который кажется мне не слишком удачным. Выглядит эта шутка следующим образом: данные записываются в одно поле объединения, а читаются из другого поля. Таким образом типизация нарушается.
 
 \begin{lstlisting}
-union a
-{
+union a {
   double d;
   char pch[10]; /* assume 80-bit double */
 };
@@ -3254,8 +3244,7 @@ short y;
 \textbf{Вопрос к студентам:} сколько можно сэкономить на переупаковке вот такой структуры для 32-х битной машины?
 
 \begin{lstlisting}
-struct foo
-{
+struct foo {
   char c;
   char *p;
   short x;
@@ -3266,8 +3255,7 @@ struct foo
 Правильный ответ: переупаковка в нисходящем порядке
 
 \begin{lstlisting}
-struct foo 
-{
+struct foo {
   char *p;
   short x;
   char c;
@@ -3288,10 +3276,8 @@ struct foo
 \textbf{Вопрос к студентам:} cтудент Шустрый предлагает такое переупорядочение структуры с использованием вложенной структуры
 
 \begin{lstlisting}
-struct foo 
-{
-  struct foo_inner 
-  {
+struct foo {
+  struct foo_inner {
     char *p;
     short x;
   } inner;
@@ -3308,8 +3294,7 @@ struct foo
 Ещё одна сложность кроется в работе с битовыми полями:
 
 \begin{lstlisting}
-struct foo 
-{
+struct foo {
   int flip:1;
   int nybble:4;
   int septet:7;
@@ -3321,8 +3306,7 @@ struct foo
 С точки зрения компилятора здесь битовые поля образуют слово, в котором задействованы 12 бит из 16 возможных. В итоге в памяти 32-битной машины, эта структура займет 8 байт. Всё становится гораздо хуже если битовое поле пересекает границу слова.
 
 \begin{lstlisting}
-struct foo 
-{
+struct foo {
   int bigfield:30;
   int septet:7;
   short s;
@@ -3335,7 +3319,7 @@ struct foo
 \textbf{Вопрос к студентам:} Когда для какой-либо структуры вызывается \lstinline!sizeof!, как вы думаете, он возвращает размер с учётом выравнивания и заполнения или без учёта? И почему.
 
 \ifanswers
-Правильный ответ: с учётом. Потому что иначе например не работала бы идиома \lstinline!malloc (sizeof(widget))! -- здесь выделялось бы динамической памяти меньше, чем реально нужно.
+Правильный ответ: с учётом. Потому что иначе например не работала бы идиома \lstinline!malloc(sizeof(widget))! -- здесь выделялось бы динамической памяти меньше, чем реально нужно.
 \fi
 
 \textbf{Вопрос к студентам:} более хитрый вопрос: а возможно ли вообще написать \lstinline!sizeof_unaligned! в сколь бы то ни было переносимом виде?
@@ -3385,12 +3369,12 @@ memset (&p, 0xDA, sizeof(p));
 
 \begin{lstlisting}
 enum E_MY_FAVOURITE_FRUITS {
-    E_APPLE      = 0x01,
-    E_WATERMELON = 0x02,
-    E_COCONUT    = 0x04,
-    E_STRAWBERRY = 0x08,
-    E_CHERRY     = 0x10,
-    E_MY_FAVOURITE_FRUITS_FORCE8 = 0xFF
+     E_APPLE      = 0x01,
+     E_WATERMELON = 0x02,
+     E_COCONUT    = 0x04,
+     E_STRAWBERRY = 0x08,
+     E_CHERRY     = 0x10,
+     E_MY_FAVOURITE_FRUITS_FORCE8 = 0xFF
 };
 \end{lstlisting}
 
@@ -4024,8 +4008,7 @@ typedef struct tree_tag
 Пусть стоит задача разработать тип данных, который будет использован для моделирования полёта материальной точки в двумерном мире (высота, длина). Мяч может лететь свободно, для чего у него вызывается метод \lstinline!fly(double t)! или его можно толкнуть, придав ему определённую скорость под определённым углом (после чего например опять отправить в полёт и так далее). Можно написать определение структуры, вроде приведенного ниже.
 
 \begin{lstlisting}
-struct ball
-{
+struct ball {
   double t;
   double vx;
   double vy;
@@ -4055,8 +4038,7 @@ ball foo() {
 Для разграничения состояния модели от её поведения и более гибкого управления поведением, в C++ были введены классы. Простые классы, без использования полиморфизма и без иерархий наследования, называются ``конкретными классами''. Конкретные классы -- мощный и полезный инструмент для поддержания консистентности абстракции. Можно переписать модель мяча, создав его класс
 
 \begin{lstlisting}
-struct ball_t
-{
+struct ball_t {
 private:
   double m_x;
   double m_y;
