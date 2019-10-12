@@ -12,8 +12,5 @@ unsigned long long fib (unsigned n) {
 }
 
 int main () {
-  int i, j;
-  for (i = 30; i < 46; ++i) 
-    printf("%llu ", fib(i * 2));
-  printf("\n");
+  printf("%llu\n", fib(5));
 }
