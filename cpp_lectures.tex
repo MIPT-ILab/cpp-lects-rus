@@ -4819,21 +4819,28 @@ foo::~foo()
 \begin{lstlisting}
 class Matrix
 {
-public:
-  Matrix (int n, int m) : m_n (n), m_m (m), m_buf (new int[n*m]()) {}
-  ~Matrix () { delete [] m_buf; }
-
-  Matrix (const Matrix &rhs) : m_n (rhs.m_n), m_m (rhs.m_m), m_buf (new int[m_n * m_m])
-    {
-      std::memcpy (m_buf, rhs.m_buf, rhs.m_n * rhs.m_m * sizeof (int));
-    }
-
-  void set (int x, int y, int val) { m_buf[x*m_m + y] = val; }
-  int get (int x, int y) { return m_buf[x*m_m + y]; }
-
-private:
   int m_n, m_m;
   int *m_buf;
+public:
+  Matrix (int n, int m) : 
+    m_n (n), m_m (m), m_buf (new int[n*m]()) {}
+  ~Matrix () { delete [] m_buf; }
+
+  Matrix (const Matrix &rhs) : 
+    m_n (rhs.m_n), m_m (rhs.m_m), m_buf (new int[m_n * m_m]) {
+      std::memcpy (m_buf, rhs.m_buf, 
+                   rhs.m_n * rhs.m_m * sizeof(int));
+  }
+
+  Matrix &operator=(const Matrix &rhs) {
+    Matrix tmp{rhs};
+    m_n = tmp.m_n; m_m = tmp.m_m;
+    std::swap(m_buf, tmp.m_buf);
+    return *this;
+  }
+
+  void set (int x, int y, int val) { m_buf[x*m_m + y] = val; }
+  int get (int x, int y) const { return m_buf[x*m_m + y]; }
 };
 \end{lstlisting}
 \fi
@@ -4841,23 +4848,21 @@ private:
 Допустим, хотелось бы написать сложение матриц.
 
 \begin{lstlisting}
-/* adds rhs to this and returns new sum matrix */
-Matrix
-Matrix::add (const Matrix &rhs)
+Matrix& Matrix::addeq(const Matrix &rhs)
 \end{lstlisting}
 
 Использование очевидно.
 
 \begin{lstlisting}
-Matrix m, n, t;
-...
-t.assign (m.add (n));
+Matrix m, n;
+// ....
+m.addeq(n);
 \end{lstlisting}
 
 Но это не так красиво, как если бы допускалась более математическая запись с инфиксным сложением.
 
 \begin{lstlisting}
-t = m + n;
+m += n;
 \end{lstlisting}
 
 И C++, как вскоре станет ясно, даёт возможность переопределить операторы, такие как \lstinline!+!, \lstinline!=! и многие другие, чтобы добиться такой непосредственности в выражении мыслей.
@@ -4883,14 +4888,13 @@ x = y = z = w;
 распространяющей, значение \lstinline!w! справа налево. Рассмотренный ранее (\ref{subsub:magicglasses}) буфер может и должен быть расширен определение оператора равенства, который для того, чтобы такая цепочка могла быть сформирована, должен возвращать ссылку на текущий объект
 
 \begin{lstlisting}
-  CCopyableBuffer& operator= (const CCopyableBuffer& rhs)
-  {
-    if (&rhs == this) return *this;
-    delete [] m_buffer;
-    m_size = rhs.m_size; m_buffer = new char[m_size];
-    memcpy(m_buffer, rhs.m_buffer, m_size);
-    return *this;
-  }
+CCopyableBuffer& operator=(const CCopyableBuffer& rhs){
+  if (&rhs == this) return *this;
+  delete [] m_buffer;
+  m_size = rhs.m_size; m_buffer = new char[m_size];
+  memcpy(m_buffer, rhs.m_buffer, m_size);
+  return *this;
+}
 \end{lstlisting}
 
 Особое внимание следует обратить на проверку \lstinline!if (&rhs == this)! в начале. Вторым способом написать эту проверку будет: \lstinline!if (rhs == *this)!

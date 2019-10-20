@@ -7,7 +7,7 @@ struct myclass_t {
 };
 
 int main() {
-  myclass_t m1(list_t(), list_t());
+  myclass_t m1((list_t()), (list_t()));
   myclass_t m2{list_t(), list_t()};
 
   std::cout << m1.x << std::endl;  // WAT?
