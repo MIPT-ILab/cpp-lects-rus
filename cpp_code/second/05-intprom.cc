@@ -1,7 +1,7 @@
 #include <iostream>
 
 int main() {
-  int a = 2; double b = 2.5;
+  int a = 2; double b = 2.8;
   short c = a * b;
   std::cout << std::dec << a << " * " << b << " = " << c << std::endl;
 
