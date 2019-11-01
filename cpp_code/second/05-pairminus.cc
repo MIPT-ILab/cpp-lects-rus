@@ -1,13 +1,12 @@
 #include <iostream>
 #include <utility>
 
-template <typename T, typename U>
-std::pair<T, U> operator-(std::pair<T, U> p) {
+template <typename T, typename U> std::pair<T, U> operator-(std::pair<T, U> p) {
   return {-p.first, -p.second};
 }
 
 template <typename T, typename U>
-std::ostream& operator<<(std::ostream& os, std::pair<T, U> p) {
+std::ostream &operator<<(std::ostream &os, std::pair<T, U> p) {
   os << p.first << " " << p.second;
   return os;
 }

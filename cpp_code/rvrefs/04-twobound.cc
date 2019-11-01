@@ -23,15 +23,12 @@ h(T &&t) {
 int main (void)
 {
   cout << "twobound:" << endl;
-  int x = 1;
-  const int cx = 1;
-#if defined(SIMPLE) 
   h (1);
+  int x = 1;
   h (x);
-#elif defined(COMPLEX1)
+#if defined(CONST)
+  const int cx = 1;
   h (cx);
-#else
-  #error "define SIMPLE or COMPLEX1"
 #endif
 }
 

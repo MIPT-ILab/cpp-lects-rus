@@ -1,23 +1,21 @@
 #include <iostream>
 
-template<typename T> struct Quat {
+template <typename T> struct Quat {
   T x, y, z, w;
 
-  void dump(std::ostream& os) const {
-    os << x << " " << y << " " << z << " " << w; 
+  void dump(std::ostream &os) const {
+    os << x << " " << y << " " << z << " " << w;
   }
 
-  Quat operator-() const {
-    return Quat{x, -y, z, -w};
-  }
+  Quat operator-() const { return Quat{x, -y, z, -w}; }
 };
 
-template<typename T> Quat<T> operator-(Quat<T> arg) {
+template <typename T> Quat<T> operator-(Quat<T> arg) {
   return Quat<T>{-arg.x, arg.y, -arg.z, arg.w};
 }
 
 int main() {
-  Quat<float> q {1, 2, 3, 4};
+  Quat<float> q{1, 2, 3, 4};
 
   std::cout << "Before: " << std::endl;
   q.dump(std::cout);

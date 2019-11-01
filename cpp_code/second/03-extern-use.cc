@@ -1,5 +1,3 @@
 extern int foo(int);
 
-int main() {
-  return foo(0);
-}
+int main() { return foo(0); }

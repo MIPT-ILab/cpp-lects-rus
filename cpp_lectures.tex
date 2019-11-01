@@ -6621,8 +6621,7 @@ forcesApply (&t, fs, 5);
 Для программиста на C++ важно знать один очень специальный случай полиморфизма, относящийся к семантике освобождения, а именно виртуальные деструкторы. Рассмотрим пример – пусть у нас есть фабричная функция, которая в зависимости от радиуса желаемого пользователем небесного тела возвращает \lstinline!CelestialBody! если он меньше порогового значения или планету в другом случае:
 
 \begin{lstlisting}
-ICelestialBody *get_celestial_body (double r)
-{
+ICelestialBody *get_celestial_body (double r) {
   if (r < epsilon)
     return new CelestialBody ();
 
@@ -6923,8 +6922,7 @@ jupiter.detect_collision(earth); // sliced
 Выходом является разделить обязанности предоставления поведения по умолчанию и заглушки для переопределения:
 
 \begin{lstlisting}
-struct ICelestialBody
-{
+struct ICelestialBody {
 public:
   /* Non-Virtual interface */
   double get_x () const { return do_get_x(); }
@@ -6951,8 +6949,7 @@ private:
 При наследовании реализации имена имеют значение. Если некий класс \lstinline!Matrix! определяет две версии \lstinline!pow! (для возведения в целую степень, что гораздо проще и в вещественную, что сложнее):
 
 \begin{lstlisting}
-class Matrix
-{
+class Matrix {
 public:
   virtual void pow(int x);
   virtual void pow(double x);
@@ -6980,8 +6977,7 @@ t.pow(5.0);
 Произойдёт вовсе не вызов \lstinline!Matrix::pow(double)! а вместо этого неявное преобразование типа и вызов \lstinline!SparceMatrix::pow(int)!. Чтобы избежать такого поведения можно явно ввести имя базового класса в контекст производного класса:
 
 \begin{lstlisting}
-class SparceMatrix : public Matrix
-{
+class SparceMatrix : public Matrix {
 public:
   using Matrix::pow;
   void pow (int x);
@@ -6991,8 +6987,7 @@ public:
 Либо можно воспользоваться идиомой NVI и переопределять закрытые функции с разными именами:
 
 \begin{lstlisting}
-class Matrix
-{
+class Matrix {
 public:
   /* Non-virtual interface */
   void pow(int x) { do_pow_int(x); }
@@ -7030,8 +7025,7 @@ private:
 Говорят, что закрытое наследование моделирует отношение part-of (быть частью). В принципе у закрытого наследования нет почти никакой разницы с композицией:
 
 \begin{lstlisting}
-struct Engine
-{
+struct Engine {
   int start() const;
 };
 \end{lstlisting}
@@ -7039,8 +7033,7 @@ struct Engine
 Теперь этот двигатель может быть включен в космический корабль посредством композиции
 
 \begin{lstlisting}
-class SpaceShip_p
-{
+class SpaceShip_p {
   Engine e;
 public:
   int start (double dt) const { e.start(); } 
@@ -7050,9 +7043,7 @@ public:
 Или же посредством закрытого наследования.
 
 \begin{lstlisting}
-class SpaceShip_p: private Engine
-{
-public:
+struct SpaceShip_p : private Engine {
   int start (double dt) const { Engine::start(); }
 };
 \end{lstlisting}
@@ -7111,8 +7102,7 @@ class B : public A {
 В разделе (\ref{NameHiding}) уже рассматривалась возможность неявных ошибок из-за разрешения имен в стиле C++. Теперь настало время рассмотреть ещё одну ошибку такого рода и что с этим делать. Итак, всё те же матрицы.
 
 \begin{lstlisting}
-struct Matrix
-{
+struct Matrix {
   virtual void pow(int x);
 };
 \end{lstlisting}
@@ -7120,8 +7110,7 @@ struct Matrix
 И тут программист совершает обычную человеческую ошибку.
 
 \begin{lstlisting}
-struct SparceMatrix : Matrix
-{
+struct SparceMatrix : Matrix {
   void pow (long x); // oops
 };
 \end{lstlisting}
@@ -7137,8 +7126,7 @@ m->pow(1); // calls Matrix::pow!
 Действительно, разные сигнатуры засчитываются как разные функции, перегрузки не происходит, всё плохо. Застраховаться от таких ошибок помогает спецификатор \lstinline!override!.
 
 \begin{lstlisting}
-struct SparceMatrix : Matrix
-{
+struct SparceMatrix : Matrix {
   void pow (long x) override; // BOOM!
 };
 \end{lstlisting}
@@ -7170,8 +7158,7 @@ template <typename T> struct Derived {
 Ещё один спецификатор, тоже полезный для управления наследованием, вообще запрещает дальнейшее переопределение. И это \lstinline!final!.
 
 \begin{lstlisting}
-struct SparceMatrix : Matrix
-{
+struct SparceMatrix : Matrix {
   void pow (long x) final; // BOOM!
 };
 \end{lstlisting}
@@ -7179,13 +7166,11 @@ struct SparceMatrix : Matrix
 и одновременно
 
 \begin{lstlisting}
-struct SparceMatrix : Matrix
-{
+struct SparceMatrix : Matrix {
   void pow (int x) final; // Ok
 };
 
-struct MySparceMatrix : SparceMatrix
-{
+struct MySparceMatrix : SparceMatrix {
   void pow (int x) override; // BOOM!
 };
 \end{lstlisting}
@@ -7488,10 +7473,8 @@ public:
 И является виртуальным базовым для классов:
 
 \begin{lstlisting}
-/* C is similar */
-class B : virtual public A
-{
-public:
+// C is similar
+struct B : virtual public A {
   B(int x):A(x){}
 };
 \end{lstlisting}
@@ -7499,8 +7482,7 @@ public:
 Увы, ожидаемый порядок конструирования для класса наследующего по ромбовидной схеме не сработает интуитивно:
 
 \begin{lstlisting}
-class D : public B, public C {
-public:
+struct D : public B, public C {
   D(int x) : B(x), C(x) {} // Error!
 }
 \end{lstlisting}
@@ -7516,8 +7498,7 @@ public:
 Это распространяется и ниже по иерархии туда, где об общем виртуальном предке все уже давно забыли:
 
 \begin{lstlisting}
-class E : public D {
-public:
+struct E : public D {
   E() : D(10) {} // Error!
 };
 \end{lstlisting}
@@ -7612,29 +7593,25 @@ x.foo();
 Вложенные функции в C++ невозможны так же как и в C (что кстати не вполне логично, так как вложенные лямбда-функции в новом стандарте возможны и будут рассмотрены на следующих лекциях, так что казалось бы гулять так гулять). Зато C++ позволяет вкладывать классы. Синтаксис очевиден, но, если необходимо, чтобы вложенный класс ``знал'' о своём окружении, об этом надо позаботиться отдельно:
 
 \begin{lstlisting}
-class DeathStar
-{
+class DeathStar {
+  DartVeider m_dv;
+  const char *m_name;
 public:
-  DeathStar(const char *name) : m_name(name)
-    {
-       m_dv.starptr = this;
-    }
+  DeathStar(const char *name) : m_name(name) {
+    m_dv.starptr = this;
+  }
 
-  class DartVeider
-  {
-    public:
-      void whoareyou() const
-        {
-          printf("I am Dart Veider, flying on %s\n", starptr ? starptr->m_name : "hmm... I don't know where");
+  struct DartVeider {
+    void whoareyou() const{
+      auto where = starptr ? starptr->m_name 
+                           : "hmm... I don't know where";
+      std::cout << "I am Dart Veider, flying on " 
+                 << where << std::endl;
         }
-      DeathStar *starptr;    
+    DeathStar *starptr;    
   };
 
   void ask_dart_veider() const { m_dv.whoareyou(); }
-
-private:
-  DartVeider m_dv;
-  const char *m_name;
 };
 \end{lstlisting}
 
@@ -7661,8 +7638,7 @@ d.ask_dart_veider();
 Наиболее типичным применением дружбы является дружба между классами. Для этого объявление класса, которому хочется открыть внутреннее состояние должно быть предварено ключевым словом \lstinline!friend!.
 
 \begin{lstlisting}
-class Node
-{
+class Node {
   int data;
   int key;
   /* ..... */
@@ -7676,23 +7652,20 @@ class Node
 Класс \lstinline!Node!, назначив себе друга \lstinline!BinaryTree!, открыл ему всё свое закрытое состояние, но, при этом, сам не получил никакого доступа к \lstinline!BinaryTree!. Теперь внутри BinaryTree можно написать код вида:
 
 \begin{lstlisting}
-class BinaryTree
-{
+class BinaryTree {
   Node *root;
 
 public:
   int find(int key);
 };
 
-int BinaryTree::find(int key)
-{
-  /* check root */
-  if(root->key == key)
-    {
-      /* no need to go through an accessor function */
-      return root->data;
-    }
-  /* rest of find */
+int BinaryTree::find(int key) {
+  // check root
+  if(root->key == key) {
+    // no need to go through an accessor function
+    return root->data;
+  }
+  // rest of find
 }
 \end{lstlisting}
 
@@ -7700,13 +7673,12 @@ int BinaryTree::find(int key)
 Класс может открывать своё состояние не только классам, но и функциям. Скажем, не открывая доступ всему \lstinline!BinaryTree!, можно открыть его только методу \lstinline!find!:
 
 \begin{lstlisting}
-class Node
-{
+class Node {
   int data;
   int key;
-  /* ..... */
+  // ........
 
-  /* BinaryTree::find can access data directly */
+  // BinaryTree::find can access data directly
   friend int BinaryTree::find();
 };
 \end{lstlisting}
@@ -7714,8 +7686,7 @@ class Node
 Открыть внутреннее состояние можно и отдельной функции. Как дополнительный плюс -- в этом случае функция считается объявленной.
 
 \begin{lstlisting}
-struct Node
-{
+struct Node {
   // declaration
   friend int find();
 };
@@ -7725,9 +7696,7 @@ struct Node
 int t = find();
 
 // definition
-int
-find() 
-{
+int find() {
   /* ..... */
 }
 \end{lstlisting}

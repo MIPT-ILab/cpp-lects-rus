@@ -21,4 +21,3 @@ void bar(int x, int y = 0) {
 void buz() {
   bar(3); // ok
 }
-

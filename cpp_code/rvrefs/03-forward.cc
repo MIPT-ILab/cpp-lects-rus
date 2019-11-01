@@ -7,8 +7,10 @@ using std::move;
 using std::forward;
 
 struct Costly {
-  Costly () { cout << "ctor" << endl; }
-  Costly (const Costly&) { cout << "copy" << endl; }
+  Costly () {} 
+  ~Costly () {}
+
+  Costly (const Costly&) { cout << "copy ctor" << endl; }
   Costly& operator= (const Costly&) { cout << "assign" << endl; return *this; }
 
   Costly (Costly&&) { cout << "move ctor" << endl; }

@@ -6,7 +6,7 @@ void basic_ones() {
   x = static_cast<int>(y);
   std::cout << "x = " << x << std::endl;
   const int *p = &x;
-  int *q = const_cast<int*>(p);
+  int *q = const_cast<int *>(p);
   uintptr_t uq = reinterpret_cast<uintptr_t>(q);
   std::cout << "uq = " << uq << std::endl;
 }
@@ -17,14 +17,12 @@ void reint_vs() {
   // std::cout << "char # " << reinterpret_cast<int>(c) << std::endl;
 
   int i;
-  const int* p = &i;
-  std::cout << "int: " << *(const_cast<int*>(p)) << std::endl;
+  const int *p = &i;
+  std::cout << "int: " << *(const_cast<int *>(p)) << std::endl;
   // std::cout << "int: " << *(reinterpret_cast<int*>(p)) << std::endl;
 }
 
-int
-main() {
+int main() {
   basic_ones();
   reint_vs();
 }
-

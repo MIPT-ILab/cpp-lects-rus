@@ -5,20 +5,15 @@ struct Foo {
   operator long() { return 42; }
 };
 
-void foo(int x) {
-  std::cout << "int: " << x << std::endl;
-}
+void foo(int x) { std::cout << "int: " << x << std::endl; }
 
-void foo(Foo x) {
-  std::cout << "Foo: " << x << std::endl;
-}
+void foo(Foo x) { std::cout << "Foo: " << x << std::endl; }
 
-int
-main() {
+int main() {
   Foo f;
   foo(f);
   foo(+f);
-  
+
   long l;
   foo(l);
 }

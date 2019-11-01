@@ -2,8 +2,7 @@
 
 void use(Ptr &p);
 
-int
-main() {
+int main() {
   Ptr p{10};
   use(p);
 }

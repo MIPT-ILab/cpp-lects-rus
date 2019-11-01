@@ -3,14 +3,14 @@
 struct Sometype {
   int x;
   static int y; // declaration
-  void foo() { 
-    x += 3; 
+  void foo() {
+    x += 3;
     y += 3;
   }
   static void bar() {
-    // x += 3; // FAIL    
-    y += 3; 
-  } 
+    // x += 3; // FAIL
+    y += 3;
+  }
 };
 
 int Sometype::y; // definition

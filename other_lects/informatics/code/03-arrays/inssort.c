@@ -3,7 +3,13 @@
 #include <stdlib.h>
 
 unsigned moveright(int *arr, int key, unsigned last) {
-  // TODO: code here
+  int i;
+  for (i = last - 1; i >= 0; --i) {
+    if (arr[i] < key)
+      break;
+    arr[i + 1] = arr[i];
+  }
+  return (i + 1);
 }
 
 void inssort(int *arr, unsigned len) {

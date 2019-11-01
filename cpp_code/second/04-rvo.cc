@@ -4,10 +4,10 @@ using std::cout;
 using std::endl;
 
 struct foo {
-  foo () { cout << "foo::foo()" << endl; }
-  foo (const foo&) { cout << "foo::foo(const foo&)" << endl; }
-  foo(foo&&) { cout << "foo::foo(foo&&)" << endl; }
-  ~foo () { cout << "foo::~foo()" << endl; }
+  foo() { cout << "foo::foo()" << endl; }
+  foo(const foo &) { cout << "foo::foo(const foo&)" << endl; }
+  foo(foo &&) { cout << "foo::foo(foo&&)" << endl; }
+  ~foo() { cout << "foo::~foo()" << endl; }
 };
 
 foo bar() {
@@ -15,7 +15,4 @@ foo bar() {
   return local_foo;
 }
 
-int main() {
-  foo f = bar();
-}
-
+int main() { foo f = bar(); }
