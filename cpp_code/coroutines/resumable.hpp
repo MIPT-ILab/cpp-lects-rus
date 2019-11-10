@@ -29,3 +29,31 @@ struct resumable {
 private:
   coro_handle handle_;
 };
+
+struct resumable_no_wait {
+  struct promise_type {
+    using coro_handle = std::experimental::coroutine_handle<promise_type>;
+    auto get_return_object() { return coro_handle::from_promise(*this); }
+    auto initial_suspend() { return std::experimental::suspend_never(); }
+    auto final_suspend() { return std::experimental::suspend_always(); }
+    void return_void() {}
+    void unhandled_exception() { std::terminate(); }
+  };
+
+  using coro_handle = std::experimental::coroutine_handle<promise_type>;
+  resumable_no_wait(coro_handle handle) : handle_(handle) { assert(handle); }
+  resumable_no_wait(resumable_no_wait &) = delete;
+  resumable_no_wait(resumable_no_wait &&rhs) : handle_(rhs.handle_) { rhs.handle_ = nullptr; }
+  bool resume() {
+    if (!handle_.done())
+      handle_.resume();
+    return !handle_.done();
+  }
+  ~resumable_no_wait() {
+    if (handle_)
+      handle_.destroy();
+  }
+
+private:
+  coro_handle handle_;
+};

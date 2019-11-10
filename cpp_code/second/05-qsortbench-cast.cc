@@ -5,7 +5,9 @@
 #include <ctime>
 
 struct myless {
-  bool operator()(const int &lhs, const int &rhs) const { return lhs > rhs; }
+  static bool less(const int &lhs, const int &rhs) { return lhs > rhs; }
+  using lessptr_t = bool (*)(const int &lhs, const int &rhs);
+  operator lessptr_t() const { return less; }
 };
 
 int main(int argc, char **argv) {
@@ -13,7 +15,7 @@ int main(int argc, char **argv) {
   int *narr;
   clock_t start, fin;
 
-  printf("Hello from C++ qsort bench op overload\n");
+  printf("Hello from C++ qsort bench cast overload\n");
 
   if (argc != 2) {
     printf("usage: %s <number-of-elements>\n", argv[0]);
@@ -31,8 +33,7 @@ int main(int argc, char **argv) {
 
   start = clock();
 
-  myless comp;
-  std::sort(narr, narr + nelts, comp);
+  std::sort(narr, narr + nelts, myless{});
 
   fin = clock();
   printf("Elapsed: %lg seconds\n", (double)(fin - start) / CLOCKS_PER_SEC);
