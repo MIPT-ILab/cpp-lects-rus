@@ -11,10 +11,6 @@ struct hello_awaiter {
   }
 };
 
-resumable_no_wait hello() { 
-  co_await hello_awaiter{};
-}
+resumable_no_wait hello() { co_await hello_awaiter{}; }
 
-int main() {
-  hello();
-}
+int main() { hello(); }

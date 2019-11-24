@@ -27,6 +27,7 @@ const unsigned black = 0xff1010ff;
 const unsigned white = 0xffffffff;
 #ifdef DYNAMIC
 const unsigned maxiter = 30;
+const double ARGSTEP = 0.01;
 #else
 const unsigned maxiter = 100;
 #endif
@@ -111,7 +112,7 @@ main (int argc, char **argv)
   while (v->poll () == pollres::PROCEED)
     {
 #ifdef DYNAMIC
-      arg += 0.03;
+      arg += ARGSTEP;
       c = std::polar(abs, arg);
 #endif
     }

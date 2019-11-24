@@ -26,6 +26,7 @@ main ()
 #ifndef FIXES
    cout << apply ([] { return 3; }) << endl;
 #else
+   cout << apply<int> ([] { return 3; }) << endl;
    cout << apply (static_cast<fptr_t>([] { return 3; })) << endl;
    cout << apply (+[] { return 3; }) << endl;
 #endif

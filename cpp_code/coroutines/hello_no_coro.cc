@@ -10,6 +10,4 @@ resumable_no_wait foo() {
   std::cout << "World" << std::endl;
 }
 
-int main() {
-  foo();
-}
+int main() { foo(); }
