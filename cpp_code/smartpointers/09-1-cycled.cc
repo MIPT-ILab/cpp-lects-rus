@@ -6,7 +6,7 @@ using std::make_shared;
 using std::shared_ptr;
 
 struct Node {
-  MyRes r;
+  MyRes r{1, 2};
   shared_ptr<Node> parent, left, right;
 };
 

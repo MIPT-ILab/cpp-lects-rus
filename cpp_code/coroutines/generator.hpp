@@ -21,7 +21,7 @@ template <typename T> struct generator {
   bool move_next() {
     return handle_ ? (handle_.resume(), !handle_.done()) : false;
   }
-  T current_value() { return handle_.promise().current_value; }
+  T current_value() const { return handle_.promise().current_value; }
   generator(coro_handle h) : handle_(h) {}
   generator(generator const &) = delete;
   generator(generator &&rhs) : handle_(rhs.handle_) { rhs.handle_ = nullptr; }

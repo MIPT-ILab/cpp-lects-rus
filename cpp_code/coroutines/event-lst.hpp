@@ -13,21 +13,18 @@ class evt_awaiter_t {
   bool set_;
 
   struct awaiter {
-    evt_awaiter_t *event_;
+    evt_awaiter_t &event_;
     coro_t coro_ = nullptr;
-    awaiter(evt_awaiter_t *event) noexcept : event_(event) {}
+    awaiter(evt_awaiter_t &event) noexcept : event_(event) {}
 
-    bool await_ready() const noexcept { return event_->is_set(); }
+    bool await_ready() const noexcept { return event_.is_set(); }
 
-    bool await_suspend(coro_t coro) noexcept {
+    void await_suspend(coro_t coro) noexcept {
       coro_ = coro;
-      if (event_->is_set())
-        return false;
-      event_->push_awaiter(*this);
-      return true;
+      event_.push_awaiter(*this);
     }
 
-    void await_resume() noexcept { event_->reset(); }
+    void await_resume() noexcept { event_.reset(); }
   };
 
 public:
@@ -41,16 +38,23 @@ public:
   bool is_set() const noexcept { return set_; }
   void push_awaiter(awaiter a) { lst_.push_back(a); }
 
-  awaiter operator co_await() noexcept { return awaiter{this}; }
+  awaiter operator co_await() noexcept { return awaiter{*this}; }
 
   void set() noexcept {
     set_ = true;
+#if INEFF
     auto ntoresume = lst_.size();
     while (ntoresume > 0) {
       lst_.front().coro_.resume();
       lst_.pop_front();
       ntoresume--;
     }
+#else
+    std::list<awaiter> toresume;
+    toresume.splice(toresume.begin(), lst_);
+    for (auto s: toresume)
+      s.coro_.resume();    
+#endif    
   }
 
   void reset() noexcept { set_ = false; }

@@ -13,22 +13,19 @@ class evt_awaiter_t {
   bool set_;
 
   struct awaiter {
-    evt_awaiter_t *event_;
+    evt_awaiter_t &event_;
     awaiter *next_;
     coro_t coro_ = nullptr;
-    awaiter(evt_awaiter_t *event) noexcept : event_(event) {}
+    awaiter(evt_awaiter_t &event) noexcept : event_(event) {}
 
-    bool await_ready() const noexcept { return event_->is_set(); }
+    bool await_ready() const noexcept { return event_.is_set(); }
 
-    bool await_suspend(coro_t coro) noexcept {
+    void await_suspend(coro_t coro) noexcept {
       coro_ = coro;
-      if (event_->is_set())
-        return false;
-      event_->push_awaiter(this);
-      return true;
+      event_.push_awaiter(this);
     }
 
-    void await_resume() noexcept { event_->reset(); }
+    void await_resume() noexcept { event_.reset(); }
   };
 
 public:

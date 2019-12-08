@@ -6,7 +6,7 @@ using std::shared_ptr;
 using std::weak_ptr;
 
 struct Node {
-  MyRes r;
+  MyRes r{1, 2};
   weak_ptr<Node> parent;
   shared_ptr<Node> left, right;
 };
