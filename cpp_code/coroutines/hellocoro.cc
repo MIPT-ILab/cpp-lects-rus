@@ -13,5 +13,6 @@ resumable foo() {
 int main() {
   auto t = foo();
   t.resume();
+  std::cout << "Coroutine" << std::endl;
   t.resume();
 }
