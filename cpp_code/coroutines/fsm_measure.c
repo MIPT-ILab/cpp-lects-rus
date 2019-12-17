@@ -1,7 +1,15 @@
-// use: a.exe < inp1.fsm
+// cl -O2 fsm_measure.c
+// cl fsm_measure.c -DDEBUG
 
+#include <assert.h>
 #include <stdio.h>
 #include <time.h>
+
+#ifdef DEBUG
+#define log(x) printf(x)
+#else
+#define log(x)
+#endif
 
 #define start(state)                                                           \
   switch (state) {                                                             \
@@ -25,25 +33,32 @@
 // B -- 'b' --> A
 // C -- 'a' --> A
 // C -- 'b' --> B
+
+// basic test inp1.fsm: aaabba
+// start: A
+// output: ABCACBC
+
 int run(char input) {
   static int state = 0;
+  if (input == 0)
+    state = 0;
   start(state) {
   A:
-    printf("A\n");
+    log("A\n");
     yield(state, 1);
     if (input == 'a')
       goto B;
     if (input == 'b')
       goto C;
   B:
-    printf("B\n");
+    log("B\n");
     yield(state, 2);
     if (input == 'a')
       goto C;
     if (input == 'b')
       goto A;
   C:
-    printf("C\n");
+    log("C\n");
     yield(state, 3);
     if (input == 'a')
       goto A;
@@ -56,16 +71,26 @@ int run(char input) {
 }
 
 int main() {
-  int a, s = 0, t;
+  int a, s = 0, res;
+  int n, m, i;
   clock_t start, fin;
   
-  start = clock();  
-  while ((a = getchar()) != EOF && (s = run(a)) != 0) {
-    t = s;
+  res = scanf("%d%d", &n, &m);
+  assert(res);
+  
+  start = clock();
+  
+  for (int i = 0; i < m; ++i) {  
+    run(0); // switch to first state
+    for (int j = 0; j < n; ++j) {
+      a = (rand() % 2) ? 'a' : 'b';
+      s = run(a);
+      assert(s != 0);
+    }
   }
+
   fin = clock();
 
   printf("Elapsed: %lg seconds\n", (double)(fin - start) / CLOCKS_PER_SEC);
-  printf("final: %d\n", t);
   return 0;
 }
