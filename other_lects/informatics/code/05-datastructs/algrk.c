@@ -54,7 +54,7 @@ int rabin_karp(const char *needle, const char *haystack) {
     cur = update_hash(cur, n, haystack[left], haystack[right]);
     left += 1; right += 1;
   }
-  return (target == cur) ? left : 0;
+  return (target == cur) ? left : -1;
 }
 
 int

@@ -8,7 +8,7 @@ using std::chrono::milliseconds;
 using std::chrono::seconds;
 
 struct fibs_modulo_t {
-  int a_, b_, m_;
+  int a_ = 0, b_ = 1, m_;
 
   fibs_modulo_t(int m) : m_{m} {}
 
