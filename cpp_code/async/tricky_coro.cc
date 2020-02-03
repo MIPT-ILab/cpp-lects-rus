@@ -19,23 +19,28 @@ int get_result() {
 
 int process_result(int x) {
   // some heavy task
-  std::this_thread::sleep_for(cms(500));
+  std::this_thread::sleep_for(cms(1000));
   return x * 2;
 }
 
 int main() {
-  auto compute = []() -> std::future<int> {
-    int result = co_await std::async(get_result);
-    result = co_await std::async(process_result, result);
+  auto compute = []() -> std::future<int> {   
+    int result = co_await std::async(std::launch::async, get_result);
+    std::cout << "awake 1" << std::endl;
+    result = co_await std::async(std::launch::async, process_result, result);
+    std::cout << "awake 2" << std::endl;
     co_return result;
   };
 
   auto tstart = chrc::now();
 
   auto f = compute();
+  std::cout << "point 1" << std::endl;  
 
   // some heavy task
   std::this_thread::sleep_for(cms(1000));
+  
+  std::cout << "point 2" << std::endl; 
 
   auto result = f.get();
   auto tfin = chrc::now();
