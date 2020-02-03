@@ -20990,7 +20990,7 @@ int divide(int a, int b) {
 
 packaged_task<int(int, int)> task {divide};
 future<int> f = task.get_future();
-thread(move(task), 30, 6);
+thread t(move(task), 30, 6);
 t.detach();
 
 // .... more code ...
