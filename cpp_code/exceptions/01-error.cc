@@ -11,7 +11,7 @@ struct UnwShow
 int foo (int n) 
 {
   UnwShow s;
-  if (n == 0) throw 1;
+  if (n == 0) return 1 / n;
   foo (n - 1);
 }
 

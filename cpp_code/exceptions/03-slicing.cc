@@ -17,15 +17,10 @@ main ()
   try {
     throw Derived();
   }
-#ifdef CORR
+#if defined(CORR)
   catch (Base &b) {
   }
-#endif
-#if !defined(SLICE) && !defined(CORR)
-  catch (Derived d) {
-  }
-#endif
-#ifndef CORR
+#else
   catch (Base b) {
   }
 #endif
