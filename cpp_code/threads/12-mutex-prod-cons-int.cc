@@ -44,7 +44,7 @@ void producer(int ntasks, int task_producing_msec) {
     data_cond.notify_one();
   }
   
-  // nullptr task to notify consumers to shutdown
+  // -1 task to notify consumers to shutdown
   {
     lock_guard<mutex> lk{mut};
     q.push(-1);

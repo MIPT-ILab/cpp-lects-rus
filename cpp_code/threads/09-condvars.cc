@@ -3,41 +3,41 @@
 #include <mutex>
 #include <thread>
 
-using std::condition_variable;
-using std::cout;
-using std::endl;
-using std::mutex;
 using std::thread;
 using std::unique_lock;
 
-mutex gmut;
+std::mutex gmut;
 int counter {0};
-condition_variable data_cond;
+std::condition_variable data_cond;
+
+constexpr int MAXCNT = 100;
 
 void processing() {
-  for (;;) {
-    unique_lock<mutex> lk{gmut};
-    data_cond.wait(lk);
+  int c;
+  {
+    std::unique_lock<std::mutex> lk{gmut};
+    data_cond.wait(lk, []{ return counter > 0;});
     // here lock for gmut obtained
-    cout << counter << endl;
+    c = counter;
   }
+  std::cout << "p:" << c;
 }
 
 void preparation() {
-  for(;;) {
+  {
     std::lock_guard<std::mutex> lk{gmut};
     // here lock for gmut obtained
-    counter += 1;
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));    
+    counter += 1;      
     data_cond.notify_one();
-  }
+  }    
+  std::cout << "+";
 }
 
 int
 main() {
-  thread t1 {processing};
-  thread t2 {preparation};
-  t1.detach();
-  t2.detach();
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  std::thread t1 {processing};
+  std::thread t2 {preparation};
+  t1.join();
+  t2.join();
+  std::cout << "\n";
 }

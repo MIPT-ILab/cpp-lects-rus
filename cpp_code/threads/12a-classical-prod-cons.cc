@@ -50,8 +50,8 @@ void producer() {
 #ifdef SHOW
       cout << "+";
 #endif
-      data_cond_c.notify_one();
     }
+    data_cond_c.notify_one();
   }
   data_cond_c.notify_all();
 }
@@ -70,8 +70,8 @@ void consumer() {
       cout << "-";
 #endif
       if (nsolved > MAXTASKS) break;
-      data_cond_p.notify_one();
     }
+    data_cond_p.notify_one();
   }
   data_cond_p.notify_all();
 }
