@@ -4,10 +4,11 @@
 
 struct resource {
   resource() {
-    std::cout << "created" << std::endl;
+    std::cout << "c";
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
   void use() {
+    std::cout << "u";
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
 };
@@ -17,7 +18,7 @@ std::mutex resmut;
 
 void foo() {
   if (!resptr) {
-    std::lock_guard<std::mutex> lk{resmut};
+   std::lock_guard<std::mutex> lk{resmut};
     {
       if (!resptr)
         resptr = new resource();
@@ -37,5 +38,7 @@ main() {
   t2.join();
   t3.join();
   t4.join();
+
+  std::cout << "\n";
 }
 

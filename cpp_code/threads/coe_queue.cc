@@ -53,7 +53,8 @@ public:
 // otherwise do what it shall and return 0
 using task_t = fire_once<int()>;
 
-template <typename F, typename... Args> auto create_task(F f, Args &&... args) {
+template <typename F, typename... Args>
+auto create_task(F f, Args &&... args) {
   std::packaged_task<std::remove_pointer_t<F>> tsk{f};
   auto fut = tsk.get_future();
   task_t t{[ct = std::move(tsk),
@@ -88,6 +89,7 @@ bool safe_empty() {
 }
 
 void consumer_thread_func() {
+  try {
   for (;;) {
     if (safe_empty()) {
       std::this_thread::yield();
@@ -101,6 +103,15 @@ void consumer_thread_func() {
       break;
     }
   }
+  }
+  catch(std::exception& e) {
+    std::cout << "\n" << e.what() << "\n";
+    std::terminate();
+  }
+  catch(...) {
+    std::cout << "\nSomething wrong in thread function\n";
+    std::terminate();
+  }  
 }
 
 int fn1(int x, int y, int z) { std::lock_guard<std::mutex> lk{cout_mutex}; std::cout << "a"; return x + y + z; }
@@ -109,16 +120,9 @@ double fn2(std::vector<int> v) { std::lock_guard<std::mutex> lk{cout_mutex}; std
 
 void fn3() { std::lock_guard<std::mutex> lk{cout_mutex}; std::cout << "c";}
 
-int main() {
-  int nthreads = 3;
-  int ntasks = 20;
-
+void test_queue(int ntasks) {
   std::future<int> first_future;
   std::future<double> second_future;  
-
-  std::vector<std::thread> consumers;
-  for (int i = 0; i < nthreads; ++i)
-    consumers.emplace_back(consumer_thread_func);
 
   for (int jdx = 0; jdx < ntasks; ++jdx) {
     switch (jdx % 3) {
@@ -150,9 +154,39 @@ int main() {
   // put final task
   task_t sentinel{[] { return -1; }};
   safe_push(std::move(sentinel));
+}
+
+void myhandler() {
+  std::cout << "\nterminate happened\n";
+  abort();
+}
+
+int main() {
+  int nthreads = 3;
+  int ntasks = 20;
+  
+  std::set_terminate(myhandler);
+  
+  std::vector<std::thread> consumers;
+  for (int i = 0; i < nthreads; ++i)
+    consumers.emplace_back(consumer_thread_func);
+
+  try {
+    test_queue(ntasks);
+
+    for (int i = 0; i < nthreads; ++i)
+      consumers[i].join();
+  
+    std::cout << "\nJoined\n";
+    return 0;
+  }
+  catch(std::exception& e) {
+    std::cout << "\n" << e.what() << "\n";
+  }
+  catch(...) {
+    std::cout << "\nSomething wrong\n";
+  }
 
   for (int i = 0; i < nthreads; ++i)
-    consumers[i].join();
-  
-  std::cout << "\n";
+    consumers[i].detach();
 }

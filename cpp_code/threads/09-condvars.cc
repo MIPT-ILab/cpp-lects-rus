@@ -14,13 +14,16 @@ constexpr int MAXCNT = 100;
 
 void processing() {
   int c;
+#if defined(FOCUS)
+  std::cout << "w";
+#endif
   {
     std::unique_lock<std::mutex> lk{gmut};
     data_cond.wait(lk, []{ return counter > 0;});
     // here lock for gmut obtained
     c = counter;
   }
-  std::cout << "p:" << c;
+  std::cout << "-";
 }
 
 void preparation() {
@@ -36,8 +39,10 @@ void preparation() {
 int
 main() {
   std::thread t1 {processing};
-  std::thread t2 {preparation};
+  std::thread t2 {processing};
+  std::thread t3 {preparation};
   t1.join();
   t2.join();
+  t3.join();
   std::cout << "\n";
 }

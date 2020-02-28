@@ -4,10 +4,11 @@
 
 struct resource {
   resource() {
-    std::cout << "created" << std::endl;
+    std::cout << "c";
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
   void use() {
+    std::cout << "u";
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
 };
@@ -35,5 +36,7 @@ main() {
   t2.join();
   t3.join();
   t4.join();
+  
+  std::cout << "\n";
 }
 

@@ -71,11 +71,11 @@ void consumer(int num, int task_consuming_msec) {
 }
 
 // playground def-config
-constexpr int NTASKS = 100;
-constexpr int TASK_PRODUCING_MSEC = 10;
+constexpr int NTASKS = 300;
+constexpr int TASK_PRODUCING_MSEC = 20;
 constexpr int TASK_CONSUMING_MSEC = 100;
-constexpr int NTHR_START = 2;
-constexpr int NTHR_FIN = 10;
+constexpr int NTHR_START = 3;
+constexpr int NTHR_FIN = 15;
 
 int
 main(int argc, char **argv) {

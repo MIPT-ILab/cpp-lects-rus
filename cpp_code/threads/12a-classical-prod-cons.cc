@@ -27,8 +27,8 @@ using std::unique_lock;
 using std::unique_ptr;
 using std::vector;
 
-constexpr int BUFSIZE = 10;
-constexpr int MAXTASKS = 10000;
+constexpr int BUFSIZE = 100;
+constexpr int MAXTASKS = 200;
 
 vector<int> buffer(BUFSIZE);
 int ncur = 0;

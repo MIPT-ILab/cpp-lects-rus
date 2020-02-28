@@ -79,8 +79,8 @@ void consumer(int num, int task_consuming_msec) {
 
 // playground def-config
 constexpr int NTHR = 10;
-constexpr int NTASKS = 100;
-constexpr int TASK_PRODUCING_MSEC = 10;
+constexpr int NTASKS = 800;
+constexpr int TASK_PRODUCING_MSEC = 0;
 constexpr int TASK_CONSUMING_MSEC = 100;
 
 int
