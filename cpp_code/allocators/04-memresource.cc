@@ -4,8 +4,8 @@
 #include <iostream>
 #include <iterator>
 #include <memory>
-#include <vector>
 #include <random>
+#include <vector>
 
 #include "testresource.hpp"
 
@@ -31,19 +31,15 @@ void pmrvec_testresource() {
 
   double start = 0.0;
   vector<double> v1(&talloc);
-  generate_n(back_inserter(v1), 100, 
-    [start] () mutable { return (start += 1.1); });
+  generate_n(back_inserter(v1), 100,
+             [start]() mutable { return (start += 1.1); });
 
   vector<double> v2(&talloc);
   v2.assign(v1.begin(), v1.end());
-  shuffle(v2.begin(), v2.end(), mtgen()); 
-  
+  shuffle(v2.begin(), v2.end(), mtgen());
+
   cout << "v1[42] = " << v1[42] << " v2[42] = " << v2[42] << endl;
   cout << "---" << endl;
 }
 
-int
-main ()
-{
-  pmrvec_testresource();
-}
+int main() { pmrvec_testresource(); }

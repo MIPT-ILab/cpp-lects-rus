@@ -8,28 +8,23 @@
 size_t memory = 0;
 size_t alloc = 0;
 
-void* operator new(size_t s) noexcept(false)
-{
-    memory += s;
-    ++alloc;
-    return malloc(s);
+void *operator new(size_t s) noexcept(false) {
+  memory += s;
+  ++alloc;
+  return malloc(s);
 }
 
-void  operator delete(void* p) noexcept
-{
-    --alloc;
-    free(p);
+void operator delete(void *p) noexcept {
+  --alloc;
+  free(p);
 }
 
-void memuse()
-{
+void memuse() {
   printf("memory = %zu\n", memory);
   printf("alloc = %zu\n", alloc);
 }
 
-int
-main ()
-{
+int main() {
   constexpr size_t sz = 1000 * sizeof(int);
   alignas(int) char buffer[sz];
 

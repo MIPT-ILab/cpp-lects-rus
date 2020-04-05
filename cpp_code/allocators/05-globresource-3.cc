@@ -8,59 +8,52 @@
 
 #include "testresource.hpp"
 
-using std::byte;
-using std::cout;
-using std::endl;
-using std::make_unique;
-using std::move;
-using std::unique_ptr;
-using std::pmr::get_default_resource;
-using std::pmr::new_delete_resource;
-using std::pmr::polymorphic_allocator;
-using std::pmr::set_default_resource;
-using std::pmr::string;
-using std::pmr::vector;
-
-#include "testresource.hpp"
-
 class polymorphic_allocator_delete {
-  polymorphic_allocator<byte> alloc_;
+  using palloc_t = std::pmr::polymorphic_allocator<std::byte>;
+  palloc_t alloc_;
+
 public:
-  polymorphic_allocator_delete(polymorphic_allocator<byte> alloc)
-      : alloc_(move(alloc)) {}
+  polymorphic_allocator_delete(palloc_t alloc) : alloc_(move(alloc)) {}
   template <typename T> void operator()(T *tPtr) {
-    polymorphic_allocator<T> talloc(alloc_);    
-    tPtr->~T(); // TODO: talloc.destroy(tPtr); when will be supported
+    std::pmr::polymorphic_allocator<T> talloc(alloc_);
+    talloc.destroy(tPtr);
     talloc.deallocate(tPtr, 1);
   }
 };
 
 class Bar {
-  string data_;
+  std::pmr::string data_;
+  using palloc_t = std::pmr::polymorphic_allocator<std::byte>;
+
 public:
-  Bar(polymorphic_allocator<byte> alloc = {}): data_{"data", alloc} {}
+#ifdef NOSSO  
+  Bar(palloc_t alloc = {}) : data_{"data really long data string to break SSO"} {}
+#else  
+  Bar(palloc_t alloc = {}) : data_{"data"} {}
+#endif
 };
 
 class Foo {
-  polymorphic_allocator<byte> alloc_;
-  unique_ptr<Bar, polymorphic_allocator_delete> d_bar;
+  using palloc_t = std::pmr::polymorphic_allocator<std::byte>;
+  palloc_t alloc_;
+  std::unique_ptr<Bar, polymorphic_allocator_delete> d_bar;
+
 public:
-  Foo() : d_bar(nullptr, {{get_default_resource()}}) {
-    polymorphic_allocator<Bar> alloc{get_default_resource()};
+  Foo() : d_bar(nullptr, {{std::pmr::get_default_resource()}}) {
+    std::pmr::polymorphic_allocator<Bar> alloc{
+        std::pmr::get_default_resource()};
     Bar *const bar = alloc.allocate(1);
     alloc.construct(bar);
     d_bar.reset(bar);
   }
 };
 
-int
-main ()
-{
-  static test_resource newdefault{new_delete_resource()};
-  set_default_resource(&newdefault);
-  cout << "---" << endl;
-  vector<Foo> foos;
+int main() {
+  static test_resource newdefault{std::pmr::new_delete_resource()};
+  std::pmr::set_default_resource(&newdefault);
+  std::cout << "---" << std::endl;
+  std::pmr::vector<Foo> foos;
   foos.emplace_back();
   foos.emplace_back();
-  cout << "---" << endl;
+  std::cout << "---" << std::endl;
 }

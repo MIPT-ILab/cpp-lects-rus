@@ -7,7 +7,7 @@ enum reg_t {
 };
 
 enum opcode_t {
-  MOVI = 0, ADD, SUB, MUL, DIV, IN, OUT, OPLAST
+  MOVI = 0, ADD = 8, SUB = 9, MUL = 10, DIV = 11, IN, OUT, OPLAST
 };
 
 union operand_t {
@@ -21,4 +21,8 @@ struct instr_t {
   union operand_t opnd;
 };
 
-typedef unsigned char reg_state_t;
+struct reg_state_t {
+  unsigned char data;
+  unsigned char init;
+  // ???
+};
