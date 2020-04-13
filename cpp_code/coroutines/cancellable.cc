@@ -1,4 +1,4 @@
-// cl -await -EHsc subscribers.cc
+// cl -await -EHsc cancellable.cc
 
 #include <chrono>
 #include <iostream>
