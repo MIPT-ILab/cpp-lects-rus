@@ -153,12 +153,16 @@ OE, SM, GP, TD, PR
 Problem MK -- эмулятор калькулятора
 Problem AS -- кодировщик калькулятора
 Problem AS2 -- декодер в контесте
-Problem CM -- crackme #0
-Problem KG -- keygen #0
-Problem IA -- упражнение в инлайн ассемблере
-Problem LG -- шпионская функция
-Problem RA -- инверсный квадратный корень ассемблерной вставкой
-Домашняя работа HWV - оптимизация бинарника (ladder #8)
+Problem CM0 -- crackme #0
+Problem CM1 -- crackme #1
+Problem AP -- простые числа на ассемблере
+
+
+#Problem KG -- keygen #0
+#Problem IA -- упражнение в инлайн ассемблере
+#Problem LG -- шпионская функция
+#Problem RA -- инверсный квадратный корень ассемблерной вставкой
+#Домашняя работа HWV - оптимизация бинарника (ladder #8)
 
 Введение в язык C
 
