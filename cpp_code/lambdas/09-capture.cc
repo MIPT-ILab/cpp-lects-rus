@@ -11,7 +11,7 @@ void foo (int b)
   static int a = 3;
   if (b == 4) 
     {  
-      int y = 5;
+      int y = 5;      
       auto lam = [=] { return x + y + a + b + g; };
       cout << lam() << endl;
 

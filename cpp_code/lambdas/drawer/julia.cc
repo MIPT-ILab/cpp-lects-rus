@@ -7,15 +7,14 @@
 
 #define DYNAMIC
 
-#include <complex>
 #include <cmath>
+#include <complex>
+#include <cstdlib>
 #include <sstream>
 #include <string>
-#include <cstdlib>
 
 #if defined(_WIN32) || defined(WIN32)
 #include <windows.h>
-#include <shellapi.h>
 #endif
 
 using namespace std;
@@ -32,38 +31,33 @@ const double ARGSTEP = 0.01;
 const unsigned maxiter = 100;
 #endif
 
-static void
-draw_julia (ISurface *s, cdt c)
-{
-  //const int rmax = 0xff;
-  //const int bmax = 0xff;
+static void draw_julia(ISurface *s, cdt c) {
+  // const int rmax = 0xff;
+  // const int bmax = 0xff;
   double sz = 1.0 + std::sqrt(1.0 + 4.0 * std::abs(c));
-  double stepx = sz / (double) xsize;
-  double stepy = sz / (double) ysize;
+  double stepx = sz / (double)xsize;
+  double stepy = sz / (double)ysize;
   double x, y;
 
-  s->fillwith (white);
+  s->fillwith(white);
 
   for (x = -sz; x < sz; x += stepx)
-    for (y = -sz; y < sz; y += stepy)
-      {
-        cdt z = x + 1.0i * y;
-        // bool res = true;
-        unsigned cl = 0x0000aa;
+    for (y = -sz; y < sz; y += stepy) {
+      cdt z = x + 1.0i * y;
+      // bool res = true;
+      unsigned cl = 0x0000aa;
 
-        for (unsigned i = 0; i < maxiter; ++i)
-          {
-            if (std::abs(z) > sz) {
-              cl = cl | (((i*8) % 0xff) << 16) | (((i*8) % 0xff) << 8);
-              break;
-            }
+      for (unsigned i = 0; i < maxiter; ++i) {
+        if (std::abs(z) > sz) {
+          cl = cl | (((i * 8) % 0xff) << 16) | (((i * 8) % 0xff) << 8);
+          break;
+        }
 
-            z = z * z + c; 
-          }
-
-        s->putlogpixel (x/sz, y/sz, cl);
+        z = z * z + c;
       }
 
+      s->putlogpixel(x / sz, y / sz, cl);
+    }
 }
 
 int
@@ -75,32 +69,32 @@ main (int argc, char **argv)
 {
   cdt c = -0.7;
 
-  #if defined(_WIN32) || defined(WIN32)
-    int argc;
-    LPWSTR *argv = CommandLineToArgvW(GetCommandLineW(), &argc);
-  #else
-  #endif
-
+#if defined(_WIN32) || defined(WIN32)
+  int argc;
+  LPWSTR *argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+#else
+#endif
 
   if (argc == 3) {
-  #if defined(_WIN32) || defined(WIN32)
+#if defined(_WIN32) || defined(WIN32)
     double re = _wtof(argv[1]);
-    double im = _wtof(argv[2]); 
-  #else
+    double im = _wtof(argv[2]);
+#else
     double re = std::atof(argv[1]);
     double im = std::atof(argv[2]);
-  #endif
+#endif
     c = re + 1.0i * im;
   }
 
-  auto draw_external = [&c] (ISurface *s) { draw_julia (s, c); };
+  auto draw_external = [&c](ISurface *s) { draw_julia(s, c); };
 
-  ViewPort *v = ViewPort::QueryViewPort (xsize, ysize, draw_external);
+  ViewPort *v = ViewPort::QueryViewPort(xsize, ysize, draw_external);
   if (!v)
     abort();
 
   std::ostringstream oss;
-  oss << "julia" << ".bmp";
+  oss << "julia"
+      << ".bmp";
   string s = oss.str();
   v->dump(s.c_str());
 
@@ -108,16 +102,14 @@ main (int argc, char **argv)
   double abs = std::abs(c);
   double arg = std::arg(c);
 #endif
-  
-  while (v->poll () == pollres::PROCEED)
-    {
+
+  while (v->poll() == pollres::PROCEED) {
 #ifdef DYNAMIC
-      arg += ARGSTEP;
-      c = std::polar(abs, arg);
+    arg += ARGSTEP;
+    c = std::polar(abs, arg);
 #endif
-    }
+  }
 
   delete v;
   return 0;
 }
-

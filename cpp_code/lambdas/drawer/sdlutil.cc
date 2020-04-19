@@ -1,123 +1,75 @@
 #include "sdlutil.hpp"
 
-ViewPort* ViewPort::v = nullptr;
+ViewPort *ViewPort::v = nullptr;
 
-// standalone ones
+namespace {
+constexpr int A = 24;
+constexpr int R = 16;
+constexpr int G = 8;
+constexpr int B = 0;
+} // namespace
 
-static void
-putpixel (SDL_Surface *surface, int x, int y, Uint32 pixel)
-{
-    int bpp = surface->format->BytesPerPixel;
-    Uint8 *p = (Uint8 *)surface->pixels + y * surface->pitch + x * bpp;
-
-    switch(bpp) {
-    case 1:
-        *p = pixel;
-        break;
-
-    case 2:
-        *(Uint16 *)p = pixel;
-        break;
-
-    case 3:
-        if(SDL_BYTEORDER == SDL_BIG_ENDIAN) {
-            p[0] = (pixel >> 16) & 0xff;
-            p[1] = (pixel >> 8) & 0xff;
-            p[2] = pixel & 0xff;
-        } else {
-            p[0] = pixel & 0xff;
-            p[1] = (pixel >> 8) & 0xff;
-            p[2] = (pixel >> 16) & 0xff;
-        }
-        break;
-
-    case 4:
-        *(Uint32 *)p = pixel;
-        break;
-    default:
-       throw runtime_error("putpixel failure");
-    }
+template <int off> static Uint8 cpart(Uint32 color) {
+  return (color >> off) & 0xff;
 }
 
-static void
-fillwith (SDL_Surface *screen, Uint32 color)
-{
-  int res = SDL_FillRect (screen, nullptr, color);
-  if (res != 0)
-    throw runtime_error (SDL_GetError());
+void SDLSurface::putpixel(int x, int y, Uint32 c) {
+  SDL_SetRenderDrawColor(s_, cpart<R>(c), cpart<G>(c), cpart<B>(c),
+                         cpart<A>(c));
+  SDL_RenderDrawPoint(s_, x, y);
 }
 
-// SDLSurface methods
-
-void 
-SDLSurface::putpixel (int x, int y, Uint32 color)
-{
-  ::putpixel (s, x, y, color);
+void SDLSurface::fillwith(Uint32 c) {
+  SDL_SetRenderDrawColor(s_, cpart<R>(c), cpart<G>(c), cpart<B>(c),
+                         cpart<A>(c));
+  SDL_RenderClear(s_); 
 }
 
-void 
-SDLSurface::fillwith (Uint32 color)
-{
-  ::fillwith (s, color);
+void SDLSurface::putlogpixel(double x, double y, Uint32 color) {
+  int width, height;
+  SDL_GetRendererOutputSize(s_, &width, &height);
+
+  int logx = rint((x + 1.0) * width / 2.0);
+  int logy = rint((y + 1.0) * height / 2.0);
+
+  if (logx >= width)
+    logx = width - 1;
+  if (logx < 0)
+    logx = 0;
+  if (logy >= height)
+    logy = height - 1;
+  if (logy < 0)
+    logy = 0;
+
+  putpixel(logx, logy, color);
 }
-
-void
-SDLSurface::putlogpixel (double x, double y, Uint32 color)
-{
-  unsigned width = s->w;
-  unsigned height = s->h;
-
-  int logx = rint ((double) width * (x + 1.0) / 2.0);
-  int logy = rint ((double) height * (y + 1.0) / 2.0);
-
-  if (logx >= (int) width) logx = width - 1;
-  if (logx < 0) logx = 0;
-  if (logy >= (int) height) logy = height - 1;
-  if (logy < 0) logy = 0;
-
-  putpixel (logx, logy, color);
-}
-
 
 // ViewPort methods
 
-pollres
-ViewPort::poll ()
-{
-  SDLSurface s(screen);
+pollres ViewPort::poll() {
   SDL_Event event;
-  while(SDL_PollEvent(&event))
-    {
-      if(event.type == SDL_QUIT)
-        return pollres::STOP;
-    }
-  SDL_LockSurface(screen);
-  callback (&s);
-  SDL_UnlockSurface(screen);
-  SDL_Flip(screen);
+  if (SDL_PollEvent(&event)) {
+    if (event.type == SDL_QUIT)
+      return pollres::STOP;
+  }
+
+  SDL_SetRenderTarget(ren, texture);
+  SDLSurface s(ren);
+  callback(&s);
+  SDL_SetRenderTarget(ren, NULL);
+  SDL_RenderCopy(ren, texture, NULL, NULL);
+  SDL_RenderPresent(ren);
   return pollres::PROCEED;
 }
 
-void 
-ViewPort::dump (const char *name)
-{
-  SDL_Surface* layer = SDL_CreateRGBSurface(SDL_HWSURFACE, width + 1, height + 1,
-    screen->format->BitsPerPixel,
-    screen->format->Rmask,
-    screen->format->Gmask,
-    screen->format->Bmask,
-    screen->format->Amask
-  );
-
-  if (layer == nullptr)
-    throw runtime_error (SDL_GetError());
-
-  SDLSurface s(layer);
-
-  SDL_LockSurface(layer);
-  callback (&s);
-  SDL_UnlockSurface(layer);
-
-  SDL_SaveBMP(layer, name);
+void ViewPort::dump(const char *name) {
+  SDL_SetRenderTarget(ren, texture);
+  SDLSurface s(ren);
+  callback(&s);
+  SDL_QueryTexture(texture, NULL, NULL, &width, &height);
+  SDL_Surface* surface = SDL_CreateRGBSurface(0, width, height, 32, 0, 0, 0, 0);
+  SDL_RenderReadPixels(ren, NULL, surface->format->format, surface->pixels, surface->pitch);
+  SDL_SaveBMP(surface, name);
+  SDL_FreeSurface(surface);
+  SDL_SetRenderTarget(ren, NULL);
 }
-

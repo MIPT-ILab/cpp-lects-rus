@@ -1,85 +1,87 @@
 #ifndef SDLUTIL_GUARD_
 #define SDLUTIL_GUARD_
 
-#include <cstdlib>
+#include <SDL2/SDL.h>
 #include <cmath>
-#include <SDL/SDL.h>
+#include <cstdlib>
 
 #include <functional>
 
 using namespace std;
 
-enum class pollres 
-{
-  PROCEED,
-  STOP
-};
+enum class pollres { PROCEED, STOP };
 
-struct ISurface
-{
+struct ISurface {
   virtual void putpixel(int x, int y, Uint32 color) = 0;
-  virtual void putlogpixel (double x, double y, Uint32 color) = 0;
-  virtual void fillwith (Uint32 color) = 0;
-  virtual unsigned w () const = 0;
-  virtual unsigned h () const = 0;
+  virtual void putlogpixel(double x, double y, Uint32 color) = 0;
+  virtual void fillwith(Uint32 color) = 0;
+  virtual unsigned w() const = 0;
+  virtual unsigned h() const = 0;
 };
 
-class SDLSurface : public ISurface
-{
-  SDL_Surface *s;
+class SDLSurface : public ISurface {
+  SDL_Renderer *s_;
+
 public:
-  SDLSurface (SDL_Surface *surface) : s (surface) {}
-  unsigned w() const override { return s->w; }
-  unsigned h() const override { return s->h; }
-  void putpixel (int x, int y, Uint32 color) override;
-  void putlogpixel (double x, double y, Uint32 color) override;
-  void fillwith (Uint32 color) override;
+  SDLSurface(SDL_Renderer *s) : s_{s} {}
+  unsigned w() const override {
+    int w;
+    SDL_GetRendererOutputSize(s_, &w, NULL);
+    return w;
+  }
+  unsigned h() const override {
+    int h;
+    SDL_GetRendererOutputSize(s_, NULL, &h);
+    return h;
+  }
+  void putpixel(int x, int y, Uint32 color) override;
+  void putlogpixel(double x, double y, Uint32 color) override;
+  void fillwith(Uint32 color) override;
 };
 
-class ViewPort
-{
+class ViewPort {
   int width, height;
-  SDL_Surface *screen;
-  std::function<void(ISurface*)> callback;
+  SDL_Window *screen;
+  SDL_Renderer *ren;
+  SDL_Texture *texture;
+  std::function<void(ISurface *)> callback;
   static ViewPort *v;
 
-  ViewPort (int w, int h, std::function<void(ISurface*)> c) 
-    : width (w), height (h), callback(c)
-  {   
+  ViewPort(int w, int h, std::function<void(ISurface *)> c)
+      : width(w), height(h), callback(c) {
     if (SDL_Init(SDL_INIT_VIDEO) != 0)
-      throw runtime_error (SDL_GetError());
+      throw runtime_error(SDL_GetError());
 
-    atexit(SDL_Quit);    
-    screen = SDL_SetVideoMode(width + 1, height + 1, 0, SDL_DOUBLEBUF);
-    if (screen == NULL)
-      throw runtime_error (SDL_GetError());
+    atexit(SDL_Quit);
+    screen = SDL_CreateWindow("SDL window", SDL_WINDOWPOS_UNDEFINED,
+                              SDL_WINDOWPOS_UNDEFINED, width, height,
+                              SDL_WINDOW_SHOWN);
+    if (screen == nullptr)
+      throw runtime_error(SDL_GetError());
+
+    ren = SDL_CreateRenderer(screen, -1, SDL_RENDERER_ACCELERATED);
+    if (ren == nullptr)
+      throw runtime_error(SDL_GetError());
+
+    texture = SDL_CreateTexture(ren, SDL_PIXELFORMAT_RGBA8888,
+                                SDL_TEXTUREACCESS_TARGET, width, height);
   }
 
 public:
-  pollres poll ();
-  void dump (const char *name);
+  pollres poll();
+  void dump(const char *name);
 
-  static ViewPort *
-  QueryViewPort (int w, int h, std::function<void(ISurface*)> c)
-  {
-    if (!v) {
+  static ViewPort *QueryViewPort(int w, int h,
+                                 std::function<void(ISurface *)> c) {
+    if (v == nullptr)
       v = new ViewPort(w, h, c);
-    }
-    else {
-      SDL_FreeSurface(v->screen);    
-      v->width = w;
-      v->height = h;
-      v->callback = c;
-      v->screen = SDL_SetVideoMode(w + 1, h + 1, 0, SDL_DOUBLEBUF);
-      if (v->screen == NULL)
-        throw runtime_error (SDL_GetError());
-    }
     return v;
   }
 
-  ~ViewPort()
-  {
-    SDL_FreeSurface(screen);    
+  ~ViewPort() {
+    SDL_DestroyTexture(texture);
+    SDL_DestroyRenderer(ren);
+    SDL_DestroyWindow(screen);
   }
 };
 

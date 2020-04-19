@@ -1,13 +1,10 @@
-int fact(int x) {
-  int acc = 1;
+#include "fact.h"
 
+MYABI int
+fact(int x) {
   if (x < 2)
     return x;
 
-  while (x > 0) {
-    acc = acc * x;
-    x -= 1;   
-  }
-  
-  return acc;
+  return x * fact(x - 1);
 }
+

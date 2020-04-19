@@ -7,7 +7,7 @@ using std::endl;
 
 template <typename T, typename = typename enable_if<(sizeof(T) > 4)>::type>
 void
-  foo (T x) {
+foo (T x) {
   cout << x << " greater then 4" << endl;
 }
 
