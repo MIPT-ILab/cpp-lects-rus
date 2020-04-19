@@ -3,8 +3,6 @@
 // try also -0.7 0.1, -0.7 0.2 and -0.7 0.5
 //           -0.9 0.2 is equally well
 
-#include "sdlutil.hpp"
-
 #define DYNAMIC
 
 #include <cmath>
@@ -13,12 +11,14 @@
 #include <sstream>
 #include <string>
 
+#include "drawutil.hpp"
+
 #if defined(_WIN32) || defined(WIN32)
 #include <windows.h>
 #endif
 
-using namespace std;
 using cdt = std::complex<double>;
+using namespace std::complex_literals;
 
 const unsigned xsize = 1024;
 const unsigned ysize = 768;
@@ -31,7 +31,7 @@ const double ARGSTEP = 0.01;
 const unsigned maxiter = 100;
 #endif
 
-static void draw_julia(ISurface *s, cdt c) {
+static void draw_julia(DrawUtil::ISurface *s, cdt c) {
   // const int rmax = 0xff;
   // const int bmax = 0xff;
   double sz = 1.0 + std::sqrt(1.0 + 4.0 * std::abs(c));
@@ -86,16 +86,16 @@ main (int argc, char **argv)
     c = re + 1.0i * im;
   }
 
-  auto draw_external = [&c](ISurface *s) { draw_julia(s, c); };
+  auto draw_external = [&c](DrawUtil::ISurface *s) { draw_julia(s, c); };
 
-  ViewPort *v = ViewPort::QueryViewPort(xsize, ysize, draw_external);
+  auto *v = DrawUtil::QueryViewPort(xsize, ysize, draw_external);
   if (!v)
     abort();
 
   std::ostringstream oss;
   oss << "julia"
       << ".bmp";
-  string s = oss.str();
+  std::string s = oss.str();
   v->dump(s.c_str());
 
 #ifdef DYNAMIC
@@ -103,7 +103,7 @@ main (int argc, char **argv)
   double arg = std::arg(c);
 #endif
 
-  while (v->poll() == pollres::PROCEED) {
+  while (v->poll() == DrawUtil::pollres::PROCEED) {
 #ifdef DYNAMIC
     arg += ARGSTEP;
     c = std::polar(abs, arg);

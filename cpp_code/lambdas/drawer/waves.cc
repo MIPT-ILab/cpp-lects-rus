@@ -1,15 +1,13 @@
 // second user for drawer
 
-#include "sdlutil.hpp"
-
 #include <cmath>
 #include <ctime>
 #include <sstream>
 #include <string>
 
-using namespace std;
+#include "drawutil.hpp"
 
-static void draw_waves(ISurface *s, double xcenter, double ycenter,
+static void draw_waves(DrawUtil::ISurface *s, double xcenter, double ycenter,
                        double phase) {
   const double PI = 3.14159265;
   const int rmax = 0xff;
@@ -51,16 +49,16 @@ main ()
   double xcenter = -0.5;
   double ycenter = 0.3;
 
-  auto draw_external = [xcenter, ycenter, &dphase](ISurface *s) {
+  auto draw_external = [xcenter, ycenter, &dphase](DrawUtil::ISurface *s) {
     draw_waves(s, xcenter, ycenter, dphase);
   };
 
-  ViewPort *v = ViewPort::QueryViewPort(xsize, ysize, draw_external);
+  auto *v = DrawUtil::QueryViewPort(xsize, ysize, draw_external);
 
-  while (v->poll() == pollres::PROCEED) {
+  while (v->poll() == DrawUtil::pollres::PROCEED) {
     const double SPEEDUP = 1.0;
     clock_t phase = clock();
-    dphase = SPEEDUP * (((double)phase - (double)start_phase) / CLOCKS_PER_SEC);
+    dphase = SPEEDUP * (double(phase - start_phase) / CLOCKS_PER_SEC);
 
     if (dphase > 1.5)
       start_phase = clock();

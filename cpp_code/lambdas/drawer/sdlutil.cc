@@ -1,31 +1,37 @@
 #include "sdlutil.hpp"
 
-ViewPort *ViewPort::v = nullptr;
+namespace DrawUtil {
 
-namespace {
+ViewPort *v = nullptr;
+
+IViewPort *QueryViewPort(int w, int h, std::function<void(ISurface *)> c) {
+  if (v == nullptr)
+    v = new ViewPort(w, h, c);
+  return v;
+}
+
 constexpr int A = 24;
 constexpr int R = 16;
 constexpr int G = 8;
 constexpr int B = 0;
-} // namespace
 
-template <int off> static Uint8 cpart(Uint32 color) {
+template <int off> static Uint8 cpart(unsigned color) {
   return (color >> off) & 0xff;
 }
 
-void SDLSurface::putpixel(int x, int y, Uint32 c) {
+void SDLSurface::putpixel(int x, int y, unsigned c) {
   SDL_SetRenderDrawColor(s_, cpart<R>(c), cpart<G>(c), cpart<B>(c),
                          cpart<A>(c));
   SDL_RenderDrawPoint(s_, x, y);
 }
 
-void SDLSurface::fillwith(Uint32 c) {
+void SDLSurface::fillwith(unsigned c) {
   SDL_SetRenderDrawColor(s_, cpart<R>(c), cpart<G>(c), cpart<B>(c),
                          cpart<A>(c));
   SDL_RenderClear(s_); 
 }
 
-void SDLSurface::putlogpixel(double x, double y, Uint32 color) {
+void SDLSurface::putlogpixel(double x, double y, unsigned color) {
   int width, height;
   SDL_GetRendererOutputSize(s_, &width, &height);
 
@@ -72,4 +78,6 @@ void ViewPort::dump(const char *name) {
   SDL_SaveBMP(surface, name);
   SDL_FreeSurface(surface);
   SDL_SetRenderTarget(ren, NULL);
+}
+
 }
