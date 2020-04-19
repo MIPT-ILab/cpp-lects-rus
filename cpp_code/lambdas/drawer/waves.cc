@@ -8,7 +8,7 @@
 #include "drawutil.hpp"
 
 static void draw_waves(DrawUtil::ISurface *s, double xcenter, double ycenter,
-                       double phase) {
+                       double phase, bool retain) {
   const double PI = 3.14159265;
   const int rmax = 0xff;
   const int bmax = 0xff;
@@ -18,7 +18,8 @@ static void draw_waves(DrawUtil::ISurface *s, double xcenter, double ycenter,
   double a = sin(FREQ * phase);
   int rmask = 0x00, bmask = 0x00;
 
-  s->fillwith(0xffffffff);
+  if (!retain)
+    s->fillwith(0xffffffff);
 
   if (a > 0.0) {
     bmask = rint(a * bmax);
@@ -48,17 +49,30 @@ main ()
   double dphase = 0.0;
   double xcenter = -0.5;
   double ycenter = 0.3;
+  bool retain = false;
 
-  auto draw_external = [xcenter, ycenter, &dphase](DrawUtil::ISurface *s) {
-    draw_waves(s, xcenter, ycenter, dphase);
+  auto draw_external = [xcenter, ycenter, &dphase, &retain](DrawUtil::ISurface *s) {
+    draw_waves(s, xcenter, ycenter, dphase, retain);
+  };
+
+  auto key_control = [&](DrawUtil::KeyPressed k) mutable {
+    if (!k.is_special) {
+      switch(k.regular()) {
+        case 'r':
+          retain = !retain;
+          break;
+      }
+    }
   };
 
   auto *v = DrawUtil::QueryViewPort(xsize, ysize, draw_external);
+  v->bindkeys(key_control);
 
   while (v->poll() == DrawUtil::pollres::PROCEED) {
-    const double SPEEDUP = 1.0;
+    const double SPEEDUP = 0.3;
     clock_t phase = clock();
-    dphase = SPEEDUP * (double(phase - start_phase) / CLOCKS_PER_SEC);
+    double dph = phase;
+    dphase = SPEEDUP * ((dph - start_phase) / CLOCKS_PER_SEC);
 
     if (dphase > 1.5)
       start_phase = clock();

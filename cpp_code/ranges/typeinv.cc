@@ -1,6 +1,7 @@
 #include <boost/type_index.hpp>
 #include <iostream>
 #include <vector>
+#include <string>
 
 #include "myranges.hpp"
 

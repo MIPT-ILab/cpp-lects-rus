@@ -5,10 +5,10 @@
 
 #include "drawutil.hpp"
 
-const unsigned xsize = 1024;
-const unsigned ysize = 768;
-const unsigned black = 0xff1010ff;
-const unsigned white = 0xffffffff;
+constexpr unsigned xsize = 1024;
+constexpr unsigned ysize = 768;
+constexpr unsigned black = DrawUtil::buildcolor(0xff, 0x10, 0x10, 0xff);
+constexpr unsigned white = DrawUtil::buildcolor(0xff, 0xff, 0xff, 0xff);
 
 static unsigned and_or_carpet(unsigned x, unsigned y) {
   unsigned res;

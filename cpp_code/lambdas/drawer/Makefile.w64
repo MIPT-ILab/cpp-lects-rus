@@ -1,13 +1,14 @@
 # Drawer makefile
 # mingw32-make to make things
 
-CXXFLAGS=-O2 -Wall -Wextra
+CXXFLAGS=--std=c++17 -O2 -Wall -Wextra
+JFLAGS=-ffast-math -march=cannonlake -O3
 LDFLAGS=-lSDL2main -lSDL2 -mwindows
 
 all : funcbitmap waves julia
 
 julia : julia.cc sdlutil.o
-	${CXX} julia.cc sdlutil.o ${CXXFLAGS} ${LDFLAGS} -o $@
+	${CXX} julia.cc sdlutil.o ${CXXFLAGS} ${LDFLAGS} ${JFLAGS} -o $@
 
 waves : waves.cc sdlutil.o
 	${CXX} waves.cc sdlutil.o ${CXXFLAGS} ${LDFLAGS} -o $@

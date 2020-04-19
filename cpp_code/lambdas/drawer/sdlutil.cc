@@ -1,52 +1,24 @@
+#include <algorithm>
+
 #include "sdlutil.hpp"
 
 namespace DrawUtil {
 
 ViewPort *v = nullptr;
 
-IViewPort *QueryViewPort(int w, int h, std::function<void(ISurface *)> c) {
+IViewPort *QueryViewPort(int w, int h, std::function<void(ISurface *)> c, bool r) {
   if (v == nullptr)
-    v = new ViewPort(w, h, c);
+    v = new ViewPort(w, h, c, r);
   return v;
-}
-
-constexpr int A = 24;
-constexpr int R = 16;
-constexpr int G = 8;
-constexpr int B = 0;
-
-template <int off> static Uint8 cpart(unsigned color) {
-  return (color >> off) & 0xff;
-}
-
-void SDLSurface::putpixel(int x, int y, unsigned c) {
-  SDL_SetRenderDrawColor(s_, cpart<R>(c), cpart<G>(c), cpart<B>(c),
-                         cpart<A>(c));
-  SDL_RenderDrawPoint(s_, x, y);
-}
-
-void SDLSurface::fillwith(unsigned c) {
-  SDL_SetRenderDrawColor(s_, cpart<R>(c), cpart<G>(c), cpart<B>(c),
-                         cpart<A>(c));
-  SDL_RenderClear(s_); 
 }
 
 void SDLSurface::putlogpixel(double x, double y, unsigned color) {
   int width, height;
   SDL_GetRendererOutputSize(s_, &width, &height);
+  double w = width, h = height;
 
-  int logx = rint((x + 1.0) * width / 2.0);
-  int logy = rint((y + 1.0) * height / 2.0);
-
-  if (logx >= width)
-    logx = width - 1;
-  if (logx < 0)
-    logx = 0;
-  if (logy >= height)
-    logy = height - 1;
-  if (logy < 0)
-    logy = 0;
-
+  int logx = std::clamp(rint((x + 1.0) * width / 2.0), 0.0, w);
+  int logy = std::clamp(rint((y + 1.0) * height / 2.0), 0.0, h);
   putpixel(logx, logy, color);
 }
 
@@ -54,16 +26,50 @@ void SDLSurface::putlogpixel(double x, double y, unsigned color) {
 
 pollres ViewPort::poll() {
   SDL_Event event;
-  if (SDL_PollEvent(&event)) {
+  while (SDL_PollEvent(&event)) {
     if (event.type == SDL_QUIT)
       return pollres::STOP;
+    if (keybind && (event.type == SDL_KEYDOWN)) {      
+      SDL_Keycode kc = event.key.keysym.sym;
+      switch(kc) {
+        case SDLK_UP:
+          keybind(KeyPressed{KEY_UP});
+          break;
+        case SDLK_DOWN:
+          keybind(KeyPressed{KEY_DOWN});
+          break;
+        case SDLK_LEFT:
+          keybind(KeyPressed{KEY_LEFT});
+          break;
+        case SDLK_RIGHT:
+          keybind(KeyPressed{KEY_RIGHT});
+          break;
+        case SDLK_p:
+          keybind(KeyPressed{'p'});
+          break;
+        case SDLK_d:
+          keybind(KeyPressed{'d'});
+          break;
+        case SDLK_r:
+          keybind(KeyPressed{'r'});
+          break;
+        case SDLK_s:
+          keybind(KeyPressed{'s'});
+          break;
+        case SDLK_PLUS:
+        case SDLK_KP_PLUS:
+          keybind(KeyPressed{'+'});
+          break;
+        case SDLK_MINUS:
+        case SDLK_KP_MINUS:
+          keybind(KeyPressed{'-'});
+          break;
+      }
+    }
   }
 
-  SDL_SetRenderTarget(ren, texture);
-  SDLSurface s(ren);
+  SDLSurface s{ren};
   callback(&s);
-  SDL_SetRenderTarget(ren, NULL);
-  SDL_RenderCopy(ren, texture, NULL, NULL);
   SDL_RenderPresent(ren);
   return pollres::PROCEED;
 }
@@ -73,11 +79,12 @@ void ViewPort::dump(const char *name) {
   SDLSurface s(ren);
   callback(&s);
   SDL_QueryTexture(texture, NULL, NULL, &width, &height);
-  SDL_Surface* surface = SDL_CreateRGBSurface(0, width, height, 32, 0, 0, 0, 0);
-  SDL_RenderReadPixels(ren, NULL, surface->format->format, surface->pixels, surface->pitch);
+  SDL_Surface *surface = SDL_CreateRGBSurface(0, width, height, 32, 0, 0, 0, 0);
+  SDL_RenderReadPixels(ren, NULL, surface->format->format, surface->pixels,
+                       surface->pitch);
   SDL_SaveBMP(surface, name);
   SDL_FreeSurface(surface);
   SDL_SetRenderTarget(ren, NULL);
 }
 
-}
+} // namespace DrawUtil
