@@ -1,0 +1,17 @@
+#include <algorithm>
+#include <iostream>
+#include <iterator>
+#include <vector>
+#include <string>
+#include <sstream>
+
+int main() {
+  std::string s = "1 9 2 4 8 6 3 5 7";
+  std::istringstream is{s};
+  static auto& os = std::cout;
+  
+  std::istream_iterator<int> start{is}, fin{};
+
+  std::for_each(start, fin,
+                [](int d){ if (d < 5) os << d * 2 << " "; });
+}
