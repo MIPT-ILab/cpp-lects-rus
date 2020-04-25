@@ -24,8 +24,6 @@ constexpr bool ct_string::operator==(ct_string rhs) {
   return true;
 }
 
-constexpr pair<ct_string, int> ct_map[] = {{"one", 1}, {"two", 2}, {"three", 3}};
-
 template <typename P, size_t N>
 auto constexpr access(P const (&a)[N], typename P::first_type k) {
   size_t i = 0; 
@@ -37,7 +35,8 @@ auto constexpr access(P const (&a)[N], typename P::first_type k) {
 }
 
 int
-main () {
+main() {
+  constexpr pair<ct_string, int> ct_map[] = {{"one", 1}, {"two", 2}, {"three", 3}};
   constexpr int result = access(ct_map, "three");
-  cout << result << endl;
+  std::cout << result << std::endl;
 }
