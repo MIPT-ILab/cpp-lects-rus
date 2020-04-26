@@ -28,4 +28,10 @@ int main() {
   for (auto&& name : vname)
     std::cout << name << " ";
   std::cout << std::endl;
+  
+  std::vector<int> dblages;
+  ranges::transform(persons, ranges::back_inserter(dblages), [](int age) { return age * 2; }, &Person::age);
+  for (auto&& elt : dblages)
+    std::cout << elt << " ";
+  std::cout << std::endl;
 }
