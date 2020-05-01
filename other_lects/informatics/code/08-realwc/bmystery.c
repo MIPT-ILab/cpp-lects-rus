@@ -15,7 +15,7 @@ int measure(int *arr, int len) {
   for (i = 0; i < NITER; ++i)
     for (j = 0; j < len; ++j) 
       if (arr[j] > 128)
-        sum += arr[j];    
+        sum += arr[j];
 
   gsum = sum;
   finish = clock();
@@ -31,7 +31,7 @@ int less(const void *lhs, const void *rhs) {
 int
 main () {
   int i, data[ARRSZ];
-  double elapsed;  
+  double elapsed;
 
   for (i = 0; i < ARRSZ; ++i)
     data[i] = rand() % 256;

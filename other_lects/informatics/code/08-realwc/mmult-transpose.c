@@ -56,6 +56,10 @@ main () {
   int (*a)[BIG_AY] = (int (*)[BIG_AY]) malloc(BIG_AX * BIG_AY * sizeof(int));
   int (*b)[BIG_BY] = (int (*)[BIG_BY]) malloc(BIG_AY * BIG_BY * sizeof(int)); 
   int (*c)[BIG_BY] = (int (*)[BIG_BY]) malloc(BIG_AX * BIG_BY * sizeof(int));
+
+  matrix_rand_init(&a[0][0], BIG_AX * BIG_AY);
+  matrix_rand_init(&b[0][0], BIG_AY * BIG_BY);
+  matrix_rand_init(&c[0][0], BIG_AX * BIG_BY);
   
   start = clock();
   matrix_mult_transpose(&a[0][0], &b[0][0], &c[0][0], BIG_AX, BIG_AY, BIG_BY);

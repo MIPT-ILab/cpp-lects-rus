@@ -14,5 +14,6 @@ struct Tricky
 
 int main() {
   Tricky<int, -2> ok;
+  // ok.test_lazyness();
 }
 

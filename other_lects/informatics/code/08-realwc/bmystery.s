@@ -5,14 +5,25 @@
 	.globl	_measure
 	.def	_measure;	.scl	2;	.type	32;	.endef
 _measure:
+LFB37:
+	.cfi_startproc
 	push	ebp
+	.cfi_def_cfa_offset 8
+	.cfi_offset 5, -8
 	mov	ebp, 50000
 	push	edi
+	.cfi_def_cfa_offset 12
+	.cfi_offset 7, -12
 	xor	edi, edi
 	push	esi
+	.cfi_def_cfa_offset 16
+	.cfi_offset 6, -16
 	xor	esi, esi
 	push	ebx
+	.cfi_def_cfa_offset 20
+	.cfi_offset 3, -20
 	sub	esp, 28
+	.cfi_def_cfa_offset 48
 	call	_clock
 	mov	ebx, DWORD PTR [esp+52]
 	mov	DWORD PTR [esp+12], eax
@@ -45,11 +56,22 @@ L6:
 	call	_clock
 	sub	eax, DWORD PTR [esp+12]
 	add	esp, 28
+	.cfi_def_cfa_offset 20
 	pop	ebx
+	.cfi_restore 3
+	.cfi_def_cfa_offset 16
 	pop	esi
+	.cfi_restore 6
+	.cfi_def_cfa_offset 12
 	pop	edi
+	.cfi_restore 7
+	.cfi_def_cfa_offset 8
 	pop	ebp
+	.cfi_restore 5
+	.cfi_def_cfa_offset 4
 	ret
+	.cfi_endproc
+LFE37:
 	.def	___main;	.scl	2;	.type	32;	.endef
 	.section .rdata,"dr"
 LC0:
@@ -61,15 +83,23 @@ LC2:
 	.globl	_main
 	.def	_main;	.scl	2;	.type	32;	.endef
 _main:
+LFB38:
+	.cfi_startproc
 	push	ebp
+	.cfi_def_cfa_offset 8
+	.cfi_offset 5, -8
 	mov	eax, 128032
 	mov	ebp, esp
+	.cfi_def_cfa_register 5
 	push	edi
 	push	esi
 	push	ebx
 	and	esp, -16
 	call	___chkstk_ms
 	sub	esp, eax
+	.cfi_offset 7, -12
+	.cfi_offset 6, -16
+	.cfi_offset 3, -20
 	call	___main
 	lea	esi, [esp+32]
 	lea	ebx, [esp+128032]
@@ -100,16 +130,23 @@ L14:
 	lea	esp, [ebp-12]
 	xor	eax, eax
 	pop	ebx
+	.cfi_restore 3
 	pop	esi
+	.cfi_restore 6
 	pop	edi
+	.cfi_restore 7
 	pop	ebp
+	.cfi_restore 5
+	.cfi_def_cfa 4, 4
 	ret
+	.cfi_endproc
+LFE38:
 	.comm	_gsum, 8, 3
 	.section .rdata,"dr"
 	.align 4
 LC1:
 	.long	1148846080
-	.ident	"GCC: (i686-posix-dwarf-rev0, Built by MinGW-W64 project) 8.1.0"
+	.ident	"GCC: (i686-win32-dwarf-rev0, Built by MinGW-W64 project) 8.1.0"
 	.def	_clock;	.scl	2;	.type	32;	.endef
 	.def	_rand;	.scl	2;	.type	32;	.endef
 	.def	_puts;	.scl	2;	.type	32;	.endef

@@ -25,6 +25,7 @@ main ()
   cout << boolalpha << has_typedef_foobar<foo>::value << " " 
                     << has_typedef_foobar<bar>::value << " " 
                     << has_typedef_foobar<buz>::value << " " 
+                    << has_typedef_foobar<buz>::x << " "
                     << endl;
 }
 

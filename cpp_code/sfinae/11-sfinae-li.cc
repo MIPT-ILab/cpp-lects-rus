@@ -3,24 +3,16 @@
 using std::cout;
 using std::endl;
 
-int __attribute__ ((noinline)) 
-use (int n) 
-{ 
-  cout << n << endl; 
-}
+void __attribute__ ((noinline)) 
+use (int n) { cout << n << endl; }
 
-int 
-negate(int i) 
-{ 
-  return -i; 
-} 
+int negate(int i) { return -i; } 
 
 #if defined(CASE1)
 
-template <typename T> 
+template <typename T>
 T
-negate(const T& t) 
-{
+negate(const T& t) {
   typename T::value_type n = -t();
   use (n);
   return n;
@@ -30,8 +22,7 @@ negate(const T& t)
 
 template <typename T> 
 typename T::value_type 
-negate(const T& t) 
-{
+negate(const T& t) {
   auto n = -t();
   use (n);
   return n;

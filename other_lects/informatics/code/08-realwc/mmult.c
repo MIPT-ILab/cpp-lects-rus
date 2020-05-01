@@ -4,6 +4,7 @@
 #include <time.h>
 
 enum { BIG_AX = 2000, BIG_AY = 1600, BIG_BY = 1200 };
+// enum { BIG_AX = 1600, BIG_AY = 1200, BIG_BY = 800 };
 
 // A[AX][AY] * B[AY][BY] = C[AX][BY]
 void matrix_mult(const int *A, const int *B, int *C, int AX, int AY, int BY) {
@@ -47,6 +48,10 @@ main () {
   int (*a)[BIG_AY] = (int (*)[BIG_AY]) malloc(BIG_AX * BIG_AY * sizeof(int));
   int (*b)[BIG_BY] = (int (*)[BIG_BY]) malloc(BIG_AY * BIG_BY * sizeof(int)); 
   int (*c)[BIG_BY] = (int (*)[BIG_BY]) malloc(BIG_AX * BIG_BY * sizeof(int));
+  
+  matrix_rand_init(&a[0][0], BIG_AX * BIG_AY);
+  matrix_rand_init(&b[0][0], BIG_AY * BIG_BY);
+  matrix_rand_init(&c[0][0], BIG_AX * BIG_BY);
   
   start = clock();
   matrix_mult(&a[0][0], &b[0][0], &c[0][0], BIG_AX, BIG_AY, BIG_BY);
