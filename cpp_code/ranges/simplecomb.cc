@@ -1,10 +1,10 @@
 #include <algorithm>
 #include <iostream>
 #include <iterator>
-#include <vector>
+#include <sstream>
 #include <string>
 #include <string_view>
-#include <sstream>
+#include <vector>
 
 #include <boost/type_index.hpp>
 namespace ti = boost::typeindex;
@@ -16,8 +16,8 @@ int main() {
   auto sv = ranges::views::all(s);
   auto tk = ranges::views::take(sv, 13);
   std::cout << ti::type_id_with_cvr<decltype(tk)>().pretty_name() << std::endl;
-  
-  for (auto&& c : tk)
+
+  for (auto &&c : tk)
     std::cout << c;
   std::cout << std::endl;
 

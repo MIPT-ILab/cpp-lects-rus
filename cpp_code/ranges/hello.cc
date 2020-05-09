@@ -7,4 +7,3 @@ int main() {
   ranges::for_each(s, [](char c) { std::cout << c; });
   std::cout << std::endl;
 }
-

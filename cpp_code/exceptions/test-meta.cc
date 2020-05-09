@@ -1,4 +1,4 @@
-// g++ test-meta.cc -DSZ=8 -ftemplate-depth=10000 -fconstexpr-depth=10000 -ftime-report -Wfatal-errors
+// g++ test-meta.cc -DSZ=8 -DSTRUCT -ftemplate-depth=10000 -fconstexpr-depth=10000 -ftime-report -Wfatal-errors
 
 #include <iostream>
 
@@ -6,15 +6,17 @@ using std::cout;
 using std::endl;
 
 #if defined(STRUCT)
-#include "struct_approach.hpp"
+#include "struct_approach_2.hpp"
+#elif defined(MPL_STRUCT)
+#include "hana_approach.hpp"
 #elif defined(FUNC)
-#include "func_approach.hpp"
-#elif defined(ISSAME)
-#include "is_same_approach.hpp"
+#include "new_func_approach.hpp"
 #elif defined(NOEXCEPT)
 #include "except_approach.hpp"
+#elif defined(ISSAME)
+#include "is_same_approach.hpp"
 #else
-#error "You shall define STRUCT, FUNC, ISSAME or NOEXCEPT"
+#error "You shall define STRUCT, MPL_STRUCT, FUNC, ISSAME or NOEXCEPT"
 #endif
 
 #define T8(x) x,x,x,x,x,x,x,x
@@ -23,10 +25,11 @@ using std::endl;
 #define T4096(x) T512(x),T512(x),T512(x),T512(x),T512(x),T512(x),T512(x),T512(x)
 #define T32768(x) T4096(x),T4096(x),T4096(x),T4096(x),T4096(x),T4096(x),T4096(x),T4096(x)
 #define T262144(x) T32768(x),T32768(x),T32768(x),T32768(x),T32768(x),T32768(x),T32768(x),T32768(x)
-#define T1MB(x) T262144(x),T262144(x),T262144(x),T262144(x)
-#define T2MB(x) T1MB(x),T1MB(x)
-#define T4MB(x) T2MB(x),T2MB(x)
-#define T8MB(x) T4MB(x),T4MB(x)
+#define T1048576(x) T262144(x),T262144(x),T262144(x),T262144(x)
+#define T1572864(x) T1048576(x),T262144(x),T262144(x)
+#define T2097152(x) T1048576(x),T1048576(x)
+#define T4194304(x) T2097152(x),T2097152(x)
+#define T8388608(x) T4194304(x),T4194304(x)
 
 #ifndef SZ
 #define SZ 8

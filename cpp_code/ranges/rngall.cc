@@ -1,10 +1,10 @@
 #include <algorithm>
 #include <iostream>
 #include <iterator>
-#include <vector>
+#include <sstream>
 #include <string>
 #include <string_view>
-#include <sstream>
+#include <vector>
 
 #include <boost/type_index.hpp>
 namespace ti = boost::typeindex;
@@ -12,8 +12,8 @@ namespace ti = boost::typeindex;
 #include "myranges.hpp"
 
 struct Empty {
-  int* begin() { return nullptr; }
-  int* end() { return nullptr; }
+  int *begin() { return nullptr; }
+  int *end() { return nullptr; }
 };
 
 int main() {
@@ -23,8 +23,9 @@ int main() {
   auto sv = ranges::views::all(s);
   std::cout << ti::type_id_with_cvr<decltype(sv)>().pretty_name() << std::endl;
   auto sagain = sv.base();
-  std::cout << ti::type_id_with_cvr<decltype(sagain)>().pretty_name() << std::endl;
-  
+  std::cout << ti::type_id_with_cvr<decltype(sagain)>().pretty_name()
+            << std::endl;
+
   Empty e;
   auto ev = ranges::views::all(e);
 }
