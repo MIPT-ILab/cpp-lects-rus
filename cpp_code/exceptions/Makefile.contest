@@ -1,0 +1,17 @@
+# main makefile to report everyone's success
+# make TARGETS="STRUCT MPL_STRUCT FUNC NOEXCEPT ISSAME" SZ=8 -f Makefile.contest
+
+TARGETS ?= STRUCT MPL_STRUCT FUNC NOEXCEPT ISSAME
+SRC = test-meta.cc
+OPTS = --std=c++17 -ftemplate-depth=8388608 -fconstexpr-depth=8388608 -ftime-report -Wfatal-errors -fconstexpr-loop-limit=8388608 -fconstexpr-ops-limit=838860800
+
+CXX ?= g++
+SZ ?= 8
+
+.PHONY: all $(TARGETS)
+
+all: $(TARGETS)
+
+$(TARGETS):
+	@echo -------- Trying $@: --------
+	$(CXX) -D$@ -DSZ=$(SZ) $(OPTS) $(SRC) -o $@.x 2>all.log && grep TOTAL all.log || echo "$@ is out of breath"
