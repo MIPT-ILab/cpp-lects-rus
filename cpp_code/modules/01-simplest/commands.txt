@@ -1,0 +1,15 @@
+clang++ --std=c++20 -fmodules --precompile first_module.cppm -o first_module.pcm
+clang++ --std=c++20 -fmodules second-main.cc -fmodule-file=first_module.pcm first_module.pcm
+
+Альтернатива: показать с -fno-rtti и с -O2
+
+Рассказать про contract assertion level
+
+cl:
+
+https://www.modernescpp.com/index.php/c-20-module-interface-unit-and-module-implementation-unit
+
+cl.exe /std:c++latest /c /experimental:module mathInterface.ixx /EHsc /MD          // (1)
+cl.exe /std:c++latest /c /experimental:module mathImplementationUnit.cpp /EHsc /MD // (2)
+cl.exe /std:c++latest /c /experimental:module client3.cpp /EHsc /MD                // (3)
+cl.exe client3.obj mathInterfaceUnit.obj mathImplementationUnit.obj                // (4)
