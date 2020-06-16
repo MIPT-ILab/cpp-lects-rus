@@ -1,4 +1,6 @@
-module first_module;
+module second_module;
+
+int e = 42;
 
 int foo(int x) {
   return x;

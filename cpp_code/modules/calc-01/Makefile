@@ -1,11 +1,28 @@
-CC = g++ $(CFLAGS)
+# trivial build system
 
-CFLAGS = -g -O0 -Wno-unused -Wno-unused-function -Wno-unused-label -Wno-error -Wreturn-type -Wfatal-errors
+ADDFLAGS = -g -O0 -Wno-unused -Wno-unused-function -Wno-unused-label -Wno-error -Wreturn-type -Wfatal-errors
 
-default: compiler.y scanner.l parser.hpp INode.hpp Node.hpp Node.cpp driver.cpp
-	flex -8 scanner.l
+.PHONY: all
+all: program
+
+program: driver.cpp lexer.o parser.o node.o
+	$(CXX) $(ADDFLAGS) $(CXXFLAGS) -o program lexer.o parser.o node.o driver.cpp
+
+parser.o: parser.hpp compiler.cpp.h compiler.cpp
+	$(CXX) $(ADDFLAGS) $(CXXFLAGS) compiler.cpp -c -o parser.o
+
+lexer.o: parser.hpp compiler.cpp.h lex.yy.c
+	$(CXX) $(ADDFLAGS) $(CXXFLAGS) lex.yy.c -c -o lexer.o
+
+node.o: INode.hpp Node.hpp Symtab.hpp Node.cpp
+	$(CXX) $(ADDFLAGS) $(CXXFLAGS) Node.cpp -c -o node.o
+
+compiler.cpp compiler.cpp.h: compiler.y
 	bison -o compiler.cpp --defines=compiler.cpp.h -v compiler.y
-	$(CC) $(CFLAGS) -o program compiler.cpp Node.cpp driver.cpp lex.yy.c
 
+lex.yy.c: scanner.l
+	flex -8 scanner.l
+
+.PHONY: clean
 clean:
-	rm lex* program compiler.c* compiler.out*
+	rm -f lex* compiler.c* compiler.out* program *.o

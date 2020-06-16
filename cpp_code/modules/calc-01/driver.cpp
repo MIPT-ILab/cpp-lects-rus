@@ -4,24 +4,20 @@
 //
 //------------------------------------------------------------------------------
 
-#include "Node.hpp"
 #include "parser.hpp"
 
-static FILE *f;
-
-Scope *currentScope = nullptr;
+IScope *currentScope = nullptr;
 
 static int currentinlinePos = 0;
 
 int main(int argc, char *argv[]) {
-  f = fopen(argv[1], "r");
+  FILE *f = fopen(argv[1], "r");
   if (f <= 0) {
     perror("Cannot open file");
     return 1;
   }
   yyin = f;
-  currentScope = new Scope{nullptr};
-  // std::cout << "CurrentScope: " << currentScope << std::endl;
+  currentScope = create_scope();
   yyparse();
   fclose(f);
   delete currentScope;

@@ -50,3 +50,4 @@ INode *make_value(int);
 INode *make_op(INode *l, Ops o, INode *r);
 INode *make_while(INode *o, INode *s);
 INode *make_if(INode *o, INode *s);
+IScope *create_scope();

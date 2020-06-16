@@ -13,6 +13,7 @@ INode *make_value(int v) { return new Value{v}; }
 INode *make_op(INode *l, Ops o, INode *r) { return new Op{l, o, r}; }
 INode *make_while(INode *o, INode *s) { return new While{o, s}; }
 INode *make_if(INode *o, INode *s) { return new If{o, s}; }
+IScope *create_scope() { return new Scope{nullptr}; }
 
 // NUMBER
 RType Value::calc() { return val; }
