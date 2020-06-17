@@ -1,5 +1,7 @@
 export module first_module;
 
+namespace hello {
+
 int foo(int x) {
   return x;
 }
@@ -10,3 +12,4 @@ export int bar() {
   return foo(e);
 }
 
+}

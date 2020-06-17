@@ -10,6 +10,13 @@ PREFLAGS = $(ADDFLAGS) --precompile
 .PHONY: all
 all: first-main second-main third-main fourth-main
 
+.PHONY: run
+run: first-main second-main third-main fourth-main
+	./first-main
+	./second-main
+	./third-main
+	./fourth-main
+
 first-main: first-main.cc first_module.pcm
 	$(CXX) $(ADDFLAGS) $(CXXFLAGS) -fmodule-file=first_module.pcm first_module.pcm -o $@ first-main.cc
 
@@ -31,4 +38,4 @@ second_module.pcm second_module_impl.o: second_module.cppm second_module_impl.cc
 
 .PHONY: clean
 clean:
-	rm -f first_module.pcm first-main second-main third-main fourth-main
+	rm -f *-main *.pcm *.o
