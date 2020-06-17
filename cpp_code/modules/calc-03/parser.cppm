@@ -1,33 +1,25 @@
 //------------------------------------------------------------------------------
 //
-// driver.cpp -- main entry point
+// parser.cppm -- bison related extern defines and retval struct
 //
 //------------------------------------------------------------------------------
 
-#include "parser.hpp"
+module;
 
-IScope *currentScope = nullptr;
+#include <cstdarg>
+#include <cstring>
 
-static int currentinlinePos = 0;
+// inevitable hack
+#include "yyret.h"
 
-int main(int argc, char *argv[]) {
-  FILE *f = fopen(argv[1], "r");
-  if (!f) {
-    perror("Cannot open file");
-    return 1;
-  }
-  yyin = f;
-  currentScope = create_scope();
-  yyparse();
-  fclose(f);
-  delete currentScope;
+export module parser;
 
-  return 0;
-}
+import <sstream>;
+import <string>;
 
-// note: those 2 functions are logically from parser.hpp
+int currentinlinePos = 0;
 
-void PrintError(char const *errorstring, ...) {
+export void PrintError(char const *errorstring, ...) {
   static char errmsg[10000];
   va_list args;
 
@@ -51,7 +43,7 @@ void PrintError(char const *errorstring, ...) {
   exit(1);
 }
 
-void BeginToken(char *t, int *yyinlinePos) {
+export void BeginToken(char *t, int *yyinlinePos) {
   yylloc.first_line = yylineno;
   yylloc.first_column = *yyinlinePos;
   yylloc.last_line = yylineno;
