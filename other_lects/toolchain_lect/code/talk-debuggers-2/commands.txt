@@ -1,0 +1,127 @@
+1. Отладочная информация
+
+readelf --debug-dump=decodedline explore-self.o
+то же для факториала (мешанина)
+
+2. Точки останова
+
+gcc explore-self.c -g -O0
+objdump -gdS ./a.out > a.dis
+
+delete 2
+info breakpoints
+
+command 2
+....
+end
+
+conditions
+
+3. Базовая функциональность
+
+print
+ptype
+explore
+break
+step
+next
+run/continue
+
+start == temp break main + run
+
+advance/finish
+
+4. Стековые фреймы
+
+buggy-sort example
+
+Ctrl+x+a --> enter or leave
+Ctrl+x+o --> switch active window
+layout src
+
+info frame
+backtrace
+
+x/2x $sp
+x/2xg $sp
+
+(gdb)set $i=0
+(gdb) set $end=m
+(gdb) while ($i < $end)
+ >p projections[$i++].size
+ >end
+
+p *a@5
+
+Показать:
+
+p $pc
+x по этому адресу
+
+x/5i $pc - 6
+
+5. Ассемблер
+
+layout asm
+layout reg
+Ctrl+x+1, Ctrl+x+2 --> 1/2 window tui
+.gdbinit для Интела
+
+disassemble
+stepi
+nexti
+
+info registers
+set $sp += 4
+
+set any gdb variable!
+set $ZF = 6
+set $eflags |= (1 << $ZF)
+set $eflags &= ~(1 << $ZF) ---> clear
+set $eflags ^= (1 << $ZF) ---> toggle
+
+jump location
+
+6. Точки наблюдения
+
+watch p     -------> change when written?
+watch p->a  -------> change when changed!
+watch -l p->a ----> location-based, change when value in location changed
+
+watch foo ---> any piece changed
+watch $sp ---> stack pointer change (not hw w/point)
+watch $pc ---> just funny
+
+7. Python interpreter
+
+https://sourceware.org/gdb/current/onlinedocs/gdb/Python-API.html
+
+python print(gdb.breakpoints())
+python print(gdb.breakpoints()[0].location)
+python gdb.Breakpoint('fact')
+
+Law's example:
+
+buggy-sort-2:
+while ./a.out; do echo "OK"; done;
+
+b main --------> 2
+b _exit.c:32 --> 3
+
+(gdb) command 3
+run
+end
+
+(gdb) command 2
+record
+continue
+end
+
+set pagination off
+
+reverse-stepi
+
+print $sp ----> sp-value
+watch *(long **) sp-value
+reverse-continue
+
