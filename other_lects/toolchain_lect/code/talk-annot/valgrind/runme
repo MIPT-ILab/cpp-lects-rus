@@ -1,0 +1,4 @@
+gcc -g buggy-sort.c
+g++ -g potential-outbound.cc
+g++ -g potential-outbound-2.cc
+gcc -g leak.c

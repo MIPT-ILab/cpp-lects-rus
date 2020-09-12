@@ -1,0 +1,2 @@
+clang-tidy --checks=* slice.cc
+clang-tidy --checks=*,-modernize-*  slice.cc -- slice.cc
