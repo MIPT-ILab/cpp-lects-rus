@@ -12,5 +12,5 @@ unsigned long long fib (unsigned n) {
 }
 
 int main () {
-  printf("%llu\n", fib(5));
+  printf("%llu\n", fib(50));
 }
