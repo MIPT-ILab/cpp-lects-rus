@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <stdio.h>
 
-int fact(int x) {
+long long fact(int x) {
   assert(x > 0);
   if (x < 3)
     return x;
@@ -11,7 +11,10 @@ int fact(int x) {
 }
 
 int main() {
-  int f5 = fact(5);
-  printf("5! = %d\n", f5);
+  int n, res;
+  res = scanf("%d", &n);
+  assert(res == 1);
+  long long f5 = fact(n);
+  printf("%d! = %lld\n", n, f5);
 }
 
