@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if 1
 char *read_word(int *len) {
   char *text;
   int res, i;
@@ -22,6 +23,7 @@ char *read_word(int *len) {
   
   return text;
 }
+#endif
 
 char * strcat_r(char *dest, int dstlen, char const *src, int srclen, int *bufsz) {
   int bsz = *bufsz;
@@ -29,8 +31,8 @@ char * strcat_r(char *dest, int dstlen, char const *src, int srclen, int *bufsz)
 
   while (len > bsz) {
     bsz *= 2;
-    if (bsz > len) {
-      dest = realloc(dest, len);
+    if (bsz >= len) {
+      dest = realloc(dest, bsz);
       assert(dest);
     }
   }
@@ -86,6 +88,8 @@ char *replace(char *str, char const *from, char const *to) {
   return do_replace(str, strlen(str), from, strlen(from), to, strlen(to));
 }
 
+#if 1
+
 int main() {
   int nword, nrepl, nstr;
   char *word, *repl, *str; // replace in word repl to str
@@ -103,3 +107,6 @@ int main() {
 
   printf("Result is: <%s>\n", result);
 }
+
+#endif
+
