@@ -1,11 +1,12 @@
 #include <stdio.h>
 
-unsigned long long ipow (unsigned n, unsigned k);
+#include "mypow-1.h"
 
 int
 main () {
-  printf("3^7 == %lld\n", ipow(3, 7));
-  printf("4^13 == %lld\n", ipow(4, 13));
-  printf("17^6 == %lld\n", ipow(17, 6));
+  printf("3^7 == %llu\n", ipow(3, 7));
+  printf("4^13 == %llu\n", ipow(4, 13));
+  printf("17^6 == %llu\n", ipow(17, 6));
+  printf("x = %d\n", x);
   return 0;
 }

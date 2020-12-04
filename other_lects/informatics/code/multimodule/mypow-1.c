@@ -1,6 +1,10 @@
 // integer power in logarithmic time
 
-unsigned long long ipow (unsigned n, unsigned k) {
+#include "mypow-1.h"
+
+int x = 42;
+
+extern unsigned long long ipow (unsigned n, unsigned k) {
   unsigned long long mult, prod;
   if (n == 0 || n == 1 || k == 1) return n;
   if (k == 0) return 1;

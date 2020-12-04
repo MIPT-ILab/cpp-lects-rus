@@ -4,3 +4,4 @@
 
 extern double expsq;
 unsigned long long ipow (unsigned n, unsigned k);
+
