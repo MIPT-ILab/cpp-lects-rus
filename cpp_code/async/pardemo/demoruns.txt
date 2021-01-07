@@ -1,0 +1,18 @@
+cl sort_bench.cc -std:c++17 -O2 -EHsc
+clang++ sort_bench.cc -O2 -std=c++17
+$ a.exe 0 50000000    
+$ a.exe 1 50000000    
+
+clang++ reduce_bench.cc -O2 -std=c++17
+$ a.exe 0 100000 1000000
+$ a.exe 1 100000 1000000
+
+clang++ transform_bench.cc -O2 -std=c++17
+$ a.exe 0 100000 300000
+$ a.exe 1 100000 300000
+
+$ clang++ -O2 -std=c++17 my_reduce_bench.cc
+a.exe 0 1000000 1000
+a.exe 1 1000000 1000
+a.exe 2 1000000 1000
+a.exe 3 1000000 1000
