@@ -1,10 +1,10 @@
 //-----------------------------------------------------------------------------
 //
-// Correct braced strings generator
+// Correct braced strings generator: explicit guard
 //
 //-----------------------------------------------------------------------------
 //
-//
+// Based on TAOCP 7.2.1.6 - P
 //
 //-----------------------------------------------------------------------------
 //
@@ -56,7 +56,7 @@ void visit_braces(int N) {
       j = j - 1;
       k = k - 2;
     }
-   
+
     // P5: increment jth position
     dbgs << "\tP5 start:" << braces.data() + 1 << std::endl;
     braces[j] = '(';

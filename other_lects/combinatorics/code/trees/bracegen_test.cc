@@ -4,7 +4,7 @@
 //
 //-----------------------------------------------------------------------------
 //
-//
+// Based on TAOCP 7.2.1.6 - P
 //
 //-----------------------------------------------------------------------------
 //
@@ -12,10 +12,10 @@
 //
 //-----------------------------------------------------------------------------
 
+#include "bracegen.hpp"
 #include <cassert>
 #include <iostream>
 #include <string>
-#include "bracegen.hpp"
 
 void print_usage(const char *pname) {
   std::cout << "Usage: '" << pname << " N'" << std::endl;
@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
 
   brace_visitor visitor(n);
 
-  while(!visitor.last()) {
+  while (!visitor.last()) {
     std::cout << visitor.visit() << std::endl;
     visitor.next();
   }

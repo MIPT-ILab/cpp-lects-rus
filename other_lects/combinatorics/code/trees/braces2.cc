@@ -1,10 +1,10 @@
 //-----------------------------------------------------------------------------
 //
-// Correct braced strings generator
+// Correct braced strings generator: no guard version
 //
 //-----------------------------------------------------------------------------
 //
-//
+// Based on TAOCP 7.2.1.6 - P
 //
 //-----------------------------------------------------------------------------
 //
@@ -16,16 +16,14 @@
 #include <iostream>
 #include <string>
 
-#ifdef ANALYZE
-std::ostream &dbgs = std::cout;
-#else
-struct NullBuffer : public std::streambuf {
-  int overflow(int c) override { return c; }
-};
-
-NullBuffer null_buffer;
-std::ostream dbgs{&null_buffer};
+#ifndef ANALYZE
+#define ANALYZE 0
 #endif
+
+#define dbgs                                                                   \
+  if (!ANALYZE) {                                                              \
+  } else                                                                       \
+    std::cout
 
 void visit_braces(int N) {
   int m = 2 * N - 2, j = m - 1;
@@ -56,7 +54,7 @@ void visit_braces(int N) {
       j = j - 1;
       k = k - 2;
     }
-   
+
     // P5: increment jth position
     dbgs << "\tP5 start:" << braces << std::endl;
     if (j > 0)
