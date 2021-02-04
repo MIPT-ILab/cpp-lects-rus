@@ -1,7 +1,7 @@
-name: Build
+name: Build and release
 
 on:
-  pull_request:
+  push:
     branches: [ master ]
 
   workflow_dispatch:
@@ -37,6 +37,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-          asset_path: ./main.pdf
+          asset_path: ./build/main.pdf
           asset_name: main.pdf
           asset_content_type: application/pdf
