@@ -17,9 +17,8 @@ void use_parent (shared_ptr<Node> pnode) {
   auto newref = pnode->parent.lock(); // cnt:2
   if (newref) {
     newref->r.use();
-
     // How about change parent in-place?
-    newref->r = MyRes(3);
+    // newref->r = MyRes(3);
   }
   else {
     cout << "Expired parent pointer" << endl;
