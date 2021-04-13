@@ -5123,7 +5123,7 @@ int main () {
 
 \subsection{Приведение типов}\label{CastOverloading}
 
-Самый простой и в то же время самый богатый набор операторов это операторы приведения типов.
+Самая простая категория доступных для определения операторов это операторы приведения типов.
 
 Для двух любых типов X и Y может быть четыре оператора приведения:
 
@@ -5136,24 +5136,18 @@ int main () {
 
 При этом каждое приведение может быть явным или неявным.
 
-Первые два вида это обычные конструкторы копирования. Пусть в качестве Y служит тип \lstinline!int! для простого примера, указатель на целое для чуть более сложного примера и (указатель на) массив из трёх целых для совсем сложного случая. Да, конечно, можно сказать, что нельзя придумать такой класс, который требовал бы неявного приведения к указателю на массив из трёх целых и обратно. Но я бы с этим поспорил.
+Первые два вида это обычные конструкторы. Пусть в качестве Y служит тип \lstinline!int! для простого примера, указатель на целое для чуть более сложного примера и (указатель на) массив из трёх целых для совсем сложного случая. Да, конечно, можно сказать, что нельзя придумать такой класс, который требовал бы неявного приведения к указателю на массив из трёх целых и обратно. Но я бы с этим поспорил.
 
 \begin{lstlisting}
-struct X 
-{
-  // converting ctor int -> X
-  X(int) {}
+struct X {  
+  X(int) {} // converting ctor int -> X  
+  X(int*) {} // converting ctor int* -> X  
+  X(int(*)[3]) {} // converting ctor int(*)[3] -> X
 
-  // converting ctor int* -> X
-  X(int*) {}
-
-  // converting ctor int(*)[3] -> X
-  X(int(*)[3]) {}
-
-  //implicit conversion
+  // implicit conversion X -> int
   operator int() const { return 7; }
  
-  // explicit conversion
+  // explicit conversion X -> int*
   explicit operator int*() const { return nullptr; }
  
   // Error: array operator not allowed in conversion-type-id
@@ -5171,27 +5165,50 @@ struct X
 Использование довольно просто и поучительно
 
 \begin{lstlisting}
-int main() {
-  // init ctor conversion
-  X x(1);
+X x(1); // init ctor conversion
 
-  // again init ctor
-  X x1 = 2;
+X x1 = 2; // again init ctor
 
-  // again init ctor
-  X x2 = static_cast<int>(3);
- 
-  int n = static_cast<int>(x); // OK, explicit
-  int m = x;                   // OK, implicit
- 
-  int *p = static_cast<int*>(x); // OK, explicit
-  int *q = x;                    // Fail: no implicit one
- 
-  int (*pa)[3] = x;  // OK
-}
+X x2 = static_cast<int>(3); // again init ctor
+
+int n = static_cast<int>(x); // OK, explicit
+int m = x;                   // OK, implicit
+
+int *p = static_cast<int*>(x); // OK, explicit
+int *q = x;                    // Fail: no implicit one
+
+int (*pa)[3] = x;  // OK
 \end{lstlisting}
 
-Всё это кажется довольно простым, но конкретную рекомендацию где написать какой конструктор всегда может дать только личный опыт.
+Интересно, что, являясь самым простым случаем, приведение является также самым разнообразным, потому что из любого типа можно делать неявное приведение в любые другие, в том числе пользовательские, что создаёт поле для бесконечных игр
+
+\begin{lstlisting}
+struct S {};
+
+struct T {
+  operator S();
+};
+\end{lstlisting}
+
+\textbf{Вопрос к студентам:} что вы думаете о неявном преобразовании к неполным типам?
+
+\ifanswers
+На удивление, это допустимо:
+
+\begin{lstlisting}
+struct S;
+
+struct T {
+  operator S(); // to incomplete type (!)
+};
+
+struct S {
+  operator T() { return T{}; }
+};
+
+T::operator S() { return S{}; }
+\end{lstlisting}
+\fi
 
 \pagebreak
 \section{Выделение и освобождение динамической памяти}\label{subsec:newdeleteredef}
@@ -5503,7 +5520,7 @@ tricky_1 ()
 } /* which destructor? */
 \end{lstlisting}
 
-Какой деструктор будет вызван в этом случае? 
+\textbf{Вопрос к студентам:} Какой деструктор будет вызван в этом случае? 
 
 \ifanswers
 Правильный ответ: Оказывается статический тип временного объекта известен компилятору и будет вызван деструктор класса \lstinline!Derived!. То есть ссылки не требуют виртуальных деструкторов для своей диспетчеризации -- компилятор сам может построить верный код удаления.
