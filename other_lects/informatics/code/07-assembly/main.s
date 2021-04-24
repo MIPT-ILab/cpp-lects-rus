@@ -1,63 +1,47 @@
 	.file	"main.c"
 	.text
-	.def	__main;	.scl	2;	.type	32;	.endef
-	.section .rdata,"dr"
+	.section	.rodata.str1.1,"aMS",@progbits,1
 .LC0:
-	.ascii "%d\12\0"
-	.text
+	.string	"%d\n"
+	.section	.text.startup,"ax",@progbits
+	.p2align 4
 	.globl	main
-	.def	main;	.scl	2;	.type	32;	.endef
-	.seh_proc	main
+	.type	main, @function
 main:
-	pushq	%rdi
-	.seh_pushreg	%rdi
-	pushq	%rsi
-	.seh_pushreg	%rsi
-	subq	$200, %rsp
-	.seh_stackalloc	200
-	movaps	%xmm6, 32(%rsp)
-	.seh_savexmm	%xmm6, 32
-	movaps	%xmm7, 48(%rsp)
-	.seh_savexmm	%xmm7, 48
-	movaps	%xmm8, 64(%rsp)
-	.seh_savexmm	%xmm8, 64
-	movaps	%xmm9, 80(%rsp)
-	.seh_savexmm	%xmm9, 80
-	movaps	%xmm10, 96(%rsp)
-	.seh_savexmm	%xmm10, 96
-	movaps	%xmm11, 112(%rsp)
-	.seh_savexmm	%xmm11, 112
-	movaps	%xmm12, 128(%rsp)
-	.seh_savexmm	%xmm12, 128
-	movaps	%xmm13, 144(%rsp)
-	.seh_savexmm	%xmm13, 144
-	movaps	%xmm14, 160(%rsp)
-	.seh_savexmm	%xmm14, 160
-	movaps	%xmm15, 176(%rsp)
-	.seh_savexmm	%xmm15, 176
-	.seh_endprologue
-	call	__main
+.LFB23:
+	.cfi_startproc
+	endbr64
+	subq	$8, %rsp
+	.cfi_def_cfa_offset 16
 	movl	$5, %edi
-	call	fact
+	call	fact@PLT
+	leaq	.LC0(%rip), %rsi
+	movl	$1, %edi
 	movl	%eax, %edx
-	leaq	.LC0(%rip), %rcx
-	call	printf
-	movl	$0, %eax
-	movaps	32(%rsp), %xmm6
-	movaps	48(%rsp), %xmm7
-	movaps	64(%rsp), %xmm8
-	movaps	80(%rsp), %xmm9
-	movaps	96(%rsp), %xmm10
-	movaps	112(%rsp), %xmm11
-	movaps	128(%rsp), %xmm12
-	movaps	144(%rsp), %xmm13
-	movaps	160(%rsp), %xmm14
-	movaps	176(%rsp), %xmm15
-	addq	$200, %rsp
-	popq	%rsi
-	popq	%rdi
+	xorl	%eax, %eax
+	call	__printf_chk@PLT
+	xorl	%eax, %eax
+	addq	$8, %rsp
+	.cfi_def_cfa_offset 8
 	ret
-	.seh_endproc
-	.ident	"GCC: (GNU) 9.2.0"
-	.def	fact;	.scl	2;	.type	32;	.endef
-	.def	printf;	.scl	2;	.type	32;	.endef
+	.cfi_endproc
+.LFE23:
+	.size	main, .-main
+	.ident	"GCC: (Ubuntu 9.3.0-17ubuntu1~20.04) 9.3.0"
+	.section	.note.GNU-stack,"",@progbits
+	.section	.note.gnu.property,"a"
+	.align 8
+	.long	 1f - 0f
+	.long	 4f - 1f
+	.long	 5
+0:
+	.string	 "GNU"
+1:
+	.align 8
+	.long	 0xc0000002
+	.long	 3f - 2f
+2:
+	.long	 0x3
+3:
+	.align 8
+4:
