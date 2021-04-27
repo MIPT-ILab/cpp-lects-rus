@@ -6,5 +6,5 @@
 // Future std
 #elif defined(USESTD)
 #include <ranges>
-namespace ranges = std::ranges
+namespace ranges = std::ranges;
 #endif
