@@ -200,34 +200,33 @@ void test() {
       cl::sycl::accessor<int, 2, sycl_rw, sycl_local> Bsub(Locsz, cgh);
 
       cgh.parallel_for<class mxm_kernel_local>(
-          cl::sycl::nd_range<2>(cl::sycl::range<2>(BIG_AX, BIG_AX), 
-                                cl::sycl::range<2>(TS, TS)), 
+          cl::sycl::nd_range<2>(Globsz, Locsz),
           [=](cl::sycl::nd_item<2> it) {
             int row = it.get_local_id(0);
             int col = it.get_local_id(1);
             int globalRow = TS * it.get_group(0) + row;
             int globalCol = TS * it.get_group(1) + col;
-            C[globalRow][globalCol] = 42;
-#if 0
-        int numTiles = BIG_AY / TS;
+            int numTiles = BIG_AY / TS;
 
-        int sum = 0;
+            int sum = 0;
 
-        for (int t = 0; t < numTiles; t++) {
-          int tiledRow = TS * t + row;
-          int tiledCol = TS * t + col;
-          Asub[col][row] = A[globalRow][tiledCol];
-          Bsub[col][row] = B[tiledRow][globalCol];
-          it.barrier(sycl_local_fence);
-
-          for (int k = 0; k < TS; k++)
-            sum += Asub[row][k] * Bsub[k][col];
-          it.barrier(sycl_local_fence);
-        }
-
-        C[globalRow][globalCol] = sum;
+            for (int t = 0; t < numTiles; t++) {
+              int tiledRow = TS * t + row;
+              int tiledCol = TS * t + col;
+              Asub[row][col] = A[globalRow][tiledCol];
+              Bsub[row][col] = B[tiledRow][globalCol];
+#ifndef NOBARRIER
+              it.barrier(sycl_local_fence);
 #endif
-      });
+
+              for (int k = 0; k < TS; k++)
+                sum += Asub[row][k] * Bsub[k][col];
+#ifndef NOBARRIER
+              it.barrier(sycl_local_fence);
+#endif
+            }
+            C[globalRow][globalCol] = sum;
+          });
     });
 
     deviceQueue.wait_and_throw();
@@ -271,6 +270,7 @@ int main() {
   std::cout << "Welcome to matrix multiplication" << std::endl;
   std::cout << "[ " << BIG_AX << " x " << BIG_AY << " ] * [ " << BIG_AY << " x "
             << BIG_BY << " ]" << std::endl;
+  std::cout << "Tile size is: " << TS << std::endl;
 
   try {
     test();
@@ -280,4 +280,3 @@ int main() {
   }
   std::cout << "DONE, BYE\n";
 }
-
