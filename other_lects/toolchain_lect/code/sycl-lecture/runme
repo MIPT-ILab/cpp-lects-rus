@@ -1,0 +1,7 @@
+. /opt/intel/oneapi/compiler/latest/env/vars.sh
+/opt/intel/oneapi/compiler/latest/linux/bin/clang++ -fsycl -isystem /opt/intel/oneapi/compiler/latest/linux/include/sycl sycl_vectoradd.cc
+/opt/intel/oneapi/compiler/latest/linux/bin/clang++ -O2 -fsycl -isystem /opt/intel/oneapi/compiler/latest/linux/include/sycl sycl_matmult.cc -DMEASURE_NORMAL
+
+Pecularities:
+(1) INEFF in simple sycl matrix mult makes better
+(2) runtime failure of local matrix mult
