@@ -1,0 +1,1 @@
+/users/kvladimi/dpc/llvm/build/install/bin/clang++ -fsycl -ccc-print-bindings vadd_1d.cpp

@@ -1,0 +1,1 @@
+clang -Xclang -ast-dump -fsyntax-only ifrule.c

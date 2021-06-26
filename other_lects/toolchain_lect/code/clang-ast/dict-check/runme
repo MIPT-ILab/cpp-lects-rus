@@ -1,0 +1,1 @@
+/users/kvladimi/llvm-project/build/bin/dict-check -d words.txt test.cpp -- test.cpp
