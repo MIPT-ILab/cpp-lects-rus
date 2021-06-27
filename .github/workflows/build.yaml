@@ -1,0 +1,23 @@
+name: Build
+
+on:
+  pull_request:
+    branches: [ master ]
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+      - uses: actions/checkout@v2
+      - name: Install python requirements
+        run: pip3 install -r requirements.txt
+      - name: Pull docker container
+        run: docker pull thomasweise/docker-texlive-full
+      - name: Run .pdf build
+        run: doge build
+
