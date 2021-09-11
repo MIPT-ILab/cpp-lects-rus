@@ -4,7 +4,7 @@ using std::cout;
 using std::endl;
 
 template <typename T> 
-const T& min(const T& a, const T& b) { 
+const T& min(const T& a, const T& b) {
   return a < b ? a : b;
 }
 
