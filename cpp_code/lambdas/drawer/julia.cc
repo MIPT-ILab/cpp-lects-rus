@@ -22,6 +22,9 @@
 using cdt = std::complex<double>;
 using namespace std::complex_literals;
 
+using std::abs;
+using std::max;
+
 constexpr int def_bigsize = 1000;
 constexpr int def_xsize = 1024;
 constexpr int def_ysize = 768;
@@ -50,7 +53,7 @@ static void draw_julia(DrawUtil::ISurface *s, cdt c, cdt center, double sz) {
       auto cl = DrawUtil::buildcolor(0, 0, 0, clblue);
 
       for (unsigned i = 0; i < maxiter; ++i) {
-        if (std::abs(z) > std::max(2.0 * sz, 4.0)) {
+        if (abs(z) > max(2.0 * sz, 4.0)) {
           cl = DrawUtil::buildcolor(0, i * cmod, i * cmod, clblue);
           break;
         }
@@ -147,7 +150,8 @@ main (int argc, char **argv)
     }
   };
 
-  auto *v = DrawUtil::QueryViewPort(def_xsize, def_ysize, draw_external, true);
+  auto *v = DrawUtil::QueryViewPort(def_xsize, def_ysize, 
+                                   draw_external, true);
   vdumpf = [v](std::string s) { v->dump(s.c_str()); };
   v->bindkeys(key_control);
 

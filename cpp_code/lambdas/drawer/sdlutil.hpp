@@ -3,6 +3,7 @@
 #include <SDL2/SDL.h>
 #include <cmath>
 #include <cstdlib>
+#include <stdexcept>
 
 #include <functional>
 
