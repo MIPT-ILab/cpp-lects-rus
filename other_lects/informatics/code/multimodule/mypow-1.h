@@ -1,6 +1,6 @@
 #pragma once
 
-extern int x;
+int x;
 
 // integer power in logarithmic time
-extern unsigned long long ipow (unsigned n, unsigned k);
+unsigned long long ipow(unsigned n, unsigned k);
