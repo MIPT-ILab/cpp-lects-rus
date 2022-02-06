@@ -1,4 +1,8 @@
-// g++ test-meta.cc -DSZ=8 -DSTRUCT -ftemplate-depth=10000 -fconstexpr-depth=10000 -ftime-report -Wfatal-errors
+// g++ --std=c++20 test-meta.cc -DSZ=8 -ftemplate-depth=10000 -fconstexpr-depth=10000 -ftime-report -Wfatal-errors -DSTRUCT
+// g++ --std=c++20 test-meta.cc -DSZ=8 -ftemplate-depth=10000 -fconstexpr-depth=10000 -ftime-report -Wfatal-errors -DMPL_STRUCT
+// g++ --std=c++20 test-meta.cc -DSZ=8 -ftemplate-depth=10000 -fconstexpr-depth=10000 -ftime-report -Wfatal-errors -DFUNC
+// g++ --std=c++20 test-meta.cc -DSZ=8 -ftemplate-depth=10000 -fconstexpr-depth=10000 -ftime-report -Wfatal-errors -DNOEXCEPT
+// g++ --std=c++20 test-meta.cc -DSZ=8 -ftemplate-depth=10000 -fconstexpr-depth=10000 -ftime-report -Wfatal-errors -DISSAME
 
 #include <iostream>
 
@@ -6,10 +10,13 @@ using std::cout;
 using std::endl;
 
 #if defined(STRUCT)
+// #include "struct_approach.hpp"
 #include "struct_approach_2.hpp"
 #elif defined(MPL_STRUCT)
+// #include "mpl_approach.hpp"
 #include "hana_approach.hpp"
 #elif defined(FUNC)
+// #include "func_approach.hpp"
 #include "new_func_approach.hpp"
 #elif defined(NOEXCEPT)
 #include "except_approach.hpp"
