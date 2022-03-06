@@ -10,20 +10,18 @@ using std::thread;
 struct User;
 
 struct Resource {
-  atomic<User *> owner {nullptr};
-  void use() {
-    cout << "used!" << endl;
-  }
+  atomic<User *> owner{nullptr};
+  void use() { cout << "used!" << endl; }
 };
 
 struct User {
-  atomic<bool> done {false};
+  atomic<bool> done{false};
   void useItPolitely(Resource &res, User &other) {
     while (!done) {
       // if no owner, take resource
       if (res.owner == nullptr)
         res.owner = this;
-      
+
       // if owner not me, wait
       if (res.owner != this) {
         std::this_thread::yield();
@@ -36,8 +34,8 @@ struct User {
         res.owner = nullptr;
         continue;
       }
-#endif      
-      
+#endif
+
       res.use();
       res.owner = nullptr;
       done = true;
@@ -45,13 +43,12 @@ struct User {
   }
 };
 
-int main ()
-{
+int main() {
   Resource common;
   User fst, snd;
   common.owner = &fst;
   thread t1{[&]() mutable { fst.useItPolitely(common, snd); }};
   thread t2{[&]() mutable { snd.useItPolitely(common, fst); }};
-  t1.join(); t2.join();
+  t1.join();
+  t2.join();
 }
-

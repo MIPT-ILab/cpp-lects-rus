@@ -7,19 +7,18 @@
 
 #include "lock_queue.hpp"
 
-using std::chrono::duration_cast;
-using std::chrono::high_resolution_clock;
-using std::chrono::milliseconds;
-using std::chrono::seconds;
 using std::cout;
 using std::endl;
 using std::make_unique;
 using std::move;
-using std::this_thread::sleep_for;
 using std::thread;
 using std::unique_ptr;
 using std::vector;
-
+using std::chrono::duration_cast;
+using std::chrono::high_resolution_clock;
+using std::chrono::milliseconds;
+using std::chrono::seconds;
+using std::this_thread::sleep_for;
 
 lock_queue<unique_ptr<int>> q;
 
@@ -30,7 +29,7 @@ void producer(int ntasks, int task_producing_msec) {
     sleep_for(milliseconds(task_producing_msec));
     q.push(move(task));
   }
-  
+
 #ifdef SHOW
   cout << "produced " << ntasks << endl;
 #endif
@@ -42,9 +41,9 @@ void producer(int ntasks, int task_producing_msec) {
 // consumer: performing tasks
 void consumer(int num, int task_consuming_msec) {
   unique_ptr<int> my_task = nullptr;
-  for(;;) {
+  for (;;) {
     bool exists = q.pop(my_task);
-    
+
     if (exists && (my_task == nullptr)) {
       q.push(nullptr);
       break;
@@ -63,8 +62,7 @@ constexpr int NTASKS = 100;
 constexpr int TASK_PRODUCING_MSEC = 10;
 constexpr int TASK_CONSUMING_MSEC = 100;
 
-int
-main(int argc, char **argv) {
+int main(int argc, char **argv) {
   auto nthr = NTHR;
   auto ntasks = NTASKS;
   auto task_producing_msec = TASK_PRODUCING_MSEC;
@@ -88,17 +86,15 @@ main(int argc, char **argv) {
 
   auto tstart = high_resolution_clock::now();
 
-  thread p{[ntasks, task_producing_msec]{ 
-    producer(ntasks, task_producing_msec); 
-  }};
-  
+  thread p{
+      [ntasks, task_producing_msec] { producer(ntasks, task_producing_msec); }};
+
   vector<thread> vc;
   for (int i = 0; i < nthr; ++i) {
-    vc.emplace_back([i, task_consuming_msec]{ 
-      consumer(i, task_consuming_msec);
-    });
+    vc.emplace_back(
+        [i, task_consuming_msec] { consumer(i, task_consuming_msec); });
   }
-  
+
   p.join();
   for (int i = 0; i < nthr; ++i)
     vc[i].join();

@@ -9,8 +9,8 @@
 #include <iostream>
 #include <random>
 #include <thread>
-#include <vector>
 #include <utility>
+#include <vector>
 
 using std::accumulate;
 using std::cout;
@@ -24,16 +24,16 @@ unsigned determine_threads(unsigned length) {
   const unsigned long min_per_thread = 25;
   unsigned long max_threads = length / min_per_thread;
   unsigned long hardware_conc = std::thread::hardware_concurrency();
-//  cout << "max required: " << max_threads << endl;
-//  cout << "hw concurrency: " << hardware_conc << endl;
+  //  cout << "max required: " << max_threads << endl;
+  //  cout << "hw concurrency: " << hardware_conc << endl;
   return std::min(hardware_conc != 0 ? hardware_conc : 2, max_threads);
 }
 
 template <typename Iterator, typename T>
-T parallel_accumulate(Iterator first, Iterator last, T init)
-{
+T parallel_accumulate(Iterator first, Iterator last, T init) {
   long length = distance(first, last);
-  if (0 == length) return init;
+  if (0 == length)
+    return init;
   const unsigned nthreads = determine_threads(length);
   long bsize = length / nthreads;
 
@@ -48,7 +48,7 @@ T parallel_accumulate(Iterator first, Iterator last, T init)
   for (; length >= bsize * (tidx + 1); first += bsize, tidx += 1) {
     packaged_task<T(Iterator, Iterator)> task{accumulate_block};
     results[tidx] = task.get_future();
-    thread t {move(task), first, first + bsize};
+    thread t{move(task), first, first + bsize};
     t.detach();
   }
 
@@ -67,12 +67,9 @@ T parallel_accumulate(Iterator first, Iterator last, T init)
   return result;
 }
 
-template <typename TimeT = std::chrono::microseconds>
-struct measure
-{
+template <typename TimeT = std::chrono::microseconds> struct measure {
   template <typename F, typename... Args>
-  static typename TimeT::rep execution(F func, Args&&... args)
-  {
+  static typename TimeT::rep execution(F func, Args &&... args) {
     using namespace std::chrono;
     auto start = system_clock::now();
     func(std::forward<Args>(args)...);
@@ -81,8 +78,7 @@ struct measure
   }
 };
 
-int
-main () {
+int main() {
   constexpr unsigned COUNT = 200000000;
   std::vector<unsigned> v(COUNT);
 
@@ -95,23 +91,20 @@ main () {
   unsigned sacc, spred, spar;
   cout << "starting ... " << '\n';
 
-  cout << "std::accumulate\t"
-       << measure<>::execution([&]{sacc = accumulate(v.begin(), v.end(), 0u);})
-       << endl;
+  cout << "std::accumulate\t" << measure<>::execution([&] {
+    sacc = accumulate(v.begin(), v.end(), 0u);
+  }) << endl;
 
 #ifdef TRYPAR
-  cout << "std::parallel::reduce\t"
-       << measure<>::execution([&]{
-            spred = std::experimental::parallel::reduce(std::experimental::parallel::par, 
-                                                        v.begin(), v.end());
-          })
-       << endl;
+  cout << "std::parallel::reduce\t" << measure<>::execution([&] {
+    spred = std::experimental::parallel::reduce(
+        std::experimental::parallel::par, v.begin(), v.end());
+  }) << endl;
 #endif
 
-  cout << "parallel\t"
-       << measure<>::execution([&]{spar = parallel_accumulate(v.begin(), v.end(), 0u);})
-       << endl;
+  cout << "parallel\t" << measure<>::execution([&] {
+    spar = parallel_accumulate(v.begin(), v.end(), 0u);
+  }) << endl;
 
   cout << sacc << " == " << spar << endl;
 }
-

@@ -35,7 +35,7 @@ public:
   }
 
   R operator()(Args &&... args) && {
-    R ret = invoke(ptr.get(), std::forward<Args>(args)...);    
+    R ret = invoke(ptr.get(), std::forward<Args>(args)...);
     clear();
     return std::move(ret);
   }
@@ -53,8 +53,7 @@ public:
 // otherwise do what it shall and return 0
 using task_t = fire_once<int()>;
 
-template <typename F, typename... Args>
-auto create_task(F f, Args &&... args) {
+template <typename F, typename... Args> auto create_task(F f, Args &&... args) {
   std::packaged_task<std::remove_pointer_t<F>> tsk{f};
   auto fut = tsk.get_future();
   task_t t{[ct = std::move(tsk),
@@ -90,44 +89,53 @@ bool safe_empty() {
 
 void consumer_thread_func() {
   try {
-  for (;;) {
-    if (safe_empty()) {
-      std::this_thread::yield();
-      continue;
+    for (;;) {
+      if (safe_empty()) {
+        std::this_thread::yield();
+        continue;
+      }
+      task_t cur = safe_pop();
+      int res = std::move(cur)();
+      if (res == -1) {
+        task_t sentinel{[] { return -1; }};
+        safe_push(std::move(sentinel));
+        break;
+      }
     }
-    task_t cur = safe_pop();
-    int res = std::move(cur)();
-    if (res == -1) {
-      task_t sentinel{[] { return -1; }};
-      safe_push(std::move(sentinel));
-      break;
-    }
-  }
-  }
-  catch(std::exception& e) {
+  } catch (std::exception &e) {
     std::cout << "\n" << e.what() << "\n";
     std::terminate();
-  }
-  catch(...) {
+  } catch (...) {
     std::cout << "\nSomething wrong in thread function\n";
     std::terminate();
-  }  
+  }
 }
 
-int fn1(int x, int y, int z) { std::lock_guard<std::mutex> lk{cout_mutex}; std::cout << "a"; return x + y + z; }
+int fn1(int x, int y, int z) {
+  std::lock_guard<std::mutex> lk{cout_mutex};
+  std::cout << "a";
+  return x + y + z;
+}
 
-double fn2(std::vector<int> v) { std::lock_guard<std::mutex> lk{cout_mutex}; std::cout << "b"; return v.size() + 0.5; }
+double fn2(std::vector<int> v) {
+  std::lock_guard<std::mutex> lk{cout_mutex};
+  std::cout << "b";
+  return v.size() + 0.5;
+}
 
-void fn3() { std::lock_guard<std::mutex> lk{cout_mutex}; std::cout << "c";}
+void fn3() {
+  std::lock_guard<std::mutex> lk{cout_mutex};
+  std::cout << "c";
+}
 
 void test_queue(int ntasks) {
   std::future<int> first_future;
-  std::future<double> second_future;  
+  std::future<double> second_future;
 
   for (int jdx = 0; jdx < ntasks; ++jdx) {
     switch (jdx % 3) {
     case 0: {
-      auto &&[t, f] = create_task(fn1, 1, 2, 3);      
+      auto &&[t, f] = create_task(fn1, 1, 2, 3);
       safe_push(std::move(t));
       first_future = std::move(f);
       break;
@@ -141,10 +149,10 @@ void test_queue(int ntasks) {
     }
     case 2: {
       auto &&[t, f] = create_task(fn3);
-      #if defined(IMPLY_ORDER)
+#if defined(IMPLY_ORDER)
       first_future.get();
       second_future.get();
-      #endif      
+#endif
       safe_push(std::move(t));
       break;
     }
@@ -164,9 +172,9 @@ void myhandler() {
 int main() {
   int nthreads = 3;
   int ntasks = 20;
-  
+
   std::set_terminate(myhandler);
-  
+
   std::vector<std::thread> consumers;
   for (int i = 0; i < nthreads; ++i)
     consumers.emplace_back(consumer_thread_func);
@@ -176,14 +184,12 @@ int main() {
 
     for (int i = 0; i < nthreads; ++i)
       consumers[i].join();
-  
+
     std::cout << "\nJoined\n";
     return 0;
-  }
-  catch(std::exception& e) {
+  } catch (std::exception &e) {
     std::cout << "\n" << e.what() << "\n";
-  }
-  catch(...) {
+  } catch (...) {
     std::cout << "\nSomething wrong\n";
   }
 

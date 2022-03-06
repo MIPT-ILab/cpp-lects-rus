@@ -7,10 +7,6 @@
 #include <utility>
 #include <vector>
 
-using std::chrono::duration_cast;
-using std::chrono::high_resolution_clock;
-using std::chrono::milliseconds;
-using std::chrono::seconds;
 using std::condition_variable;
 using std::cout;
 using std::endl;
@@ -19,11 +15,15 @@ using std::make_unique;
 using std::move;
 using std::mutex;
 using std::queue;
-using std::this_thread::sleep_for;
 using std::thread;
 using std::unique_lock;
 using std::unique_ptr;
 using std::vector;
+using std::chrono::duration_cast;
+using std::chrono::high_resolution_clock;
+using std::chrono::milliseconds;
+using std::chrono::seconds;
+using std::this_thread::sleep_for;
 
 queue<int> q;
 mutex mut;
@@ -34,16 +34,16 @@ void producer(int ntasks, int task_producing_msec) {
   for (int i = 0; i < ntasks; ++i) {
     auto task = i;
     sleep_for(milliseconds(task_producing_msec));
-    
+
     // critical section
     {
       lock_guard<mutex> lk{mut};
       q.push(move(task));
     }
-    
+
     data_cond.notify_one();
   }
-  
+
   // -1 task to notify consumers to shutdown
   {
     lock_guard<mutex> lk{mut};
@@ -55,11 +55,11 @@ void producer(int ntasks, int task_producing_msec) {
 // consumer: performing tasks
 void consumer(int num, int task_consuming_msec) {
   int my_task = -1;
-  for(;;) {
+  for (;;) {
     // critical section
     {
       unique_lock<mutex> lk{mut};
-      data_cond.wait(lk, []{ return !q.empty(); });
+      data_cond.wait(lk, [] { return !q.empty(); });
       my_task = move(q.front());
       if (my_task == -1)
         break;
@@ -77,8 +77,7 @@ constexpr int TASK_CONSUMING_MSEC = 100;
 constexpr int NTHR_START = 2;
 constexpr int NTHR_FIN = 20;
 
-int
-main(int argc, char **argv) {
+int main(int argc, char **argv) {
   auto ntasks = NTASKS;
   auto task_producing_msec = TASK_PRODUCING_MSEC;
   auto task_consuming_msec = TASK_CONSUMING_MSEC;
@@ -96,17 +95,16 @@ main(int argc, char **argv) {
 
     auto tstart = high_resolution_clock::now();
 
-    thread p{[ntasks, task_producing_msec]{ 
-      producer(ntasks, task_producing_msec); 
+    thread p{[ntasks, task_producing_msec] {
+      producer(ntasks, task_producing_msec);
     }};
-    
+
     vector<thread> vc;
     for (int i = 0; i < nthr; ++i) {
-      vc.emplace_back([i, task_consuming_msec]{ 
-        consumer(i, task_consuming_msec);
-      });
+      vc.emplace_back(
+          [i, task_consuming_msec] { consumer(i, task_consuming_msec); });
     }
-    
+
     p.join();
     for (int i = 0; i < nthr; ++i)
       vc[i].join();
@@ -115,7 +113,7 @@ main(int argc, char **argv) {
 
     queue<int>().swap(q);
 
-    cout << nthr << " " << 
-            duration_cast<milliseconds>(tfin - tstart).count() << endl;
+    cout << nthr << " " << duration_cast<milliseconds>(tfin - tstart).count()
+         << endl;
   }
 }

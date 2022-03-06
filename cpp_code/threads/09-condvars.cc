@@ -7,7 +7,7 @@ using std::thread;
 using std::unique_lock;
 
 std::mutex gmut;
-int counter {0};
+int counter{0};
 std::condition_variable data_cond;
 
 constexpr int MAXCNT = 100;
@@ -19,7 +19,7 @@ void processing() {
 #endif
   {
     std::unique_lock<std::mutex> lk{gmut};
-    data_cond.wait(lk, []{ return counter > 0;});
+    data_cond.wait(lk, [] { return counter > 0; });
     // here lock for gmut obtained
     c = counter;
   }
@@ -30,17 +30,16 @@ void preparation() {
   {
     std::lock_guard<std::mutex> lk{gmut};
     // here lock for gmut obtained
-    counter += 1;      
+    counter += 1;
     data_cond.notify_one();
-  }    
+  }
   std::cout << "+";
 }
 
-int
-main() {
-  std::thread t1 {processing};
-  std::thread t2 {processing};
-  std::thread t3 {preparation};
+int main() {
+  std::thread t1{processing};
+  std::thread t2{processing};
+  std::thread t3{preparation};
   t1.join();
   t2.join();
   t3.join();

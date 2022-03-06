@@ -16,17 +16,14 @@ struct resource {
 resource *resptr;
 std::once_flag resflag;
 
-void init_resource() {
-  resptr = new resource();
-}
+void init_resource() { resptr = new resource(); }
 
 void foo() {
   std::call_once(resflag, init_resource);
   resptr->use();
 }
 
-int
-main() {
+int main() {
   std::thread t1{foo};
   std::thread t2{foo};
   std::thread t3{foo};
@@ -36,7 +33,6 @@ main() {
   t2.join();
   t3.join();
   t4.join();
-  
+
   std::cout << "\n";
 }
-

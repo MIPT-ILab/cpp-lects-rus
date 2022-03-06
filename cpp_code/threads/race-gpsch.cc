@@ -7,26 +7,23 @@ using std::thread;
 
 int x = 0;
 
-void __attribute__((noinline)) use(int c) {
-  asm("");
-}
+void __attribute__((noinline)) use(int c) { asm(""); }
 
-void race() {  
+void race() {
   // going up
-  for(int i = 0; i < 1000000; ++i) {
+  for (int i = 0; i < 1000000; ++i) {
     x += 1;
     use(x);
   }
 
   // going down
-  for(int i = 0; i < 1000000; ++i) {
+  for (int i = 0; i < 1000000; ++i) {
     x -= 1;
     use(x);
   }
 }
 
-int
-main() {
+int main() {
   for (int i = 0; i < 500; ++i) {
     x = 0;
     thread t1{race};
@@ -36,4 +33,3 @@ main() {
     cout << i << "\t" << ((x + 1000000) % 6075) << endl;
   }
 }
-

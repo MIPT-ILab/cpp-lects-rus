@@ -1,14 +1,10 @@
-#include <thread>
 #include <iostream>
+#include <thread>
 
-using std::cout;
-using std::endl;
-using std::thread;
-
-int main () {
-  cout << "Parent id: " << std::this_thread::get_id() << endl;
-  thread t([](){ cout << "Spawned id: " << std::this_thread::get_id() << endl; });
-  t.join();
-  return 0;
+int main() {
+  std::cout << "Parent id: " << std::this_thread::get_id() << std::endl;
+  std::thread t([]() {
+    std::cout << "Spawned id: " << std::this_thread::get_id() << std::endl;
+  });
+  t.join();  
 }
-

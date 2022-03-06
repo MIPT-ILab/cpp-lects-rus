@@ -10,23 +10,23 @@ using std::cout;
 using std::endl;
 using std::lock_guard;
 using std::mutex;
+using std::pair;
 using std::thread;
 using std::try_lock;
-using std::pair;
 
 int overall_count = 0;
 array<int, 2> counter = {0, 0};
 array<mutex, 2> mut;
 mutex mcout;
 
-void increment_loop (int idx, const char *desc) {
+void increment_loop(int idx, const char *desc) {
   for (int i = 0; i < 10; ++i) {
     {
-      lock_guard<mutex> lock {mut[idx]};
+      lock_guard<mutex> lock{mut[idx]};
       ++counter[idx];
 #if 1
       {
-        lock_guard<mutex> lcout {mcout};
+        lock_guard<mutex> lcout{mcout};
         cout << desc << ": " << counter[idx] << endl;
       }
 #endif
@@ -35,15 +35,15 @@ void increment_loop (int idx, const char *desc) {
   }
 }
 
-void update_loop () {
+void update_loop() {
   while (overall_count < 20) {
-    int result = try_lock(mut[0], mut[1]); 
+    int result = try_lock(mut[0], mut[1]);
     if (result == -1) {
-      lock_guard<mutex> lock1 {mut[0], std::adopt_lock};
-      lock_guard<mutex> lock2 {mut[1], std::adopt_lock};
+      lock_guard<mutex> lock1{mut[0], std::adopt_lock};
+      lock_guard<mutex> lock2{mut[1], std::adopt_lock};
       overall_count = counter[0] + counter[1];
       {
-        lock_guard<mutex> lcout {mcout};
+        lock_guard<mutex> lcout{mcout};
         cout << "overall: " << overall_count << endl;
       }
     }
@@ -51,14 +51,12 @@ void update_loop () {
   }
 }
 
-int
-main () {
-  thread incfoo {increment_loop, 0, "foo"};
-  thread incbar {increment_loop, 1, "bar"};
-  thread updall {update_loop};
+int main() {
+  thread incfoo{increment_loop, 0, "foo"};
+  thread incbar{increment_loop, 1, "bar"};
+  thread updall{update_loop};
 
   incfoo.join();
   incbar.join();
   updall.join();
 }
-

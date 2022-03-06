@@ -7,18 +7,18 @@
 
 #include "sptr-stack.hpp"
 
-using std::chrono::duration_cast;
-using std::chrono::high_resolution_clock;
-using std::chrono::milliseconds;
-using std::chrono::seconds;
 using std::cout;
 using std::endl;
 using std::make_unique;
 using std::move;
-using std::this_thread::sleep_for;
 using std::thread;
 using std::unique_ptr;
 using std::vector;
+using std::chrono::duration_cast;
+using std::chrono::high_resolution_clock;
+using std::chrono::milliseconds;
+using std::chrono::seconds;
+using std::this_thread::sleep_for;
 
 slist_t<unique_ptr<int>> s;
 
@@ -27,7 +27,7 @@ void producer(int num, int ntasks) {
     s.push_front(make_unique<int>(i));
 }
 
-void consumer(int num, int ntasks) {  
+void consumer(int num, int ntasks) {
   for (int i = 0; i < ntasks; ++i)
     s.pop_front();
 }
@@ -37,8 +37,7 @@ constexpr int NTHR = 10;
 // almost no chances with 1000000
 constexpr int NTASKS = 10000;
 
-int
-main(int argc, char **argv) {
+int main(int argc, char **argv) {
   auto nthr = NTHR;
   auto ntasks = NTASKS;
 
@@ -52,16 +51,12 @@ main(int argc, char **argv) {
 
   vector<thread> vp;
   for (int i = 0; i < nthr; ++i) {
-    vp.emplace_back([i, ntasks]{ 
-      producer(i, ntasks);
-    });
+    vp.emplace_back([i, ntasks] { producer(i, ntasks); });
   }
-  
+
   vector<thread> vc;
   for (int i = 0; i < nthr; ++i) {
-    vc.emplace_back([i, ntasks]{ 
-      consumer(i, ntasks);
-    });
+    vc.emplace_back([i, ntasks] { consumer(i, ntasks); });
   }
 
   for (int i = 0; i < nthr; ++i) {
@@ -73,4 +68,3 @@ main(int argc, char **argv) {
 
   cout << duration_cast<milliseconds>(tfin - tstart).count() << endl;
 }
-

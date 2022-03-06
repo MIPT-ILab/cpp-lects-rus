@@ -8,64 +8,59 @@
 #include <vector>
 
 using std::atomic;
-using std::chrono::duration_cast;
-using std::chrono::high_resolution_clock;
-using std::chrono::milliseconds;
-using std::chrono::seconds;
 using std::cout;
 using std::endl;
 using std::make_unique;
 using std::memory_order_acquire;
-using std::memory_order_release;
 using std::memory_order_relaxed;
+using std::memory_order_release;
 using std::move;
-using std::this_thread::sleep_for;
 using std::thread;
 using std::unique_ptr;
 using std::vector;
+using std::chrono::duration_cast;
+using std::chrono::high_resolution_clock;
+using std::chrono::milliseconds;
+using std::chrono::seconds;
+using std::this_thread::sleep_for;
 
 // http://www.1024cores.net/home/lock-free-algorithms/queues/bounded-mpmc-queue
-template<typename T>
-class mpmc_bounded_queue
-{
+template <typename T> class mpmc_bounded_queue {
 public:
   mpmc_bounded_queue(size_t bufsize)
-    : buffer_(new cell_t [bufsize]), buffer_mask_(bufsize - 1) {
+      : buffer_(new cell_t[bufsize]), buffer_mask_(bufsize - 1) {
 
     // assume buffer is 2-aligned
     assert((buffer_size >= 2) && ((buffer_size & (buffer_size - 1)) == 0));
 
     // fill sequence
     for (size_t i = 0; i != buffer_size; i += 1)
-        buffer_[i].sequence_.store(i, memory_order_relaxed);
+      buffer_[i].sequence_.store(i, memory_order_relaxed);
 
     // start enqueue and dequeue with 0
     enqueue_pos_.store(0, memory_order_relaxed);
     dequeue_pos_.store(0, memory_order_relaxed);
   }
 
-  ~mpmc_bounded_queue() {
-    delete [] buffer_;
-  }
+  ~mpmc_bounded_queue() { delete[] buffer_; }
 
   // we assume that push might not be sucessfull
   bool push(T data) {
-    cell_t* cell;
+    cell_t *cell;
     size_t pos = enqueue_pos_.load(memory_order_relaxed);
     for (;;) {
       cell = &buffer_[pos & buffer_mask_];
       size_t seq = cell->sequence_.load(memory_order_acquire);
       intptr_t dif = (intptr_t)seq - (intptr_t)pos;
 
-      // we are guessed enqueue_pos_ => we are done 
-      if ((dif == 0) && 
-          (enqueue_pos_.compare_exchange_weak(
-               pos, pos + 1, memory_order_relaxed)))
+      // we are guessed enqueue_pos_ => we are done
+      if ((dif == 0) && (enqueue_pos_.compare_exchange_weak(
+                            pos, pos + 1, memory_order_relaxed)))
         break;
-      
+
       if (dif < 0)
         return false;
-      
+
       pos = enqueue_pos_.load(memory_order_relaxed);
     }
 
@@ -75,16 +70,17 @@ public:
   }
 
   // assume nothrowing move-ctor
-  bool pop(T&& data) {    
-    cell_t* cell;
+  bool pop(T &&data) {
+    cell_t *cell;
     size_t pos = dequeue_pos_.load(std::memory_order_relaxed);
-  
+
     for (;;) {
       cell = &buffer_[pos & buffer_mask_];
       size_t seq = cell->sequence_.load(std::memory_order_acquire);
       intptr_t dif = (intptr_t)seq - (intptr_t)(pos + 1);
-      if ((dif == 0) && (dequeue_pos_.compare_exchange_weak(pos, pos + 1, std::memory_order_relaxed)))
-        break;      
+      if ((dif == 0) && (dequeue_pos_.compare_exchange_weak(
+                            pos, pos + 1, std::memory_order_relaxed)))
+        break;
       else if (dif < 0)
         return false;
       else
@@ -103,13 +99,13 @@ private:
     T data_;
   };
 
-  cell_t* const buffer_;
-  size_t const  buffer_mask_;
+  cell_t *const buffer_;
+  size_t const buffer_mask_;
   std::atomic<size_t> enqueue_pos_;
   std::atomic<size_t> dequeue_pos_;
 
-  mpmc_bounded_queue(mpmc_bounded_queue const&);
-  void operator = (mpmc_bounded_queue const&);
+  mpmc_bounded_queue(mpmc_bounded_queue const &);
+  void operator=(mpmc_bounded_queue const &);
 };
 
 mpmc_bounded_queue<unique_ptr<int>> q(128);
@@ -124,7 +120,7 @@ void producer(int ntasks, int task_producing_msec) {
     }
     sleep_for(milliseconds(task_producing_msec));
   }
-  
+
   // nullptr task to notify consumers to shutdown
   q.push(nullptr);
 }
@@ -132,11 +128,11 @@ void producer(int ntasks, int task_producing_msec) {
 // consumer: performing tasks
 void consumer(int num, int task_consuming_msec) {
   unique_ptr<int> my_task = nullptr;
-  for(;;) {
+  for (;;) {
     bool succ = q.pop(move(my_task));
     if (!succ)
       continue;
-    
+
     if (my_task == nullptr) {
       q.push(nullptr);
       break;
@@ -152,8 +148,7 @@ constexpr int NTASKS = 100;
 constexpr int TASK_PRODUCING_MSEC = 10;
 constexpr int TASK_CONSUMING_MSEC = 100;
 
-int
-main(int argc, char **argv) {
+int main(int argc, char **argv) {
   auto nthr = NTHR;
   auto ntasks = NTASKS;
   auto task_producing_msec = TASK_PRODUCING_MSEC;
@@ -177,17 +172,15 @@ main(int argc, char **argv) {
 
   auto tstart = high_resolution_clock::now();
 
-  thread p{[ntasks, task_producing_msec]{ 
-    producer(ntasks, task_producing_msec); 
-  }};
-  
+  thread p{
+      [ntasks, task_producing_msec] { producer(ntasks, task_producing_msec); }};
+
   vector<thread> vc;
   for (int i = 0; i < nthr; ++i) {
-    vc.emplace_back([i, task_consuming_msec]{ 
-      consumer(i, task_consuming_msec);
-    });
+    vc.emplace_back(
+        [i, task_consuming_msec] { consumer(i, task_consuming_msec); });
   }
-  
+
   p.join();
   for (int i = 0; i < nthr; ++i)
     vc[i].join();

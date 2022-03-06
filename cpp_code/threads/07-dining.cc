@@ -30,11 +30,10 @@ class Philosopher {
   mutex &left_, &right_;
 
 public:
-  Philosopher(int num, mutex &left, mutex &right) : 
-    num_(num), left_(left), right_(right) {
-  }
+  Philosopher(int num, mutex &left, mutex &right)
+      : num_(num), left_(left), right_(right) {}
 
-  void msgout() const {  
+  void msgout() const {
     lock_guard<mutex> lk{mstdout};
     cout << num_ << " eating" << endl;
   }
@@ -44,7 +43,7 @@ public:
     mylock(left_, right_);
 
     // at this point forks are taken
-    msgout();    
+    msgout();
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     left_.unlock();
     right_.unlock();
@@ -60,8 +59,7 @@ public:
 
 constexpr int numdiners = 6;
 
-int
-main () {
+int main() {
   vector<mutex> forks(numdiners);
   vector<Philosopher> diners;
   for (int i = 0; i < numdiners; ++i) {
@@ -73,6 +71,6 @@ main () {
   for (int i = 0; i < numdiners; ++i) {
     threads[i] = thread(&Philosopher::dine, diners[i]);
   }
-  for (auto& t : threads)
+  for (auto &t : threads)
     t.join();
 }

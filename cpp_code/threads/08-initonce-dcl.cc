@@ -18,7 +18,7 @@ std::mutex resmut;
 
 void foo() {
   if (!resptr) {
-   std::lock_guard<std::mutex> lk{resmut};
+    std::lock_guard<std::mutex> lk{resmut};
     {
       if (!resptr)
         resptr = new resource();
@@ -27,8 +27,7 @@ void foo() {
   resptr->use();
 }
 
-int
-main() {
+int main() {
   std::thread t1{foo};
   std::thread t2{foo};
   std::thread t3{foo};
@@ -41,4 +40,3 @@ main() {
 
   std::cout << "\n";
 }
-

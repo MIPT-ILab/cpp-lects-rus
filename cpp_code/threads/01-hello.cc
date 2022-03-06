@@ -1,12 +1,12 @@
-#include <thread>
 #include <iostream>
+#include <thread>
 
 using std::cout;
 using std::endl;
 using std::thread;
 
-int main () {
-  thread t([]{ cout << "Hello, world!" << endl; });
+int main() {
+  thread t([] { cout << "Hello, world!" << endl; });
 #if defined(JOIN)
   t.join();
 #elif defined(DETACH)
@@ -16,4 +16,3 @@ int main () {
 #endif
   return 0;
 }
-
