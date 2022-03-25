@@ -7,37 +7,22 @@
 #include <utility>
 #include <vector>
 
-using std::condition_variable;
-using std::cout;
-using std::endl;
-using std::lock_guard;
-using std::make_unique;
-using std::move;
-using std::mutex;
-using std::queue;
-using std::thread;
-using std::unique_lock;
-using std::unique_ptr;
-using std::vector;
-using std::chrono::duration_cast;
-using std::chrono::high_resolution_clock;
-using std::chrono::milliseconds;
-using std::chrono::seconds;
-using std::this_thread::sleep_for;
+namespace chr = std::chrono;
+namespace tth = std::this_thread;
 
-queue<unique_ptr<int>> q;
-mutex mut;
-condition_variable data_cond;
+std::queue<std::unique_ptr<int>> q;
+std::mutex mut;
+std::condition_variable data_cond;
 
 // producer: assigns tasks
 void producer(int ntasks, int task_producing_msec) {
   for (int i = 0; i < ntasks; ++i) {
-    auto task = make_unique<int>(i);
-    sleep_for(milliseconds(task_producing_msec));
+    auto task = std::make_unique<int>(i);
+    tth::sleep_for(chr::milliseconds(task_producing_msec));
 
     // critical section
     {
-      lock_guard<mutex> lk{mut};
+      std::lock_guard<std::mutex> lk{mut};
       q.push(move(task));
     }
 
@@ -45,12 +30,12 @@ void producer(int ntasks, int task_producing_msec) {
   }
 
 #ifdef SHOW
-  cout << "produced " << ntasks << endl;
+  std::cout << "produced " << ntasks << std::endl;
 #endif
 
   // nullptr task to notify consumers to shutdown
   {
-    lock_guard<mutex> lk{mut};
+    std::lock_guard<std::mutex> lk{mut};
     q.push(nullptr);
   }
   data_cond.notify_all();
@@ -58,21 +43,21 @@ void producer(int ntasks, int task_producing_msec) {
 
 // consumer: performing tasks
 void consumer(int num, int task_consuming_msec) {
-  unique_ptr<int> my_task = nullptr;
+  std::unique_ptr<int> my_task = nullptr;
   for (;;) {
     // critical section
     {
-      unique_lock<mutex> lk{mut};
+      std::unique_lock<std::mutex> lk{mut};
       data_cond.wait(lk, [] { return !q.empty(); });
-      my_task = move(q.front());
+      my_task = std::move(q.front());
       if (my_task == nullptr)
         break;
       q.pop();
     }
 
-    sleep_for(milliseconds(task_consuming_msec));
+    tth::sleep_for(chr::milliseconds(task_consuming_msec));
 #ifdef SHOW
-    cout << "consumed " << task_consuming_msec << " spent" << endl;
+    std::cout << "consumed " << task_consuming_msec << " spent" << std::endl;
 #endif
   }
 }
@@ -102,15 +87,15 @@ int main(int argc, char **argv) {
     task_consuming_msec = std::stoi(argv[4]);
 
 #ifdef SHOW
-  cout << "NTHR = " << nthr << endl;
+  std::cout << "NTHR = " << std::nthr << endl;
 #endif
 
-  auto tstart = high_resolution_clock::now();
+  auto tstart = chr::high_resolution_clock::now();
 
-  thread p{
+  std::thread p{
       [ntasks, task_producing_msec] { producer(ntasks, task_producing_msec); }};
 
-  vector<thread> vc;
+  std::vector<std::thread> vc;
   for (int i = 0; i < nthr; ++i) {
     vc.emplace_back(
         [i, task_consuming_msec] { consumer(i, task_consuming_msec); });
@@ -120,9 +105,10 @@ int main(int argc, char **argv) {
   for (int i = 0; i < nthr; ++i)
     vc[i].join();
 
-  auto tfin = high_resolution_clock::now();
+  auto tfin = chr::high_resolution_clock::now();
 
-  queue<unique_ptr<int>>().swap(q);
+  std::queue<std::unique_ptr<int>>().swap(q);
 
-  cout << duration_cast<milliseconds>(tfin - tstart).count() << endl;
+  std::cout << chr::duration_cast<chr::milliseconds>(tfin - tstart).count()
+            << std::endl;
 }

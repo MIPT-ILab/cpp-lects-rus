@@ -8,20 +8,12 @@
 
 #include "heavy.hpp"
 
-using std::experimental::apply;
-using std::cout;
-using std::endl;
-using std::forward;
-using std::make_tuple;
-using std::move;
-
 template <typename ... T>
-void print_all (T&& ... args) { 
-  (cout << ... << forward<T>(args)) << endl; 
+void print_all(T&& ... args) { 
+  (std::cout << ... << std::forward<T>(args)) << std::endl; 
 }
 
-int
-main () {
-  auto t = make_tuple(1, 2.0, 3);
-  apply(print_all<int, double, int>, move(t));
+int main() {
+  auto t = std::make_tuple(1, 2.0, 3);
+  std::apply(print_all<int, double, int>, std::move(t));
 }

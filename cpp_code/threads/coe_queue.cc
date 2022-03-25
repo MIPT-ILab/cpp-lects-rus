@@ -24,7 +24,7 @@ public:
 
   template <typename F> fire_once(F &&f) {
     auto pf = std::make_unique<F>(std::move(f));
-    invoke = +[](void *pf, Args... args) -> R {
+    invoke = +[](void *pf, Args &&... args) -> R {
       F *f = reinterpret_cast<F *>(pf);
       return (*f)(std::forward<Args>(args)...);
     };
@@ -171,7 +171,7 @@ void myhandler() {
 
 int main() {
   int nthreads = 3;
-  int ntasks = 20;
+  int ntasks = 200;
 
   std::set_terminate(myhandler);
 

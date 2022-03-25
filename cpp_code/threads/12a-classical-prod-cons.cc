@@ -9,38 +9,20 @@
 #include <utility>
 #include <vector>
 
-using std::condition_variable;
-using std::cout;
-using std::endl;
-using std::lock_guard;
-using std::make_unique;
-using std::move;
-using std::mutex;
-using std::queue;
-using std::thread;
-using std::unique_lock;
-using std::unique_ptr;
-using std::vector;
-using std::chrono::duration_cast;
-using std::chrono::high_resolution_clock;
-using std::chrono::milliseconds;
-using std::chrono::seconds;
-using std::this_thread::sleep_for;
-
 constexpr int BUFSIZE = 100;
-constexpr int MAXTASKS = 200;
+constexpr int MAXTASKS = 10000000;
 
-vector<int> buffer(BUFSIZE);
+std::vector<int> buffer(BUFSIZE);
 int ncur = 0;
 int nsolved = 0;
-mutex mut;
-condition_variable data_cond_c, data_cond_p;
+std::mutex mut;
+std::condition_variable data_cond_c, data_cond_p;
 
 void producer() {
   for (;;) {
     // critical section
     {
-      unique_lock<mutex> lk{mut};
+      std::unique_lock<std::mutex> lk{mut};
       data_cond_p.wait(
           lk, [] { return ((ncur != BUFSIZE) || (nsolved > MAXTASKS)); });
       if (nsolved > MAXTASKS)
@@ -48,7 +30,7 @@ void producer() {
       buffer[ncur] = nsolved;
       ncur += 1;
 #ifdef SHOW
-      cout << "+";
+      std::cout << "+";
 #endif
     }
     data_cond_c.notify_one();
@@ -60,13 +42,13 @@ void consumer() {
   for (;;) {
     // critical section
     {
-      unique_lock<mutex> lk{mut};
+      std::unique_lock<std::mutex> lk{mut};
       data_cond_c.wait(lk,
                        [] { return ((ncur != 0) || (nsolved > MAXTASKS)); });
       nsolved += 1;
       ncur -= 1;
 #ifdef SHOW
-      cout << "-";
+      std::cout << "-";
 #endif
       if (nsolved > MAXTASKS)
         break;
@@ -77,12 +59,12 @@ void consumer() {
 }
 
 int main() {
-  thread p{producer};
-  thread c{consumer};
+  std::thread p{producer};
+  std::thread c{consumer};
 
 #ifdef SECOND
-  thread p2{producer};
-  thread c2{consumer};
+  std::thread p2{producer};
+  std::thread c2{consumer};
 #endif
 
   p.join();
@@ -92,5 +74,5 @@ int main() {
   p2.join();
   c2.join();
 #endif
-  cout << " ... done" << endl;
+  std::cout << " ... done" << std::endl;
 }

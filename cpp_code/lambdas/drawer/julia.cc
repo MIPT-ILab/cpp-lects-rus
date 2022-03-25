@@ -3,6 +3,9 @@
 // try also -0.7 0.1, -0.7 0.2 and -0.7 0.5
 //          -0.9 0.2 is equally well
 //          0.3 0.7 awesome
+//
+// Alternative Windows build
+// cl /EHsc /O2 /std:c++20 sdlutil.cc julia.cc /Fe:julia /link SDL2.lib shell32.lib
 
 #define DYNAMIC
 

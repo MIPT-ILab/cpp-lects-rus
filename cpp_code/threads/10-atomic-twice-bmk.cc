@@ -6,24 +6,14 @@
 #include <thread>
 #include <vector>
 
-using std::atomic;
-using std::atomic_flag;
-using std::cout;
-using std::endl;
-using std::mutex;
-using std::thread;
-using std::vector;
-using std::chrono::duration_cast;
-using std::chrono::high_resolution_clock;
-using std::chrono::milliseconds;
+namespace chr = std::chrono;
 
 struct Counters {
-  int a;
-  int b;
+  int a, b;
 };
 
 #if defined(ATOMIC)
-atomic<Counters> cnt{{0, 0}};
+std::atomic<Counters> cnt{{0, 0}};
 void threadfunc(int wload) {
   for (;;) {
     Counters cnl, cnn;
@@ -39,11 +29,11 @@ void threadfunc(int wload) {
 }
 #else
 Counters cnt{0, 0};
-mutex m;
+std::mutex m;
 
 void threadfunc(int wload) {
   for (;;) {
-    std::lock_guard<mutex> lk{m};
+    std::lock_guard<std::mutex> lk{m};
     cnt.a += 1;
     cnt.b += 2;
     if (cnt.a + cnt.b >= wload)
@@ -63,24 +53,25 @@ int main(int argc, char **argv) {
   if (argc > 1)
     wload = std::stoi(argv[1]);
 
-#if defined(ATOMIC) && defined(DETERMINE)
-  cout << "LF: " << std::boolalpha << cnt.is_lock_free() << endl;
-  exit(0);
+#if defined(ATOMIC)
+  std::cout << "counter lock free: " << std::boolalpha << cnt.is_lock_free()
+            << std::endl;
 #endif
 
   for (int nthr = THREAD_MIN; nthr <= THREAD_MAX; ++nthr) {
-    auto tstart = high_resolution_clock::now();
+    auto tstart = chr::high_resolution_clock::now();
 
-    vector<thread> threads(nthr);
+    std::vector<std::thread> threads(nthr);
     for (int i = 0; i < nthr; ++i)
-      threads[i] = thread(&threadfunc, wload);
+      threads[i] = std::thread(&threadfunc, wload);
 
     for (int i = 0; i < nthr; ++i)
       threads[i].join();
 
-    auto tfin = high_resolution_clock::now();
-    cout << nthr << " " << duration_cast<milliseconds>(tfin - tstart).count()
-         << endl;
+    auto tfin = chr::high_resolution_clock::now();
+    std::cout << nthr << " "
+              << chr::duration_cast<chr::milliseconds>(tfin - tstart).count()
+              << std::endl;
     cnt = Counters{0, 0};
   }
 }

@@ -6,5 +6,5 @@ int main() {
   std::thread t([]() {
     std::cout << "Spawned id: " << std::this_thread::get_id() << std::endl;
   });
-  t.join();  
+  t.join();
 }

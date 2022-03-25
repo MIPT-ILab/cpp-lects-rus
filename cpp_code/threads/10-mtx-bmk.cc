@@ -6,19 +6,10 @@
 #include <thread>
 #include <vector>
 
-using std::atomic;
-using std::atomic_flag;
-using std::cout;
-using std::endl;
-using std::mutex;
-using std::thread;
-using std::vector;
-using std::chrono::duration_cast;
-using std::chrono::high_resolution_clock;
-using std::chrono::milliseconds;
+namespace chr = std::chrono;
 
 class my_mutex {
-  atomic_flag flag{ATOMIC_FLAG_INIT};
+  std::atomic_flag flag{ATOMIC_FLAG_INIT};
 
 public:
 #if defined(MYMUT1)
@@ -53,7 +44,7 @@ using mtx = std::mutex;
 #endif
 
 #if defined(ATOMIC)
-atomic<int> cnt{0};
+std::atomic<int> cnt{0};
 void threadfunc(int wload) {
   for (;;) {
     cnt += 1;
@@ -78,9 +69,9 @@ void threadfunc(int wload) {
 #endif
 
 // number of tasks
-constexpr int WORKLOAD = 50000000;
+constexpr int WORKLOAD = 40000000;
 constexpr int THREAD_MIN = 1;
-constexpr int THREAD_MAX = 20;
+constexpr int THREAD_MAX = 10;
 
 int main(int argc, char **argv) {
   auto wload = WORKLOAD;
@@ -89,18 +80,19 @@ int main(int argc, char **argv) {
     wload = std::stoi(argv[1]);
 
   for (int nthr = THREAD_MIN; nthr <= THREAD_MAX; ++nthr) {
-    auto tstart = high_resolution_clock::now();
+    auto tstart = chr::high_resolution_clock::now();
 
-    vector<thread> threads(nthr);
+    std::vector<std::thread> threads(nthr);
     for (int i = 0; i < nthr; ++i)
-      threads[i] = thread(&threadfunc, wload);
+      threads[i] = std::thread(&threadfunc, wload);
 
     for (int i = 0; i < nthr; ++i)
       threads[i].join();
 
-    auto tfin = high_resolution_clock::now();
-    cout << nthr << " " << duration_cast<milliseconds>(tfin - tstart).count()
-         << endl;
+    auto tfin = chr::high_resolution_clock::now();
+    std::cout << nthr << " "
+              << chr::duration_cast<chr::milliseconds>(tfin - tstart).count()
+              << std::endl;
     cnt = 0;
   }
 }
