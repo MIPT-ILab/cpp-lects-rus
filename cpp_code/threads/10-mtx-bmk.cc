@@ -21,10 +21,7 @@ public:
 
 #if defined(MYMUT2)
   void lock() {
-    unsigned i = 0;
-    while (flag.test_and_set())
-      if ((i++ % 128) == 0)
-        std::this_thread::yield();
+    while (flag.test_and_set());
   }
 #endif
 

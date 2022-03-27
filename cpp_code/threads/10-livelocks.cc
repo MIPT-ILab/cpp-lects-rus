@@ -47,8 +47,8 @@ int main() {
   Resource common;
   User fst, snd;
   common.owner = &fst;
-  thread t1{[&]() mutable { fst.useItPolitely(common, snd); }};
-  thread t2{[&]() mutable { snd.useItPolitely(common, fst); }};
+  thread t1{[&]() mutable { fst.useItPolitely(common, fst); }};
+  thread t2{[&]() mutable { snd.useItPolitely(common, snd); }};
   t1.join();
   t2.join();
 }

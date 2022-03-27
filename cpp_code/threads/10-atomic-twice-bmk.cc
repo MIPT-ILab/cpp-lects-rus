@@ -17,13 +17,11 @@ std::atomic<Counters> cnt{{0, 0}};
 void threadfunc(int wload) {
   for (;;) {
     Counters cnl, cnn;
+    cnl = cnt.load();
     do {
-      cnl = cnt.load();
       if (cnl.a + cnl.b >= wload)
         return;
-      cnn = cnl;
-      cnn.a += 1;
-      cnn.b += 2;
+      cnn = { cnl.a + 1, cnl.b + 2 };
     } while (!cnt.compare_exchange_weak(cnl, cnn));
   }
 }
@@ -43,7 +41,7 @@ void threadfunc(int wload) {
 #endif
 
 // number of tasks
-constexpr int WORKLOAD = 50000000;
+constexpr int WORKLOAD = 40000000;
 constexpr int THREAD_MIN = 1;
 constexpr int THREAD_MAX = 20;
 
@@ -54,8 +52,8 @@ int main(int argc, char **argv) {
     wload = std::stoi(argv[1]);
 
 #if defined(ATOMIC)
-  std::cout << "counter lock free: " << std::boolalpha << cnt.is_lock_free()
-            << std::endl;
+  std::cout << "counter lock free: " << std::boolalpha 
+            << cnt.is_lock_free() << std::endl;
 #endif
 
   for (int nthr = THREAD_MIN; nthr <= THREAD_MAX; ++nthr) {

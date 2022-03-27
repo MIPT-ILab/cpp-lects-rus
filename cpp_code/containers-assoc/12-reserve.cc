@@ -1,10 +1,6 @@
 #include <iostream>
 #include <unordered_map>
 
-using std::cout;
-using std::endl;
-using std::unordered_map;
-
 struct Foo {
   float x = 0.0f, y = 0.0f, z = 0.0f;
 };
@@ -14,23 +10,18 @@ auto umap_size(const T& umap) {
   size_t count = 0;
   for (unsigned i = 0; i < umap.bucket_count(); ++i) {
     size_t bucket_size = umap.bucket_size(i);
-    if (bucket_size == 0) {
-      count++;
-    }
-    else {
-      count += bucket_size;
-    }
+    count += (bucket_size + 1);
   }
   return count;
 }
 
 template <typename T> void
 snapshot(const T& m1, const T& m2) {
-  cout << "#1: size = " << umap_size(m1)
-       << ", bcnt: " << m1.bucket_count() << endl;
-  cout << "#2: size = " << umap_size(m2)
-       << ", bcnt: " << m2.bucket_count() << endl;
-  cout << "---" << endl;
+  std::cout << "#1: size = " << umap_size(m1)
+            << ", bcnt = " << m1.bucket_count() << std::endl;
+  std::cout << "#2: size = " << umap_size(m2)
+            << ", bcnt = " << m2.bucket_count() << std::endl;
+  std::cout << "---" << std::endl;
 }
 
 int
