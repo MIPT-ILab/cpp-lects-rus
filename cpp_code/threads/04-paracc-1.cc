@@ -1,10 +1,8 @@
 #include <algorithm>
 #include <cassert>
 #include <execution>
-#include <functional>
 #include <numeric>
 #include <iostream>
-#include <random>
 #include <thread>
 #include <utility>
 #include <vector>
@@ -67,17 +65,11 @@ template <typename TimeT = std::chrono::microseconds> struct measure {
 };
 
 int main() {
-  constexpr unsigned COUNT = 200000000;
-  constexpr unsigned REP = 1;
-  std::vector<unsigned> v(COUNT);
-
-  // randomising vector contents
-  std::mt19937 mersenne_engine;
-  std::uniform_int_distribution<unsigned> dist(1, 10);
-  auto gen = std::bind(dist, mersenne_engine);
-  std::generate(v.begin(), v.end(), gen);
-
+  constexpr unsigned COUNT = 200000;
+  constexpr unsigned REP = 1000;
   unsigned sacc = 0, spred = 0, spar = 0;
+  std::vector<unsigned> v(COUNT);
+  std::iota(v.begin(), v.end(), 0);  
   std::cout << "starting ... " << '\n';
 
   std::cout << "std::accumulate\t" << measure<>::execution([&] {
@@ -85,17 +77,21 @@ int main() {
       sacc += std::accumulate(v.begin(), v.end(), 0u);
   }) << std::endl;
 
-#ifdef TRYPAR
-  std::cout << "std::parallel::reduce\t" << measure<>::execution([&] {
-    for (int i = 0; i < REP; ++i)
-    spred += std::reduce(std::execution::par, v.begin(), v.end());
-  }) << std::endl;
-#endif
-
   std::cout << "parallel\t" << measure<>::execution([&] {
     for (int i = 0; i < REP; ++i)
       spar += parallel_accumulate(v.begin(), v.end(), 0u);
   }) << std::endl;
 
-  std::cout << sacc << ", " << spar << ", " << spred << std::endl;
+  if (sacc != spar)
+    std::cout << sacc << " != " << spar << std::endl;
+
+#ifdef TRYPAR
+  std::cout << "std::parallel::reduce\t" << measure<>::execution([&] {
+    for (int i = 0; i < REP; ++i)
+    spred += std::reduce(std::execution::par, v.begin(), v.end());
+  }) << std::endl;
+
+  if (sacc != spred)
+    std::cout << sacc << " != " << spred << std::endl;
+#endif
 }
