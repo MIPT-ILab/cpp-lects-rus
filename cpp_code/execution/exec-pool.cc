@@ -30,9 +30,9 @@ int main() {
   auto sched = pool.get_scheduler();
 
   auto work = ex::when_all(
-    ex::then(ex::schedule(sched), [] { return big_fibmod(10, 1 << 15, 1 << 15); }),
-    ex::then(ex::schedule(sched), [] { return big_fibmod(9, 1 << 15, 1 << 15); }),
-    ex::then(ex::schedule(sched), [] { return big_fibmod(8, 1 << 15, 1 << 15); })
+    ex::then(ex::schedule(sched), [] { return big_fibmod(10, 1 << 15, 1 << 10); }),
+    ex::then(ex::schedule(sched), [] { return big_fibmod(9, 1 << 15, 1 << 10); }),
+    ex::then(ex::schedule(sched), [] { return big_fibmod(8, 1 << 15, 1 << 10); })
   );
 
   auto [a, b, c] = tt::sync_wait(std::move(work)).value();  
