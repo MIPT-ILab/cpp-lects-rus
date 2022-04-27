@@ -1,5 +1,15 @@
-// cl -await -EHsc subscribers.cc
-// clang++-9 -std=c++2a -stdlib=libc++ subscribers.cc
+//------------------------------------------------------------------------------
+//
+// Example for subscribers
+//
+// see hellocoro.cc for build instructions
+//
+//------------------------------------------------------------------------------
+//
+// This file is licensed after LGPL v3
+// Look at: https://www.gnu.org/licenses/lgpl-3.0.en.html for details
+//
+//------------------------------------------------------------------------------
 
 #include <chrono>
 #include <iostream>

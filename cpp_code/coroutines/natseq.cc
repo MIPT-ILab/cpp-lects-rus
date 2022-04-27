@@ -3,7 +3,7 @@
 // Example for natural numbers generator
 //
 // > cl -await -EHsc natseq.cc
-// > clang++ -fcoroutines-ts -stdlib=libc++ natseq.cc
+// > clang++ -fcoroutines-ts -std=c++20 -stdlib=libc++ natseq.cc
 // > g++-10 -fcoroutines -std=c++20 natseq.cc
 //
 //------------------------------------------------------------------------------

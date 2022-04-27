@@ -15,13 +15,20 @@
 
 #include "generator.hpp"
 
+template <typename T, typename U> auto zip(T t, U u) {
+  auto itt = t.begin(), itte = t.end();
+  auto itu = u.begin(), itue = u.end();
+  for (; itt != itte && itu != itue; ++itt, ++itu)
+    co_yield std::make_pair(*itt, *itu);
+}
+
 template <typename T> range_gen<T> sequence(T start, T fin, T step) {
   for (T num = start; num < fin; num += step)
     co_yield num;
 }
 
 int main() {
-  for (int i : sequence(5, 20, 3))
-    std::cout << i << " ";
+  for (auto [i, j] : zip(sequence(25, 40, 3), sequence(5, 20, 3)))
+    std::cout << "(" << i << " " << j << ") ";
   std::cout << std::endl;
 }

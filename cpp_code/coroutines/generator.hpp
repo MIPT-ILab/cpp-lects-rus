@@ -33,7 +33,7 @@ template <typename T> struct generator {
     using coro_handle = coro::coroutine_handle<promise_type>;
     auto get_return_object() { return coro_handle::from_promise(*this); }
     auto initial_suspend() { return coro::suspend_always(); }
-    auto final_suspend() { return coro::suspend_always(); }
+    auto final_suspend() noexcept { return coro::suspend_always(); }
     void return_void() {}
     void unhandled_exception() { std::terminate(); }
     auto yield_value(T value) {
@@ -68,14 +68,18 @@ private:
 template <typename T> struct range_gen {
   struct promise_type {
     const T *value = nullptr;
-    promise_type &get_return_object() { return *this; }
+#ifdef BUG
+    auto get_return_object() { return *this; }
+#else
+    auto get_return_object() { return coro_handle::from_promise(*this); }
+#endif
     coro::suspend_always initial_suspend() { return {}; }
-    coro::suspend_always final_suspend() { return {}; }
+    coro::suspend_always final_suspend() noexcept { return {}; }
     void return_void() {}
     void unhandled_exception() { std::terminate(); }
-    auto yield_value(const T &other) {
-      value = std::addressof(other);
-      return coro::suspend_always{};
+    coro::suspend_always yield_value(const T &val) {
+      value = std::addressof(val);
+      return {};
     }
   };
 
@@ -85,48 +89,57 @@ template <typename T> struct range_gen {
     using iterator_category = std::input_iterator_tag;
     using value_type = T;
     using difference_type = ptrdiff_t;
-    using pointer = T const *;
-    using reference = T const &;
+    using pointer = const T *;
+    using reference = const T &;
 
     coro_handle handle;
     iterator(coro_handle h) : handle(h) {}
 
     iterator &operator++() {
       handle.resume();
-
-      if (handle.done()) {
-        promise_type &promise = handle.promise();
+      if (handle.done())
         handle = nullptr;
-        promise.rethrow_if_failed();
-      }
-
       return *this;
     }
 
     T const &operator*() const { return *handle.promise().value; }
-
     T const *operator->() const { return handle.promise().value; }
+    auto operator<=>(const iterator &rhs) const noexcept = default;
   };
 
-  using coro_handle = coro::coroutine_handle<promise_type>;
+  range_gen(promise_type &promise)
+      : handle_(coro_handle::from_promise(promise)) {}
   range_gen(coro_handle h) : handle_(h) {}
-  range_gen(range_gen const &) = delete;
-  range_gen(range_gen &&rhs) : handle_(rhs.handle_) { rhs.handle_ = nullptr; }
+  range_gen(const range_gen &) = delete;
+  range_gen &operator=(const range_gen &other) = delete;
+  range_gen(range_gen &&rhs) : handle_(rhs.handle_) {
+    std::cout << "range_gen(range_gen&& rhs)\n";
+    rhs.handle_ = nullptr;
+  }
+  range_gen &operator=(range_gen &&rhs) {
+    std::cout << "range_gen &operator=(range_gen&& rhs)\n";
+    if (this != &rhs) {
+      handle_ = rhs.handle;
+      rhs.handle = nullptr;
+    }
+    return *this;
+  }
+
   ~range_gen() {
     if (handle_)
       handle_.destroy();
   }
 
   iterator begin() {
-    if (!handle)
-      return nullptr;
-    handle.resume();
-    if (handle.done())
-      return nullptr;
-    return handle;
+    if (!handle_)
+      return iterator{nullptr};
+    handle_.resume();
+    if (handle_.done())
+      return iterator{nullptr};
+    return handle_;
   }
 
-  iterator end() { return nullptr; }
+  iterator end() { return iterator{nullptr}; }
 
 private:
   coro_handle handle_;
@@ -144,7 +157,7 @@ template <typename T> struct rec_generator {
       awaitable(promise_type *childp) : child_(childp) {}
 
       bool await_ready() { return child_ == nullptr; }
-      void await_suspend(std::experimental::coroutine_handle<promise_type>) {}
+      void await_suspend(coro::coroutine_handle<promise_type>) {}
       void await_resume() {}
 
       promise_type *child_;
@@ -156,23 +169,19 @@ template <typename T> struct rec_generator {
     promise_type(promise_type &&) = delete;
 
     auto get_return_object() noexcept { return rec_generator<T>{*this}; }
-    auto initial_suspend() noexcept {
-      return std::experimental::suspend_always{};
-    }
-    auto final_suspend() noexcept {
-      return std::experimental::suspend_always{};
-    }
+    auto initial_suspend() noexcept { return coro::suspend_always{}; }
+    auto final_suspend() noexcept { return coro::suspend_always{}; }
     void unhandled_exception() { std::terminate(); }
     void return_void() noexcept {}
 
     auto yield_value(T &value) noexcept {
       value_ = std::addressof(value);
-      return std::experimental::suspend_always{};
+      return coro::suspend_always{};
     }
 
-    auto yield_value(T &&value) noexcept {
+    coro::suspend_always yield_value(T &&value) noexcept {
       value_ = std::addressof(value);
-      return std::experimental::suspend_always;
+      return {};
     }
 
     auto yield_value(rec_generator &generator) {
@@ -193,17 +202,14 @@ template <typename T> struct rec_generator {
 
     // Don't allow any use of 'co_await' inside the rec_generator coroutine.
     template <typename U>
-    std::experimental::suspend_never await_transform(U &&value) = delete;
+    coro::suspend_never await_transform(U &&value) = delete;
 
     void destroy() noexcept {
-      std::experimental::coroutine_handle<promise_type>::from_promise(*this)
-          .destroy();
+      coro::coroutine_handle<promise_type>::from_promise(*this).destroy();
     }
 
     bool is_complete() noexcept {
-      return std::experimental::coroutine_handle<promise_type>::from_promise(
-                 *this)
-          .done();
+      return coro::coroutine_handle<promise_type>::from_promise(*this).done();
     }
 
     T &value() noexcept {
@@ -226,8 +232,7 @@ template <typename T> struct rec_generator {
 
   private:
     void resume() noexcept {
-      std::experimental::coroutine_handle<promise_type>::from_promise(*this)
-          .resume();
+      coro::coroutine_handle<promise_type>::from_promise(*this).resume();
     }
 
     std::add_pointer_t<T> value_;

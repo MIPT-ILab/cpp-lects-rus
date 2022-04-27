@@ -1,9 +1,23 @@
+//------------------------------------------------------------------------------
+//
+// Awaiter for subscribers examples (awaiter object chaining)
+//
+// see subscribers.cc for example
+//
+//------------------------------------------------------------------------------
+//
+// This file is licensed after LGPL v3
+// Look at: https://www.gnu.org/licenses/lgpl-3.0.en.html for details
+//
+//------------------------------------------------------------------------------
+
 #pragma once
 #include <cassert>
-#include <experimental/coroutine>
 #include <list>
 
-using coro_t = std::experimental::coroutine_handle<>;
+#include "coroinclude.hpp"
+
+using coro_t = coro::coroutine_handle<>;
 
 class evt_awaiter_t {
   struct awaiter;
@@ -20,8 +34,8 @@ class evt_awaiter_t {
 
     bool await_ready() const noexcept { return event_.is_set(); }
 
-    void await_suspend(coro_t coro) noexcept {
-      coro_ = coro;
+    void await_suspend(coro_t c) noexcept {
+      coro_ = c;
       event_.push_awaiter(this);
     }
 
@@ -43,7 +57,7 @@ public:
     a->next_ = oldtop;
   }
 
-  awaiter operator co_await() noexcept { return awaiter{this}; }
+  awaiter operator co_await() noexcept { return awaiter{*this}; }
 
   void set() noexcept {
     set_ = true;
