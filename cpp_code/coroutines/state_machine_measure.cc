@@ -7,8 +7,8 @@
 #include <string>
 #include <utility>
 
-#include "resumable.hpp"
 #include "generator.hpp"
+#include "resumable.hpp"
 #include "states_opt.hpp"
 
 #ifdef DEBUG
@@ -33,7 +33,7 @@ enum class Sym : char { A, B, Term };
 // output: ABCACBC
 
 State transition(State state, Sym sym) {
-  switch(state) {
+  switch (state) {
   case State::A:
     if (sym == Sym::A)
       return State::B;
@@ -60,18 +60,24 @@ generator<Sym> input_seq(unsigned long long n) {
   while (n-- > 0) {
     c = (rand() % 2) ? 'a' : 'b';
     switch (std::tolower(c)) {
-      case 'a': co_yield Sym::A; break;
-      case 'b': co_yield Sym::B; break;
-      default: co_yield Sym::Term; break;
+    case 'a':
+      co_yield Sym::A;
+      break;
+    case 'b':
+      co_yield Sym::B;
+      break;
+    default:
+      co_yield Sym::Term;
+      break;
     }
   }
-  
-  for(;;)
+
+  for (;;)
     co_yield Sym::Term;
 }
 
-resumable_noinc StateA(stm_t &stm) {  
-  for(;;) {
+resumable_noinc StateA(stm_t &stm) {
+  for (;;) {
     log("A\n");
     bool finish = co_await stm.get_awaiter(State::A);
     if (finish)
@@ -79,8 +85,8 @@ resumable_noinc StateA(stm_t &stm) {
   }
 }
 
-resumable_noinc StateB(stm_t &stm) {  
-  for(;;) {
+resumable_noinc StateB(stm_t &stm) {
+  for (;;) {
     log("B\n");
     bool finish = co_await stm.get_awaiter(State::B);
     if (finish)
@@ -88,8 +94,8 @@ resumable_noinc StateB(stm_t &stm) {
   }
 }
 
-resumable_noinc StateC(stm_t &stm) {  
-  for(;;) {
+resumable_noinc StateC(stm_t &stm) {
+  for (;;) {
     log("C\n");
     bool finish = co_await stm.get_awaiter(State::C);
     if (finish)
@@ -103,10 +109,10 @@ int main() {
   std::cin >> n >> m;
   assert(n > 1);
   assert(m > 1);
-  
+
   start = clock();
 
-  for (int i = 0; i < m; ++i) {  
+  for (int i = 0; i < m; ++i) {
     auto gen = input_seq(n);
     stm_t stm{std::move(gen), transition};
     stm.add_state(State::A, StateA);

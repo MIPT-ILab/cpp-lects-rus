@@ -4,7 +4,7 @@
 #include <queue>
 #include <stack>
 
-#include "rec_generator.hpp"
+#include "generator.hpp"
 
 using std::chrono::duration_cast;
 using std::chrono::high_resolution_clock;
@@ -13,12 +13,12 @@ using std::chrono::seconds;
 
 struct node_t {
   int data_;
-  node_t * lhs_ = nullptr, * rhs_ = nullptr;
+  node_t *lhs_ = nullptr, *rhs_ = nullptr;
 
   explicit node_t(int data = 0) : data_{data} {}
 };
 
-node_t * generate(int leafs) {
+node_t *generate(int leafs) {
   node_t *top = new node_t{};
   std::queue<node_t *> nodes;
   nodes.push(top);
@@ -52,9 +52,10 @@ int main() {
   auto tstart = high_resolution_clock::now();
   for (int i = 0; i < m; ++i) {
     auto rgen = tree_preorder(top);
-    while(rgen.next()){}
+    while (rgen.next()) {
+    }
   }
   auto tfin = high_resolution_clock::now();
 
-  std::cout << duration_cast<milliseconds>(tfin - tstart).count() << std::endl;  
+  std::cout << duration_cast<milliseconds>(tfin - tstart).count() << std::endl;
 }

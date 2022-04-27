@@ -11,12 +11,12 @@ using std::chrono::seconds;
 
 struct node_t {
   int data_;
-  node_t * lhs_ = nullptr, * rhs_ = nullptr;
+  node_t *lhs_ = nullptr, *rhs_ = nullptr;
 
   explicit node_t(int data = 0) : data_{data} {}
 };
 
-node_t * generate(int leafs) {
+node_t *generate(int leafs) {
   node_t *top = new node_t{};
   std::queue<node_t *> nodes;
   nodes.push(top);
@@ -32,20 +32,20 @@ node_t * generate(int leafs) {
 }
 
 struct iter_t {
-  std::stack<node_t*> stack_;
+  std::stack<node_t *> stack_;
 
-  explicit iter_t(node_t *p) {
-    stack_.push(p);
-  }
-  
+  explicit iter_t(node_t *p) { stack_.push(p); }
+
   int *nextpre() {
     if (stack_.empty())
       return nullptr;
     node_t *cur = stack_.top();
     stack_.pop();
-    if (cur->lhs_) stack_.push(cur->lhs_);
-    if (cur->rhs_) stack_.push(cur->rhs_);
-    return &cur->data_;  
+    if (cur->lhs_)
+      stack_.push(cur->lhs_);
+    if (cur->rhs_)
+      stack_.push(cur->rhs_);
+    return &cur->data_;
   }
 };
 
@@ -60,10 +60,10 @@ int main() {
   auto tstart = high_resolution_clock::now();
   for (int i = 0; i < m; ++i) {
     iter_t it(top);
-    while(it.nextpre()) {
+    while (it.nextpre()) {
     }
   }
   auto tfin = high_resolution_clock::now();
 
-  std::cout << duration_cast<milliseconds>(tfin - tstart).count() << std::endl;  
+  std::cout << duration_cast<milliseconds>(tfin - tstart).count() << std::endl;
 }

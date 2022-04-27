@@ -20,14 +20,14 @@ generator<int> fibs_modulo(int m) {
   }
 }
 
-int
-main() {
-  unsigned long long k = 0; int m = 0;
+int main() {
+  unsigned long long k = 0;
+  int m = 0;
   std::cin >> k >> m;
-  
+
   assert(k > 1);
   assert(m > 1);
-  
+
   std::cout << "Measuring coroutine: " << std::endl;
   auto tstart = high_resolution_clock::now();
   auto gen = fibs_modulo(m);

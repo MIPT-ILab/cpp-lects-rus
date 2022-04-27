@@ -21,7 +21,7 @@ class evt_awaiter_t {
 
     bool await_ready() const noexcept { return event_.is_set(); }
 
-    void await_suspend(coro_t coro) noexcept {      
+    void await_suspend(coro_t coro) noexcept {
       coro_ = coro;
       event_.push_awaiter(this);
     }
@@ -40,9 +40,9 @@ public:
   bool is_set() const noexcept { return set_; }
   void push_awaiter(awaiter *a) {
     a->next_ = top_.load(std::memory_order_acquire);
-    while(top_.compare_exchange_weak(a->next_, a,
-               std::memory_order_release,
-               std::memory_order_acquire)) {}
+    while (top_.compare_exchange_weak(a->next_, a, std::memory_order_release,
+                                      std::memory_order_acquire)) {
+    }
   }
 
   awaiter operator co_await() noexcept { return awaiter{*this}; }

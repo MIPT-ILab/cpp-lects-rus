@@ -1,10 +1,8 @@
 //------------------------------------------------------------------------------
 //
-// Example for natural numbers generator
+// Example for range-based natural numbers generator
 //
-// > cl -await -EHsc natseq.cc
-// > clang++ -fcoroutines-ts -stdlib=libc++ natseq.cc
-// > g++-10 -fcoroutines -std=c++20 natseq.cc
+// see natseq.cc for how to compile
 //
 //------------------------------------------------------------------------------
 //
@@ -17,21 +15,13 @@
 
 #include "generator.hpp"
 
-generator<int> natural_nums() {
-  int num = 0;
-  for (;;) {
+template <typename T> range_gen<T> sequence(T start, T fin, T step) {
+  for (T num = start; num < fin; num += step)
     co_yield num;
-    num += 1;
-  }
 }
 
 int main() {
-  auto nums = natural_nums();
-
-  nums.move_next();
-  auto y = nums.current_value();
-  nums.move_next();
-  auto z = nums.current_value();
-
-  std::cout << y << " " << z << std::endl;
+  for (int i : sequence(0, 10))
+    std::cout << i << " ";
+  std::cout << std::endl;
 }

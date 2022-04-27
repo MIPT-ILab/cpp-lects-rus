@@ -52,9 +52,9 @@ public:
 #else
     std::list<awaiter> toresume;
     toresume.splice(toresume.begin(), lst_);
-    for (auto s: toresume)
-      s.coro_.resume();    
-#endif    
+    for (auto s : toresume)
+      s.coro_.resume();
+#endif
   }
 
   void reset() noexcept { set_ = false; }

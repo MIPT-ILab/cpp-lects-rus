@@ -20,15 +20,15 @@ struct fibs_modulo_t {
   }
 };
 
-int
-main() {
-  unsigned long long k = 0; int m = 0;
+int main() {
+  unsigned long long k = 0;
+  int m = 0;
   std::cin >> k >> m;
-  
+
   assert(k > 1);
   assert(m > 1);
-  
-  std::cout << "Measuring struct: " << std::endl;  
+
+  std::cout << "Measuring struct: " << std::endl;
   auto tstart = high_resolution_clock::now();
   fibs_modulo_t fm{m};
   for (unsigned long long i = 0; i < k; ++i)
