@@ -28,10 +28,14 @@ generator<int> natural_nums() {
 int main() {
   auto nums = natural_nums();
 
-  nums.move_next();
-  auto y = nums.current_value();
-  nums.move_next();
-  auto z = nums.current_value();
+  for (int i = 0; i < 10; ++i) {
+    nums.move_next();
+    auto y = nums.current_value();
 
-  std::cout << y << " " << z << std::endl;
+#ifdef INVESTIGATE
+    printf("%d\n", y);
+#else
+    std::cout << y << std::endl;
+#endif
+  }
 }

@@ -3,7 +3,7 @@
 // Example for simplest resumable function
 //
 // > cl -await -EHsc hellocoro.cc
-// > clang++ -fcoroutines-ts -stdlib=libc++ hellocoro.cc
+// > clang++ -fcoroutines-ts -std=c++20 -stdlib=libc++ hellocoro.cc
 // > g++-10 -fcoroutines -std=c++20 hellocoro.cc
 //
 //------------------------------------------------------------------------------

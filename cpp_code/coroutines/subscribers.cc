@@ -2,7 +2,9 @@
 //
 // Example for subscribers
 //
-// see hellocoro.cc for build instructions
+// Try:
+// > clang++ -fcoroutines-ts -std=c++20 -stdlib=libc++ subscribers.cc
+// > clang++ -fcoroutines-ts -std=c++20 -stdlib=libc++ subscribers.cc -DNATLST
 //
 //------------------------------------------------------------------------------
 //
