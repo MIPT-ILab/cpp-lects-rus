@@ -1,12 +1,26 @@
+//------------------------------------------------------------------------------
+//
+// State machine implementation
+//
+// Abstracts away states and symbols.
+// see also: state_machine.cc
+//
+//------------------------------------------------------------------------------
+//
+// This file is licensed after LGPL v3
+// Look at: https://www.gnu.org/licenses/lgpl-3.0.en.html for details
+//
+//------------------------------------------------------------------------------
+
 #pragma once
 #include <cassert>
-#include <experimental/coroutine>
 #include <map>
 #include <vector>
 
 #include "generator.hpp"
+#include "coroinclude.hpp"
 
-using coro_t = std::experimental::coroutine_handle<>;
+using coro_t = coro::coroutine_handle<>;
 
 template <typename State, typename Sym> class state_machine {
   State current_;
@@ -35,7 +49,7 @@ public:
   void gennext() { gen_.move_next(); }
 };
 
-template <typename F, typename SM> struct stm_awaiter : public F {
+template <typename F, typename Sym, typename SM> struct stm_awaiter : public F {
   SM &stm_;
   stm_awaiter(F f, SM &stm) : F{f}, stm_{stm} {}
   bool await_ready() const noexcept { return false; }
@@ -51,5 +65,5 @@ template <typename F, typename SM> struct stm_awaiter : public F {
 template <typename State, typename Sym>
 template <typename F>
 auto state_machine<State, Sym>::get_awaiter(F transition) {
-  return stm_awaiter<F, decltype(*this)>(transition, *this);
+  return stm_awaiter<F, Sym, decltype(*this)>(transition, *this);
 }

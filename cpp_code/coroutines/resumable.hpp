@@ -5,10 +5,11 @@
 // resumable -- simplest promise-resumable return object
 // see also: hellocoro.cc
 //
-// resumable_no_wait
+// resumable_no_wait -- see also hello_no_coro.cc
 // resumable_no_own
-// resumable_cancelable
+// resumable_cancelable -- see also cancelable.cc
 // resumable_noinc -- weakly incapsulated resumable object
+// resume_optional -- see also optional.cc
 //
 //------------------------------------------------------------------------------
 //
@@ -18,9 +19,11 @@
 //------------------------------------------------------------------------------
 
 #pragma once
-#include "coroinclude.hpp"
 #include <cassert>
 #include <iostream>
+#include <optional>
+
+#include "coroinclude.hpp"
 
 //------------------------------------------------------------------------------
 //
@@ -209,6 +212,59 @@ struct resumable_noinc {
     coro_handle h = handle_;
     handle_ = nullptr;
     return h;
+  }
+
+private:
+  coro_handle handle_;
+};
+
+//------------------------------------------------------------------------------
+//
+// resume_optional
+//
+//------------------------------------------------------------------------------
+
+template <typename T> class resume_optional {
+  struct optional_awaiter {
+    std::optional<T> opt_;
+
+    optional_awaiter(std::optional<T> opt) : opt_{opt} {}
+
+    bool await_ready() { return opt_.has_value(); }
+    auto await_resume() { return opt_.value(); }
+    void await_suspend(coro::coroutine_handle<>) {}
+  };
+
+public:
+  struct promise_type {
+    std::optional<T> opt_;
+    using coro_handle = coro::coroutine_handle<promise_type>;
+    auto get_return_object() { return coro_handle::from_promise(*this); }
+    auto initial_suspend() { return coro::suspend_never{}; }
+    auto final_suspend() { return coro::suspend_always{}; }
+    optional_awaiter await_transform(std::optional<T> value) {
+      return optional_awaiter{value};
+    }
+    void return_value(T value) { opt_ = value; }
+    void unhandled_exception() { std::terminate(); }
+  };
+
+  using coro_handle = coro::coroutine_handle<promise_type>;
+  resume_optional(coro_handle handle) : handle_(handle) { assert(handle); }
+  resume_optional(resume_optional &) = delete;
+  resume_optional(resume_optional &&rhs) : handle_(rhs.handle_) {
+    rhs.handle_ = nullptr;
+  }
+
+  std::optional<T> current_value() const {
+    if (handle_)
+      return handle_.promise().opt_;
+    return std::nullopt;
+  }
+
+  ~resume_optional() {
+    if (handle_)
+      handle_.destroy();
   }
 
 private:

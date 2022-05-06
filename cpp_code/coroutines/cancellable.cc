@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-// Example for cacncellables
+// Example for cancelables
 //
 // Try:
 // > clang++ -fcoroutines-ts -std=c++20 -stdlib=libc++ cancellable.cc

@@ -1,8 +1,20 @@
-// cl -await -EHsc -std:c++17 optional.cc
+//------------------------------------------------------------------------------
+//
+// Example for optional
+//
+// Try:
+// > clang++ -fcoroutines-ts -std=c++20 -stdlib=libc++ -O2 optional.cc
+//
+//------------------------------------------------------------------------------
+//
+// This file is licensed after LGPL v3
+// Look at: https://www.gnu.org/licenses/lgpl-3.0.en.html for details
+//
+//------------------------------------------------------------------------------
 
 #include <iostream>
 
-#include "optresumable.hpp"
+#include "resumable.hpp"
 
 std::optional<int> five() { return 5; }
 

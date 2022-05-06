@@ -1,4 +1,16 @@
-// cl -await -EHsc subscribers.cc
+//------------------------------------------------------------------------------
+//
+// Example for cacncellables
+//
+// Try:
+// > clang++ -fcoroutines-ts -std=c++20 -stdlib=libc++ -O2 state_machine.cc
+//
+//------------------------------------------------------------------------------
+//
+// This file is licensed after LGPL v3
+// Look at: https://www.gnu.org/licenses/lgpl-3.0.en.html for details
+//
+//------------------------------------------------------------------------------
 
 #include <iostream>
 #include <string>
